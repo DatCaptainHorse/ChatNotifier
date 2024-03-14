@@ -15,12 +15,16 @@ target_include_directories(ChatNotifier PRIVATE
   ${IMGUI_DIR}/backends
 )
 
+# Specifically include websocketpp before the rest of the includes
+target_include_directories(ChatNotifier BEFORE PRIVATE
+  ${websocketpp_SOURCE_DIR}
+)
+
 target_link_libraries(ChatNotifier PRIVATE
   fmt::fmt
   glbinding::glbinding
   glbinding::glbinding-aux
   glfw
-  websocketpp::websocketpp
 )
 
 if (WIN32)
