@@ -379,7 +379,7 @@ auto main() -> int
                     std::erase(approvedUsers, user);
                 }
                 ImGui::SameLine();
-                ImGui::Text(user);
+                ImGui::Text("%s", user);
             }
 
             // Padding
@@ -503,7 +503,7 @@ auto main() -> int
                 // Use deltatime to change color
                 ImGui::PushStyleColor(ImGuiCol_Text,
                                       rainbow(0.1f, static_cast<float>(glfwGetTime() * 5.0), 0.5f, 0.5f));
-                ImGui::Text(current_notification.c_str());
+                ImGui::Text("%s", current_notification.c_str());
                 ImGui::PopStyleColor();
                 ImGui::PopFont();
                 ImGui::End();

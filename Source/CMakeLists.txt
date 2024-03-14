@@ -20,14 +20,8 @@ target_link_libraries(ChatNotifier PRIVATE
   glbinding::glbinding
   glbinding::glbinding-aux
   glfw
+  websocketpp::websocketpp
 )
-
-# If NON_NIX_BUILD is set, link websocketpp
-if (NON_NIX_BUILD)
-  target_link_libraries(ChatNotifier PRIVATE
-    websocketpp
-  )
-endif ()
 
 if (WIN32)
   target_link_libraries(ChatNotifier PRIVATE
