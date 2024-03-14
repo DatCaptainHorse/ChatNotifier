@@ -18,10 +18,7 @@
               # Fix issues with c++20 compilation.
               websocketpp = prev.websocketpp.overrideAttrs (oldAttrs: {
                 patches = [
-                  (prev.fetchpatch {
-                    url = "https://github.com/zaphoyd/websocketpp/commit/3197a520eb4c1e4754860441918a5930160373eb.patch";
-                    sha256 = "sha256-f1in394BhU7Sxh3ALVrykpYqaZCMPLpAN5NhyQ8mNt4=";
-                  })
+                  ./cmake/patches/0001-Fix-cpp20-build.patch
                 ];
               });
             })
@@ -52,10 +49,7 @@
 
               websocketpp = prev.websocketpp.overrideAttrs (oldAttrs: {
                 patches = [
-                  (prev.fetchpatch {
-                    url = "https://github.com/zaphoyd/websocketpp/commit/3197a520eb4c1e4754860441918a5930160373eb.patch";
-                    sha256 = "sha256-f1in394BhU7Sxh3ALVrykpYqaZCMPLpAN5NhyQ8mNt4=";
-                  })
+                  ./cmake/patches/0001-Fix-cpp20-build.patch
                 ];
 
                 meta.platforms = oldAttrs.meta.platforms ++ prev.lib.platforms.windows;
