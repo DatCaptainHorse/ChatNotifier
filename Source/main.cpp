@@ -355,28 +355,31 @@ auto main() -> int
             ImGui::Separator();
 
             // Modifiable list of approved users
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "If the list is empty, everyone can trigger commands!");
+            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "If the list is empty, anyone can trigger commands!");
             ImGui::Text("Approved users:");
             static std::array<char, 32> user_buf = {""};
             if (ImGui::Button("Add"))
             {
                 if (user_buf[0] != '\0')
                 {
-                    approvedUsers.emplace_back(user_buf.data());
+                    // Create string from buffer, as clearing buffer after would clear the newly added user
+                    const std::string user = user_buf.data();
+                    approvedUsers.push_back(user.c_str());
                     std::ranges::fill(user_buf, '\0');
                 }
             }
             ImGui::SameLine();
             ImGui::InputText("##approvedUsers", user_buf.data(), user_buf.size());
+
             // List of approved users
-            for (auto& user : approvedUsers)
+            for (const auto user : approvedUsers)
             {
                 if (ImGui::Button("Remove"))
                 {
                     std::erase(approvedUsers, user);
                 }
                 ImGui::SameLine();
-                ImGui::Text("%s", user);
+                ImGui::Text(user);
             }
 
             // Padding
