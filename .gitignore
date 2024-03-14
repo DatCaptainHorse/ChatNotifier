@@ -1,0 +1,26 @@
+# CMake builds
+[Bb]uild*/
+
+# clangd
+.cache/
+
+# direnv
+.direnv/
+
+# Nix
+result
+result-*
+
+# ImGui
+imgui.ini
+
+# IDEs
+.idea/
+.vscode/
+
+# Asset contents
+Assets/*
+# allow fonts
+!Assets/*.ttf
+# allow tutturuu.wav
+!Assets/tutturuu.wav
