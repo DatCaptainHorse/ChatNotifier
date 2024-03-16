@@ -21,6 +21,8 @@ imgui.ini
 # Asset contents
 Assets/*
 # allow fonts
-!Assets/*.ttf
-# allow tutturuu.wav
-!Assets/tutturuu.wav
+!Assets/Fonts/
+# allow ascii
+!Assets/TriggerASCII/
+# allow tutturuu
+!Assets/TriggerSounds/tutturuu.opus

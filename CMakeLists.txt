@@ -3,6 +3,8 @@ project(ChatNotifier)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF) # We don't want to use any compiler-specific extensions
+set(CMAKE_CXX_SCAN_FOR_MODULES ON) # We use C++20, might as well use modules
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules")
 
@@ -34,5 +36,8 @@ find_package(fmt REQUIRED)
 find_package(glbinding REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(websocketpp REQUIRED)
+find_package(ogg REQUIRED)
+find_package(opus REQUIRED)
+find_package(opusfile REQUIRED)
 
 add_subdirectory(Source)

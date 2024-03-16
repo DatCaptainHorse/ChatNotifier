@@ -1,0 +1,118 @@
+module;
+
+#include <string>
+#include <utility>
+#include <vector>
+#include <ranges>
+#include <algorithm>
+
+#include <imgui.h>
+#include <imgui_internal.h>
+
+export module notification;
+
+// Struct for notifications
+export struct Notification {
+	std::string m_fullText;
+	float m_lifetime = 0.0f;
+	const float m_maxLifetime;
+	float m_effectTime = 0.0f;
+	float m_effectSpeedMul = 1.0f;
+	std::vector<std::string> m_textLines;
+
+	Notification() = delete;
+	~Notification() = default;
+
+	Notification(std::string text, const float &maxLifetime, const float &programTime,
+				 const float &effectSpeedMultiplier)
+		: m_fullText(std::move(text)), m_maxLifetime(maxLifetime), m_effectTime(programTime),
+		  m_effectSpeedMul(effectSpeedMultiplier) {
+		// Split the text by newlines
+		auto start = 0U;
+		auto end = m_fullText.find('\n');
+		while (end != std::string::npos) {
+			m_textLines.push_back(m_fullText.substr(start, end - start));
+			start = end + 1;
+			end = m_fullText.find('\n', start);
+		}
+		m_textLines.push_back(m_fullText.substr(start, end));
+	}
+
+	// Render method
+	void render(ImFont *notifFont) {
+		// Skip if lifetime is over
+		if (is_dead())
+			return;
+
+		// Set the font now
+		ImGui::PushFont(notifFont);
+
+		const auto monitor = ImGui::GetViewportPlatformMonitor(ImGui::GetMainViewport());
+		// Size to fit the monitor
+		ImGui::SetNextWindowSize(monitor->MainSize, ImGuiCond_Once);
+		// Position to the monitor
+		ImGui::SetNextWindowPos(monitor->MainPos, ImGuiCond_Once);
+
+		ImGui::Begin("##notifWindow", nullptr,
+					 ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground |
+						 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoFocusOnAppearing |
+						 ImGuiWindowFlags_NoDocking);
+
+		// Set transparency for window viewport
+		const auto viewport = ImGui::GetWindowViewport();
+		viewport->Flags |= ImGuiViewportFlags_TransparentClearColor;
+		viewport->Flags |= ImGuiViewportFlags_TopMost;
+		viewport->Flags |= ImGuiViewportFlags_NoInputs;
+		viewport->Flags |= ImGuiViewportFlags_NoFocusOnAppearing;
+		viewport->Flags |= ImGuiViewportFlags_NoFocusOnClick;
+		viewport->Flags |= ImGuiViewportFlags_NoAutoMerge;
+		viewport->Flags |= ImGuiViewportFlags_NoTaskBarIcon;
+		viewport->Flags |= ImGuiViewportFlags_NoDecoration;
+
+		// Animate text dropping down to center
+		const auto timeT = m_lifetime / m_maxLifetime;
+		const auto textY = std::lerp(
+			-ImGui::CalcTextSize(m_fullText.c_str()).y,
+			ImGui::GetWindowHeight() / 2 - ImGui::CalcTextSize(m_fullText.c_str()).y / 2, timeT);
+		ImGui::SetCursorPosY(textY);
+
+		// Rainbows!
+		// TODO: Allow multiple effects in future
+		const auto rainbow = [this](const float phase) -> ImVec4 {
+			const auto red = std::sin(0.1f + 0 + phase) * 0.5f + 0.5f;
+			const auto green = std::sin(0.1f + 2 + phase) * 0.5f + 0.5f;
+			const auto blue = std::sin(0.1f + 4 + phase) * 0.5f + 0.5f;
+			return {red, green, blue, 1.0f};
+		};
+
+		// Display the text by lines, to allow for rainbow colors
+		for (std::size_t i = 0; i < m_textLines.size(); ++i) {
+			const auto line = m_textLines[i];
+			auto rainbowed = rainbow(m_effectTime + static_cast<float>(i) * 0.5f);
+			// Alpha to fade in when timeT is below 0.1, back out when above 0.9
+			rainbowed.w = timeT < 0.1f	 ? timeT * 10.0f
+						  : timeT > 0.9f ? (1.0f - timeT) * 10.0f
+										 : 1.0f;
+
+			ImGui::PushStyleColor(ImGuiCol_Text, rainbowed);
+
+			// Center text horizontally
+			ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 -
+								 ImGui::CalcTextSize(line.c_str()).x / 2);
+
+			ImGui::TextUnformatted(line.c_str());
+			ImGui::PopStyleColor();
+		}
+
+		ImGui::End();
+
+		ImGui::PopFont();
+
+		// Update times
+		m_lifetime += ImGui::GetIO().DeltaTime;
+		m_effectTime += ImGui::GetIO().DeltaTime * m_effectSpeedMul;
+	}
+
+	// Returns true if notification has lived its lifetime
+	[[nodiscard]] auto is_dead() const -> bool { return m_lifetime >= m_maxLifetime; }
+};

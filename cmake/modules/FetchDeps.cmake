@@ -4,6 +4,37 @@ endif ()
 
 include(FetchContent)
 
+# Fetch libogg
+message(STATUS "Fetching libogg")
+FetchContent_Declare(
+  ogg
+  GIT_REPOSITORY "https://github.com/xiph/ogg.git"
+  GIT_TAG "v1.3.5"
+  OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(ogg)
+
+# Fetch libopus
+message(STATUS "Fetching libopus")
+FetchContent_Declare(
+  opus
+  GIT_REPOSITORY "https://github.com/xiph/opus.git"
+  GIT_TAG "v1.5.1"
+  OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(opus)
+
+# Fetch opusfile
+message(STATUS "Fetching opusfile")
+FetchContent_Declare(
+  opusfile
+  GIT_REPOSITORY "https://github.com/xiph/opusfile.git"
+  GIT_TAG "v0.12"
+  OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(opusfile)
+set(OPUSFILE_DIR ${opusfile_SOURCE_DIR})
+
 # Fetch imgui
 # Needs special patch to have transparent framebuffers
 message(STATUS "Fetching ImGui")
@@ -26,6 +57,7 @@ FetchContent_Declare(
   GIT_TAG "10.2.1"
   OVERRIDE_FIND_PACKAGE
 )
+# While fmt has C++20 modules, the CMake script they have for it is broken..
 FetchContent_MakeAvailable(fmt)
 
 # Fetch glbinding
