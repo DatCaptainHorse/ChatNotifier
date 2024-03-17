@@ -4,8 +4,7 @@ module;
 #define MA_NO_WAV
 #define MA_NO_MP3
 #define MA_NO_FLAC
-#include <miniaudio/miniaudio.h>
-#include <miniaudio/miniaudio_opus.h>
+#include <miniaudio.h>
 
 #include <array>
 #include <filesystem>
@@ -13,10 +12,18 @@ module;
 
 export module audio;
 
+import opus_decoder;
+
 // Super-duper simple audio player
 export class AudioPlayer {
 	static inline ma_engine m_engine;
 	static inline float m_volume;
+
+	static inline ma_decoding_backend_vtable decoding_backend_opus{
+		ma_decoding_backend_init_libopus, ma_decoding_backend_init_file_libopus,
+		nullptr, /* onInitFileW() */
+		nullptr, /* onInitMemory() */
+		ma_decoding_backend_uninit_libopus};
 
 public:
 	static void initialize() {
@@ -27,7 +34,7 @@ public:
 			return;
 		}
 
-		std::array pCustomBackendVTables = {&g_ma_decoding_backend_vtable_libopus};
+		std::array pCustomBackendVTables = {&decoding_backend_opus};
 
 		auto resourceManagerConfig = ma_resource_manager_config_init();
 		resourceManagerConfig.pLog = engineConfig.pLog;

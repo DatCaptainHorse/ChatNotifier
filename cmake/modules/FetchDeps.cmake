@@ -29,11 +29,25 @@ message(STATUS "Fetching opusfile")
 FetchContent_Declare(
   opusfile
   GIT_REPOSITORY "https://github.com/xiph/opusfile.git"
-  GIT_TAG "v0.12"
+  GIT_COMMIT "9d718345ce03b2fad5d7d28e0bcd1cc69ab2b166"
   OVERRIDE_FIND_PACKAGE
 )
+# Force OP_DISABLE_DOCS ON
+set(OP_DISABLE_DOCS ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(opusfile)
-set(OPUSFILE_DIR ${opusfile_SOURCE_DIR})
+
+# Fetch miniaudio
+message(STATUS "Fetching miniaudio")
+FetchContent_Declare(
+  miniaudio
+  GIT_REPOSITORY "https://github.com/mackron/miniaudio.git"
+  GIT_TAG "0.11.21"
+  OVERRIDE_FIND_PACKAGE
+)
+# Miniaudio has no CMakeLists, just a single header (miniaudio.h), need to turn it into an interface library
+FetchContent_MakeAvailable(miniaudio)
+add_library(miniaudio INTERFACE)
+target_include_directories(miniaudio INTERFACE ${miniaudio_SOURCE_DIR})
 
 # Fetch imgui
 # Needs special patch to have transparent framebuffers
@@ -60,16 +74,6 @@ FetchContent_Declare(
 # While fmt has C++20 modules, the CMake script they have for it is broken..
 FetchContent_MakeAvailable(fmt)
 
-# Fetch glbinding
-message(STATUS "Fetching glbinding")
-FetchContent_Declare(
-  glbinding
-  GIT_REPOSITORY "https://github.com/cginternals/glbinding.git"
-  GIT_TAG "v3.3.0"
-  OVERRIDE_FIND_PACKAGE
-)
-FetchContent_MakeAvailable(glbinding)
-
 # Fetch glfw
 message(STATUS "Fetching GLFW")
 FetchContent_Declare(
@@ -78,10 +82,9 @@ FetchContent_Declare(
   GIT_TAG "3.4"
   OVERRIDE_FIND_PACKAGE
 )
-# Force GLFW_BUILD_WAYLAND to OFF and GLFW_BUILD_X11 to ON under Linux
+# Make sure GLFW_BUILD_WAYLAND is ON
 if (UNIX AND NOT APPLE)
-  set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
-  set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
+  set(GLFW_BUILD_WAYLAND ON CACHE BOOL "" FORCE)
 endif ()
 FetchContent_MakeAvailable(glfw3)
 

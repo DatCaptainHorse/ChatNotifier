@@ -1,18 +1,19 @@
 module;
 
-#define GLFW_INCLUDE_NONE // Don't include OpenGL headers, we are using glbinding
+#define GLFW_INCLUDE_NONE // Don't include OpenGL headers, we are using gl3w
 
-#include <fmt/format.h>
-#include <glbinding/gl33core/gl.h>
-#include <glbinding/glbinding.h>
+#include <gl3w/GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <fmt/format.h>
 
 #include <algorithm>
 #include <numeric>
+#include <vector>
+#include <array>
 
 export module gui;
 
@@ -25,9 +26,11 @@ import commands;
 
 // Class which manages the GUI + notifications
 export class NotifierGUI {
+	static inline bool m_keepRunning = false;
 	static inline GLFWwindow *m_mainWindow;
 	static inline ImFont *m_mainFont;
 	static inline ImFont *m_notifFont;
+	static inline float m_DPI;
 
 	static inline float m_notifAnimationLength;
 	static inline float m_notifEffectSpeed;
@@ -46,6 +49,10 @@ public:
 
 		// GLFW INITIALIZATION //
 		glfwSetErrorCallback(glfw_error_callback);
+		// If on linux, force X11 as glfw lacks proper wayland support
+#ifdef __linux__
+		glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+#endif
 		if (!glfwInit())
 			return;
 
@@ -54,19 +61,32 @@ public:
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-		glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
-		m_mainWindow = glfwCreateWindow(420, 690, "Chat Notifier", nullptr, nullptr);
+		glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+		glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_FALSE);
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+		// Dummy window since it's not as flexible as ImGui viewport windows
+		m_mainWindow = glfwCreateWindow(1, 1, "ChatNotifier", nullptr, nullptr);
 		if (!m_mainWindow)
 			return;
 
 		glfwMakeContextCurrent(m_mainWindow);
 		glfwSwapInterval(1); // V-Sync
 
-		// GLBINDING INITIALIZATION //
-		glbinding::initialize(glfwGetProcAddress, false); // false for lazy loading
+		const auto monitor = glfwGetPrimaryMonitor();
+		const auto mode = glfwGetVideoMode(monitor);
+
+		// GL3W INITIALIZATION //
+		if (gl3wInit()) {
+			fmt::println(stderr, "Failed to initialize GL3W");
+			return;
+		}
+		if (!gl3wIsSupported(3, 3)) {
+			fmt::println(stderr, "OpenGL 3.3 not supported");
+			return;
+		}
 
 		// Print OpenGL version
-		fmt::println("OpenGL Version: {}", get_gl_string(gl::GL_VERSION));
+		fmt::println("OpenGL Version: {}", get_gl_string(GL_VERSION));
 
 		// IMGUI INITIALIZATION //
 		IMGUI_CHECKVERSION();
@@ -83,13 +103,10 @@ public:
 		// Calculate pixel density
 		// (DPI = (square root of (horizontal pixels² + vertical pixels²)) / diagonal screen size in
 		// inches)
-		const auto monitor = glfwGetPrimaryMonitor();
-		const auto mode = glfwGetVideoMode(monitor);
-		const auto dpi =
-			std::sqrt(std::pow(mode->width, 2) + std::pow(mode->height, 2)) / mode->width;
-		const auto mainFontSize = 18.0 * dpi;
-		const auto notifFontSize = 64.0 * dpi;
-		fmt::println("DPI: {}, Main font size: {}, Notification font size: {}", dpi, mainFontSize,
+		m_DPI = std::sqrt(std::pow(mode->width, 2) + std::pow(mode->height, 2)) / mode->width;
+		const auto mainFontSize = 18.0 * m_DPI;
+		const auto notifFontSize = 64.0 * m_DPI;
+		fmt::println("DPI: {}, Main font size: {}, Notification font size: {}", m_DPI, mainFontSize,
 					 notifFontSize);
 
 		// NotoSansMono.ttf for main text
@@ -127,10 +144,15 @@ public:
 
 		// Build fonts
 		io.Fonts->Build();
+
+		// Ready to run
+		m_keepRunning = true;
 	}
 
 	// Cleans up the GUI and it's resources
 	static void cleanup() {
+		m_keepRunning = false;
+
 		ImGui_ImplOpenGL3_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
@@ -141,7 +163,7 @@ public:
 	}
 
 	// Returns if the gui should close
-	[[nodiscard]] static auto should_close() -> bool { return glfwWindowShouldClose(m_mainWindow); }
+	[[nodiscard]] static auto should_close() -> bool { return !m_keepRunning; }
 
 	// GUI drawing and updating
 	static void render() {
@@ -153,14 +175,33 @@ public:
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
+		// Create invisible "root", transparent window for all other windows to merge
+		const auto monitor = ImGui::GetViewportPlatformMonitor(ImGui::GetMainViewport());
+		ImGui::SetNextWindowPos(monitor->MainPos, ImGuiCond_Once);
+		ImGui::SetNextWindowSize(monitor->MainSize, ImGuiCond_Once);
+		ImGui::Begin("##rootWindow", nullptr,
+					 ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground |
+						 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoFocusOnAppearing |
+						 ImGuiWindowFlags_NoDocking);
+
+		// Set root viewport settings
+		const auto rootViewport = ImGui::GetWindowViewport();
+		rootViewport->Flags |= ImGuiViewportFlags_TransparentClearColor;
+		rootViewport->Flags |= ImGuiViewportFlags_TopMost;
+		rootViewport->Flags |= ImGuiViewportFlags_NoInputs;
+		rootViewport->Flags |= ImGuiViewportFlags_NoFocusOnAppearing;
+		rootViewport->Flags |= ImGuiViewportFlags_NoFocusOnClick;
+		rootViewport->Flags |= ImGuiViewportFlags_NoTaskBarIcon;
+		rootViewport->Flags |= ImGuiViewportFlags_NoDecoration;
+
 		// CONTROL WINDOW //
 		{
-			// Window that is always mainWindow sized and positioned at mainWindow location
-			ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Pos, ImGuiCond_Once);
-			ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size, ImGuiCond_Once);
-			ImGui::Begin("Control", nullptr,
-						 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-							 ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+			ImGui::SetNextWindowSize(ImVec2(420, 690), ImGuiCond_Once);
+			ImGui::Begin("Chat Notifier Controls", &m_keepRunning,
+						 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+
+			// Have control window as separate viewport
+			ImGui::GetWindowViewport()->Flags |= ImGuiViewportFlags_NoAutoMerge;
 
 			// Settings portion, separators n stuff
 			ImGui::Separator();
@@ -176,6 +217,10 @@ public:
 			// Slider for notification effect speed, float from 0.1 to 10.0
 			ImGui::Text("Notification effect speed:");
 			ImGui::SliderFloat("##effectSpeed", &m_notifEffectSpeed, 0.1f, 10.0f, "%.1f");
+
+			// Slider for notification font scale, float from 0.5 to 2.0
+			ImGui::Text("Notification font scale:");
+			ImGui::SliderFloat("##fontScale", &m_notifFont->Scale, 0.5f, 2.0f, "%.1f");
 
 			// Slider for global audio volume, which is a float from 0.0f to 1.0f
 			// Volume inputslider text formatting as 0 to 100% instead of 0.0 to 1.0
@@ -336,23 +381,24 @@ public:
 
 		// NOTIFICATIONS //
 		{
-			// Render notifications
-			for (std::size_t i = 0; i < m_notifications.size(); ++i) {
-				const auto &notif = m_notifications[i];
-				notif->render(m_notifFont);
-			}
-
 			// Remove notifications that have lived their lifetime
 			std::erase_if(m_notifications, [](const auto &notif) { return notif->is_dead(); });
+
+			// Render notifications
+			for (const auto &notif : m_notifications)
+				notif->render(m_notifFont);
 		}
+
+		// End root window
+		ImGui::End();
 
 		// IMGUI RENDERING //
 		ImGui::Render();
 		int display_w = 0, display_h = 0;
 		glfwGetFramebufferSize(m_mainWindow, &display_w, &display_h);
-		gl::glViewport(0, 0, display_w, display_h);
-		gl::glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
-		gl::glClear(gl::GL_COLOR_BUFFER_BIT);
+		glViewport(0, 0, display_w, display_h);
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
@@ -386,7 +432,7 @@ private:
 	}
 
 	// Method that provides better glGetString, returns const char* instead of GLubyte*
-	static auto get_gl_string(const gl::GLenum name) -> const char * {
-		return reinterpret_cast<const char *>(gl::glGetString(name));
+	static auto get_gl_string(const GLenum name) -> const char * {
+		return reinterpret_cast<const char *>(glGetString(name));
 	}
 };

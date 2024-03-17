@@ -5,12 +5,8 @@ module;
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
 #include <fmt/format.h>
-#include <functional>
-#include <algorithm>
-#include <utility>
-#include <ranges>
+
 #include <thread>
-#include <memory>
 
 export module twitch;
 

@@ -8,18 +8,14 @@ add_executable(ChatNotifier
   ${IMGUI_DIR}/imgui_widgets.cpp
   ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
   ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
-
-  #${OPUSFILE_DIR}/src/info.c
-  #${OPUSFILE_DIR}/src/internal.c
-  #${OPUSFILE_DIR}/src/opusfile.c
-  #${OPUSFILE_DIR}/src/stream.c
 )
 
-# C++20 module files (common.cppm)
+# C++20 module files
 target_sources(ChatNotifier PRIVATE FILE_SET CXX_MODULES FILES
   common.cppm
   assets.cppm
   commands.cppm
+  opus_decoder.cppm
   audio.cppm
   twitch.cppm
   notification.cppm
@@ -30,8 +26,6 @@ target_include_directories(ChatNotifier PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${IMGUI_DIR}
   ${IMGUI_DIR}/backends
-  ${MINIAUDIO_DIR}
-  ${MINIAUDIO_DIR}/extras
   ${ogg_INCLUDE_DIRS}
   ${opus_INCLUDE_DIRS}
   ${opusfile_INCLUDE_DIRS}
@@ -44,13 +38,18 @@ target_include_directories(ChatNotifier BEFORE PRIVATE
 
 target_link_libraries(ChatNotifier PRIVATE
   fmt::fmt-header-only
-  glbinding::glbinding
-  glbinding::glbinding-aux
+  gl3w
   glfw
+
+  $<$<BOOL:${NON_NIX_BUILD}>:ogg>
+  $<$<BOOL:${NON_NIX_BUILD}>:opus>
+  $<$<BOOL:${NON_NIX_BUILD}>:OpusFile::opusfile>
 
   ${ogg_LIBRARIES}
   ${opus_LIBRARIES}
   ${opusfile_LIBRARIES}
+
+  miniaudio
 )
 
 if (WIN32)
@@ -69,8 +68,3 @@ if (NON_NIX_BUILD)
     $<TARGET_FILE_DIR:ChatNotifier>/Assets
   )
 endif ()
-
-# Enable warnings as errors, let's try to stay clean from now on
-#if (NON_NIX_BUILD)
-  set_property(TARGET ChatNotifier PROPERTY COMPILE_WARNING_AS_ERROR ON)
-#endif ()

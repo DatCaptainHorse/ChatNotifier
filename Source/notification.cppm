@@ -1,18 +1,15 @@
 module;
 
 #include <string>
-#include <utility>
 #include <vector>
-#include <ranges>
-#include <algorithm>
 
 #include <imgui.h>
 #include <imgui_internal.h>
 
 export module notification;
 
-// Struct for notifications
-export struct Notification {
+// Class for notifications
+export class Notification {
 	std::string m_fullText;
 	float m_lifetime = 0.0f;
 	const float m_maxLifetime;
@@ -20,6 +17,7 @@ export struct Notification {
 	float m_effectSpeedMul = 1.0f;
 	std::vector<std::string> m_textLines;
 
+public:
 	Notification() = delete;
 	~Notification() = default;
 
@@ -47,34 +45,8 @@ export struct Notification {
 		// Set the font now
 		ImGui::PushFont(notifFont);
 
-		const auto monitor = ImGui::GetViewportPlatformMonitor(ImGui::GetMainViewport());
-		// Size to fit the monitor
-		ImGui::SetNextWindowSize(monitor->MainSize, ImGuiCond_Once);
-		// Position to the monitor
-		ImGui::SetNextWindowPos(monitor->MainPos, ImGuiCond_Once);
-
-		ImGui::Begin("##notifWindow", nullptr,
-					 ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground |
-						 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoFocusOnAppearing |
-						 ImGuiWindowFlags_NoDocking);
-
-		// Set transparency for window viewport
-		const auto viewport = ImGui::GetWindowViewport();
-		viewport->Flags |= ImGuiViewportFlags_TransparentClearColor;
-		viewport->Flags |= ImGuiViewportFlags_TopMost;
-		viewport->Flags |= ImGuiViewportFlags_NoInputs;
-		viewport->Flags |= ImGuiViewportFlags_NoFocusOnAppearing;
-		viewport->Flags |= ImGuiViewportFlags_NoFocusOnClick;
-		viewport->Flags |= ImGuiViewportFlags_NoAutoMerge;
-		viewport->Flags |= ImGuiViewportFlags_NoTaskBarIcon;
-		viewport->Flags |= ImGuiViewportFlags_NoDecoration;
-
-		// Animate text dropping down to center
+		// General time variable
 		const auto timeT = m_lifetime / m_maxLifetime;
-		const auto textY = std::lerp(
-			-ImGui::CalcTextSize(m_fullText.c_str()).y,
-			ImGui::GetWindowHeight() / 2 - ImGui::CalcTextSize(m_fullText.c_str()).y / 2, timeT);
-		ImGui::SetCursorPosY(textY);
 
 		// Rainbows!
 		// TODO: Allow multiple effects in future
@@ -89,22 +61,33 @@ export struct Notification {
 		for (std::size_t i = 0; i < m_textLines.size(); ++i) {
 			const auto line = m_textLines[i];
 			auto rainbowed = rainbow(m_effectTime + static_cast<float>(i) * 0.5f);
-			// Alpha to fade in when timeT is below 0.1, back out when above 0.9
-			rainbowed.w = timeT < 0.1f	 ? timeT * 10.0f
-						  : timeT > 0.9f ? (1.0f - timeT) * 10.0f
-										 : 1.0f;
+			// Alpha to fade in when timeT is below 0.1f AND fade back to nothing when timeT is
+			// above 0.9f
+			rainbowed.w = timeT < 0.1f ? timeT * 10.0f : (1.0f - timeT) * 10.0f;
 
 			ImGui::PushStyleColor(ImGuiCol_Text, rainbowed);
 
+			const auto textSize = ImGui::CalcTextSize(line.c_str());
 			// Center text horizontally
-			ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 -
-								 ImGui::CalcTextSize(line.c_str()).x / 2);
+			ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 - textSize.x / 2);
 
+			const auto totalTextHeight = textSize.y / 1.5f * static_cast<float>(m_textLines.size());
+			const auto lineY = textSize.y / 1.5f * static_cast<float>(i);
+
+			// Animate appearing from top, fading away at center
+			const auto offset =
+				std::lerp(-totalTextHeight / 2.0f,
+						  ImGui::GetWindowHeight() / 2.0f - totalTextHeight / 2.0f, timeT) +
+				lineY;
+
+			// Set the cursor position
+			ImGui::SetCursorPosY(offset);
+
+			// Render the line
 			ImGui::TextUnformatted(line.c_str());
+
 			ImGui::PopStyleColor();
 		}
-
-		ImGui::End();
 
 		ImGui::PopFont();
 
