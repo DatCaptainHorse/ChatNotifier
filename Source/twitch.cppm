@@ -2,13 +2,6 @@ module;
 
 #define ASIO_STANDALONE // Standalone Asio, no Boost
 
-#ifdef __MINGW32__
-#if __has_include(<thread>)
-/* bin: silly workaround, force this if we have <thread> so we don't fallback to boost */
-#define _WEBSOCKETPP_CPP11_THREAD_
-#endif /* __has_include(<thread>) */
-#endif /* __MINGW32__ */
-
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
 #include <fmt/format.h>

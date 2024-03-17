@@ -25,56 +25,71 @@
           ];
         };
 
-        windowsPkgs = import nixpkgs {
-          inherit system;
-          crossSystem = pkgs.lib.systems.examples.mingwW64 // { isStatic = true; };
+        mkChatNotifier = { targetPkgs }:
+          targetPkgs.llvmPackages_17.libcxxStdenv.mkDerivation {
+            pname = "chatnotifier";
+            version = "1.0.0";
 
-          overlays = [
-            (final: prev: {
-              asio = prev.asio.overrideAttrs (oldAttrs: {
-                # For the love of all that is holy, do not build boost. Please.
-                propagatedBuildInputs = [ ];
+            # Would complain about miniaudio otherwise (warnings as errors)
+            hardeningDisable = [ "all" ];
 
-                meta.platforms = oldAttrs.meta.platforms ++ prev.lib.platforms.windows;
-              });
+            src = nix-filter {
+              root = self;
 
-              glbinding = prev.glbinding.overrideAttrs (oldAttrs: {
-                # Avoid propagating libGLU, since we don't need it anyway.
-                propagatedBuildInputs = with prev; [
-                  windows.mingw_w64_pthreads
-                ];
-              });
+              include = with nix-filter.lib; [
+                "CMakeLists.txt"
+                (inDirectory "Source")
+              ];
+            };
 
-              imgui = prev.callPackage ./nix/pkgs/imgui { };
+            nativeBuildInputs = with pkgs; [
+              cmake
+              ninja
+              pkgconf
 
-              websocketpp = prev.websocketpp.overrideAttrs (oldAttrs: {
-                patches = [
-                  ./cmake/patches/0001-Fix-cpp20-build.patch
-                ];
+              clang-tools_17
+            ];
 
-                meta.platforms = oldAttrs.meta.platforms ++ prev.lib.platforms.windows;
-              });
-            })
-          ];
-        };
+            buildInputs = with targetPkgs; [
+              asio
+              fmt
+              glbinding
+              glfw
+              libogg
+              libopus
+              opusfile
+              websocketpp
+            ];
 
-        tcn = pkgs.callPackage ./default.nix { inherit nix-filter; };
-        tcn-win32 = windowsPkgs.callPackage ./default.nix { inherit nix-filter; hostPkgs = pkgs; };
+            IMGUI_DIR = targetPkgs.imgui;
+            MINIAUDIO_DIR = targetPkgs.miniaudio;
+          };
 
-        tcn-shell = pkgs.callPackage ./shell.nix { inherit tcn; };
-        tcn-shell-win32 = pkgs.callPackage ./shell.nix { tcn = tcn-win32; };
+        mkChatNotifierShell = { target }:
+          pkgs.mkShell.override { stdenv = target.stdenv; } {
+            inputsFrom = [
+              target
+            ];
+
+            IMGUI_DIR = target.IMGUI_DIR;
+            MINIAUDIO_DIR = target.MINIAUDIO_DIR;
+          };
+
+        chatnotifier = mkChatNotifier { targetPkgs = pkgs; };
+
+        chatnotifier-shell = mkChatNotifierShell { target = chatnotifier; };
       in
       {
         formatter = pkgs.nixpkgs-fmt;
 
         devShells = {
-          default = tcn-shell;
-          tcn-win32 = tcn-shell-win32;
+          inherit chatnotifier-shell;
+          default = chatnotifier-shell;
         };
 
         packages = {
-          default = tcn;
-          tcn-win32 = tcn-win32;
+          inherit chatnotifier;
+          default = chatnotifier;
         };
       });
 }
