@@ -7,7 +7,6 @@ module;
 #include <miniaudio.h>
 
 #include <array>
-#include <filesystem>
 #include <fmt/format.h>
 
 export module audio;
@@ -76,9 +75,7 @@ public:
 		ma_engine_set_volume(&m_engine, m_volume);
 	}
 
-	static void play_oneshot(const std::filesystem::path &file) {
-		// Make sure the file exists, then play it
-		if (std::filesystem::exists(file))
-			ma_engine_play_sound(&m_engine, file.c_str(), nullptr);
+	static void play_oneshot(const std::string &file) {
+		ma_engine_play_sound(&m_engine, file.c_str(), nullptr);
 	}
 };

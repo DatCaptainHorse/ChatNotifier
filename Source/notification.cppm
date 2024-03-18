@@ -3,6 +3,7 @@ module;
 #include <string>
 #include <vector>
 #include <numeric>
+#include <cmath>
 
 #include <imgui.h>
 #include <imgui_internal.h>

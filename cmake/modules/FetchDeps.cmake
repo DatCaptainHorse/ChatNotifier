@@ -35,6 +35,7 @@ FetchContent_Declare(
 # Disable unnecessary features
 set(OP_DISABLE_DOCS ON CACHE BOOL "" FORCE)
 set(OP_DISABLE_HTTP ON CACHE BOOL "" FORCE)
+set(OP_DISABLE_EXAMPLES ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(opusfile)
 
 # Fetch miniaudio
