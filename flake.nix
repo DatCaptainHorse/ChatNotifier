@@ -8,7 +8,19 @@
   outputs = { self, nixpkgs, flake-utils, nix-filter, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs {
+        pkgs' = import nixpkgs { inherit system; };
+        nixpkgs-patched = pkgs'.applyPatches {
+          name = "nixpkgs-patched-293296";
+          src = nixpkgs;
+          patches = [
+            (pkgs'.fetchpatch {
+              url = "https://github.com/NixOS/nixpkgs/pull/293296.patch";
+              hash = "sha256-znciaMn0w52mS0t2TAKkm+D8rsGNIdHtsF968jiL+gQ=";
+            })
+          ];
+        };
+
+        pkgs = import nixpkgs-patched {
           inherit system;
 
           overlays = [
