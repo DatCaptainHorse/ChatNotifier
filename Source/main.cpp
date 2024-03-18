@@ -12,9 +12,9 @@ import twitch;
 void twc_callback_handler(const TwitchChatMessage &msg);
 
 // Main method
-auto main() -> int {
+auto main(int argc, char **argv) -> int {
 	// INITIALIZE //
-	AssetsHandler::initialize();
+	AssetsHandler::initialize(argv[0]);
 	AudioPlayer::initialize();
 	TwitchChatConnector::initialize(twc_callback_handler);
 

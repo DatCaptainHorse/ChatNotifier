@@ -10,21 +10,10 @@ export module assets;
 
 import common;
 
-// Returns path to assets folder
-auto get_assets_path() -> std::filesystem::path { return "Assets/"; }
-// Returns path to font assets folder
-auto get_font_assets_path() -> std::filesystem::path { return get_assets_path() / "Fonts/"; }
-// Returns path to trigger ASCII art folder
-auto get_trigger_ascii_path() -> std::filesystem::path {
-	return get_assets_path() / "TriggerASCII/";
-}
-// Returns path to trigger sounds folder
-auto get_trigger_sounds_path() -> std::filesystem::path {
-	return get_assets_path() / "TriggerSounds/";
-}
-
 // Class which handles assets
 export class AssetsHandler {
+	// Our executable/binary path
+	static inline std::filesystem::path exec_path;
 	// Map of font files linked to their paths
 	static inline std::map<std::string, std::filesystem::path> font_files;
 	// Map of ASCII art files linked to their paths
@@ -34,7 +23,8 @@ export class AssetsHandler {
 
 public:
 	// Method that initializes assets, finds them and populates resources
-	static void initialize() {
+	static void initialize(const std::filesystem::path &argv_path) {
+		exec_path = argv_path.parent_path();
 		populate_font_files();
 		populate_ascii_art_files();
 		populate_egg_sounds();
@@ -45,6 +35,20 @@ public:
 		font_files.clear();
 		ascii_art_files.clear();
 		egg_sounds.clear();
+		exec_path.clear();
+	}
+
+	// Returns path to assets folder
+	static auto get_assets_path() -> std::filesystem::path { return exec_path / "Assets/"; }
+	// Returns path to font assets folder
+	static auto get_font_assets_path() -> std::filesystem::path { return get_assets_path() / "Fonts/"; }
+	// Returns path to trigger ASCII art folder
+	static auto get_trigger_ascii_path() -> std::filesystem::path {
+		return get_assets_path() / "TriggerASCII/";
+	}
+	// Returns path to trigger sounds folder
+	static auto get_trigger_sounds_path() -> std::filesystem::path {
+		return get_assets_path() / "TriggerSounds/";
 	}
 
 	// Returns if the font file exists
