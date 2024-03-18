@@ -32,8 +32,9 @@ FetchContent_Declare(
   GIT_COMMIT "9d718345ce03b2fad5d7d28e0bcd1cc69ab2b166"
   OVERRIDE_FIND_PACKAGE
 )
-# Force OP_DISABLE_DOCS ON
+# Disable unnecessary features
 set(OP_DISABLE_DOCS ON CACHE BOOL "" FORCE)
+set(OP_DISABLE_HTTP ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(opusfile)
 
 # Fetch miniaudio
@@ -89,6 +90,23 @@ if (UNIX AND NOT APPLE)
   set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
 endif ()
 FetchContent_MakeAvailable(glfw3)
+
+# ASIO standalone..
+message(STATUS "Fetching ASIO")
+FetchContent_Declare(
+  asio
+  GIT_REPOSITORY "https://github.com/chriskohlhoff/asio.git"
+  GIT_TAG "asio-1-29-0"
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+)
+FetchContent_GetProperties(asio)
+if (NOT asio_POPULATED)
+  FetchContent_Populate(asio)
+endif ()
+# Since ASIO has no CMake support, create an interface library ourselves
+add_library(asio INTERFACE)
+target_include_directories(asio INTERFACE ${asio_SOURCE_DIR}/asio/include)
 
 # Fetch websocketpp
 # Needs patch as well

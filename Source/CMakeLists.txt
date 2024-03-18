@@ -41,6 +41,8 @@ target_link_libraries(ChatNotifier PRIVATE
   gl3w
   glfw
 
+  $<$<BOOL:${NON_NIX_BUILD}>:asio>
+
   $<$<BOOL:${NON_NIX_BUILD}>:ogg>
   $<$<BOOL:${NON_NIX_BUILD}>:opus>
   $<$<BOOL:${NON_NIX_BUILD}>:OpusFile::opusfile>
