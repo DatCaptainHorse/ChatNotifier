@@ -1,6 +1,7 @@
 module;
 
 #define ASIO_STANDALONE // Standalone Asio, no Boost
+#define _WEBSOCKETPP_CPP11_STRICT_ // Force websocket to use C++11
 
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>

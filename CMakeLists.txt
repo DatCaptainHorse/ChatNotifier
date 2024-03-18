@@ -5,7 +5,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # We don't want to use any compiler-specific extensions
 set(CMAKE_CXX_SCAN_FOR_MODULES ON) # We use C++20, might as well use modules
-set(CMAKE_COMPILE_WARNING_AS_ERROR ON) # Warnings as errors project wide
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules")
 

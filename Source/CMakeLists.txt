@@ -71,3 +71,13 @@ install(TARGETS ChatNotifier)
 if (CMAKE_INSTALL_BINDIR)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif ()
+
+# Enable warnings as errors for the target, unless WIN32 is set
+set_target_properties(ChatNotifier PROPERTIES
+  $<$<NOT:$<BOOL:${WIN32}>>:COMPILE_WARNING_AS_ERROR ON>
+)
+
+# If WIN32, set _CRT_SECURE_NO_WARNINGS
+target_compile_definitions(ChatNotifier PRIVATE
+  $<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS>
+)
