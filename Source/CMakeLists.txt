@@ -58,10 +58,11 @@ if (WIN32)
   )
 endif ()
 
-install(TARGETS ChatNotifier)
-
 add_custom_command(TARGET ChatNotifier POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   ${CMAKE_SOURCE_DIR}/Assets
   $<TARGET_FILE_DIR:ChatNotifier>/Assets
 )
+
+install(TARGETS ChatNotifier)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets DESTINATION ${CMAKE_INSTALL_BINDIR})

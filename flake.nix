@@ -38,6 +38,7 @@
 
               include = with nix-filter.lib; [
                 "CMakeLists.txt"
+                (inDirectory "Assets")
                 (inDirectory "Source")
               ];
             };
