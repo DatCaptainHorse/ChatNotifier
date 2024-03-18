@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.28)
 project(ChatNotifier)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -28,6 +28,13 @@ include(CMakeDependentOption)
 
 # This doesn't work on MinGW, and seems to have issues with hardened kernels?
 cmake_dependent_option(USE_SANITIZERS "Use sanitizers if supported by target" OFF "NOT WIN32" OFF)
+
+# If "mold" linker is available, use it
+find_program(MOLD_LINKER mold)
+if (MOLD_LINKER)
+  set(CMAKE_LINKER_TYPE ${MOLD_LINKER})
+  message(STATUS "Using mold linker")
+endif ()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

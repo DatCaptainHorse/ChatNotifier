@@ -45,6 +45,26 @@ public:
 		// Set the font now
 		ImGui::PushFont(notifFont);
 
+		const auto mainMonitor = ImGui::GetViewportPlatformMonitor(ImGui::GetMainViewport());
+		ImGui::SetNextWindowPos(mainMonitor->MainPos, ImGuiCond_Once);
+		ImGui::SetNextWindowSize(mainMonitor->MainSize, ImGuiCond_Once);
+
+		ImGui::Begin("##notifWindow", nullptr,
+					 ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground |
+						 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoFocusOnAppearing |
+						 ImGuiWindowFlags_NoDocking);
+
+		// Set transparency for window viewport
+		const auto viewport = ImGui::GetWindowViewport();
+		viewport->Flags |= ImGuiViewportFlags_TransparentClearColor;
+		viewport->Flags |= ImGuiViewportFlags_TopMost;
+		viewport->Flags |= ImGuiViewportFlags_NoInputs;
+		viewport->Flags |= ImGuiViewportFlags_NoFocusOnAppearing;
+		viewport->Flags |= ImGuiViewportFlags_NoFocusOnClick;
+		viewport->Flags |= ImGuiViewportFlags_NoAutoMerge;
+		viewport->Flags |= ImGuiViewportFlags_NoTaskBarIcon;
+		viewport->Flags |= ImGuiViewportFlags_NoDecoration;
+
 		// General time variable
 		const auto timeT = m_lifetime / m_maxLifetime;
 
@@ -89,6 +109,7 @@ public:
 			ImGui::PopStyleColor();
 		}
 
+		ImGui::End();
 		ImGui::PopFont();
 
 		// Update times

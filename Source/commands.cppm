@@ -1,9 +1,8 @@
 module;
 
 #include <map>
+#include <string>
 #include <functional>
-
-#include <fmt/format.h>
 
 export module commands;
 
@@ -61,8 +60,7 @@ public:
 																   });
 						asciiart != asciiarts.end()) {
 						// Reformat notifMsg
-						notifMsg = fmt::format(
-							"{}\n{}", AssetsHandler::get_ascii_art_text(*asciiart), notifMsg);
+						notifMsg = AssetsHandler::get_ascii_art_text(*asciiart) + "\n" + notifMsg;
 					}
 
 					// Play easter-egg sound if one is found, just the first found sound

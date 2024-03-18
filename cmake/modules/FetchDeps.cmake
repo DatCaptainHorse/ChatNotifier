@@ -82,9 +82,11 @@ FetchContent_Declare(
   GIT_TAG "3.4"
   OVERRIDE_FIND_PACKAGE
 )
-# Make sure GLFW_BUILD_WAYLAND is ON
+# Make sure GLFW_BUILD_WAYLAND is OFF and GLFW_BUILD_X11 is ON
+# glfw 3.4 has lacking support for wayland
 if (UNIX AND NOT APPLE)
-  set(GLFW_BUILD_WAYLAND ON CACHE BOOL "" FORCE)
+  set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
+  set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
 endif ()
 FetchContent_MakeAvailable(glfw3)
 

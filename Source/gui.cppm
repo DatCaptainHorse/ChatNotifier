@@ -49,31 +49,29 @@ public:
 
 		// GLFW INITIALIZATION //
 		glfwSetErrorCallback(glfw_error_callback);
-		// If on linux, force X11 as glfw lacks proper wayland support
-#ifdef __linux__
-		//glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
-#endif
 		if (!glfwInit())
 			return;
 
 		// WINDOW CREATION //
+		const auto monitor = glfwGetPrimaryMonitor();
+		const auto mode = glfwGetVideoMode(monitor);
+
+		// GLFW window hints
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-		glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
-		glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_FALSE);
-		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-		// Dummy window since it's not as flexible as ImGui viewport windows
-		m_mainWindow = glfwCreateWindow(1, 1, "ChatNotifier", nullptr, nullptr);
+		glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
+		glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_TRUE);
+		glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+
+		// Main window
+		m_mainWindow = glfwCreateWindow(420, 690, "ChatNotifier", nullptr, nullptr);
 		if (!m_mainWindow)
 			return;
 
 		glfwMakeContextCurrent(m_mainWindow);
 		glfwSwapInterval(1); // V-Sync
-
-		const auto monitor = glfwGetPrimaryMonitor();
-		const auto mode = glfwGetVideoMode(monitor);
 
 		// GL3W INITIALIZATION //
 		if (gl3wInit()) {
@@ -163,7 +161,9 @@ public:
 	}
 
 	// Returns if the gui should close
-	[[nodiscard]] static auto should_close() -> bool { return !m_keepRunning; }
+	[[nodiscard]] static auto should_close() -> bool {
+		return !m_keepRunning || glfwWindowShouldClose(m_mainWindow);
+	}
 
 	// GUI drawing and updating
 	static void render() {
@@ -175,33 +175,14 @@ public:
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		// Create invisible "root", transparent window for all other windows to merge
-		const auto monitor = ImGui::GetViewportPlatformMonitor(ImGui::GetMainViewport());
-		ImGui::SetNextWindowPos(monitor->MainPos, ImGuiCond_Once);
-		ImGui::SetNextWindowSize(monitor->MainSize, ImGuiCond_Once);
-		ImGui::Begin("##rootWindow", nullptr,
-					 ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground |
-						 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoFocusOnAppearing |
-						 ImGuiWindowFlags_NoDocking);
-
-		// Set root viewport settings
-		const auto rootViewport = ImGui::GetWindowViewport();
-		rootViewport->Flags |= ImGuiViewportFlags_TransparentClearColor;
-		rootViewport->Flags |= ImGuiViewportFlags_TopMost;
-		rootViewport->Flags |= ImGuiViewportFlags_NoInputs;
-		rootViewport->Flags |= ImGuiViewportFlags_NoFocusOnAppearing;
-		rootViewport->Flags |= ImGuiViewportFlags_NoFocusOnClick;
-		rootViewport->Flags |= ImGuiViewportFlags_NoTaskBarIcon;
-		rootViewport->Flags |= ImGuiViewportFlags_NoDecoration;
-
 		// CONTROL WINDOW //
 		{
-			ImGui::SetNextWindowSize(ImVec2(420, 690), ImGuiCond_Once);
+			const auto mainViewport = ImGui::GetMainViewport();
+			ImGui::SetNextWindowPos(mainViewport->Pos, ImGuiCond_Once);
+			ImGui::SetNextWindowSize(mainViewport->Size, ImGuiCond_Once);
 			ImGui::Begin("Chat Notifier Controls", &m_keepRunning,
-						 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
-
-			// Have control window as separate viewport
-			ImGui::GetWindowViewport()->Flags |= ImGuiViewportFlags_NoAutoMerge;
+						 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
+							 ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration);
 
 			// Settings portion, separators n stuff
 			ImGui::Separator();
@@ -389,9 +370,6 @@ public:
 				notif->render(m_notifFont);
 		}
 
-		// End root window
-		ImGui::End();
-
 		// IMGUI RENDERING //
 		ImGui::Render();
 		int display_w = 0, display_h = 0;
@@ -428,7 +406,9 @@ public:
 private:
 	// GLFW error callback using fmt
 	static void glfw_error_callback(int error, const char *description) {
-		fmt::println(stderr, "Glfw Error {}: {}", error, description);
+		// Ignore GLFW_FEATURE_UNAVAILABLE as they're expected with Wayland
+		if (error != GLFW_FEATURE_UNAVAILABLE)
+			fmt::println(stderr, "GLFW error {}: {}", error, description);
 	}
 
 	// Method that provides better glGetString, returns const char* instead of GLubyte*
