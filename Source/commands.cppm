@@ -71,7 +71,7 @@ public:
 																			  std::string::npos;
 																   });
 						eggSound != eggSounds.end()) {
-						AudioPlayer::play_oneshot(AssetsHandler::get_egg_sound_path(*eggSound));
+						AudioPlayer::play_oneshot(AssetsHandler::get_egg_sound_path(*eggSound).string());
 					}
 
 					launch_notification(notifMsg);
