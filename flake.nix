@@ -66,7 +66,6 @@
             buildInputs = with targetPkgs; [
               asio
               fmt
-              glbinding
               glfw
               gl3w
               libogg

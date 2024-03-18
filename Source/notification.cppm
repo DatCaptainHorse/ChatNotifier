@@ -61,7 +61,6 @@ public:
 		viewport->Flags |= ImGuiViewportFlags_NoInputs;
 		viewport->Flags |= ImGuiViewportFlags_NoFocusOnAppearing;
 		viewport->Flags |= ImGuiViewportFlags_NoFocusOnClick;
-		viewport->Flags |= ImGuiViewportFlags_NoAutoMerge;
 		viewport->Flags |= ImGuiViewportFlags_NoTaskBarIcon;
 		viewport->Flags |= ImGuiViewportFlags_NoDecoration;
 
@@ -96,7 +95,7 @@ public:
 
 			// Animate appearing from top, fading away at center
 			const auto offset =
-				std::lerp(-totalTextHeight / 2.0f,
+				std::lerp(-totalTextHeight,
 						  ImGui::GetWindowHeight() / 2.0f - totalTextHeight / 2.0f, timeT) +
 				lineY;
 

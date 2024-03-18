@@ -38,11 +38,13 @@ target_include_directories(ChatNotifier BEFORE PRIVATE
 
 target_link_libraries(ChatNotifier PRIVATE
   fmt::fmt-header-only
-  gl3w
+  miniaudio
   glfw
 
-  $<$<BOOL:${NON_NIX_BUILD}>:asio>
+  $<$<BOOL:${NON_NIX_BUILD}>:glbinding::glbinding>
+  $<$<NOT:$<BOOL:${NON_NIX_BUILD}>>:gl3w>
 
+  $<$<BOOL:${NON_NIX_BUILD}>:asio>
   $<$<BOOL:${NON_NIX_BUILD}>:ogg>
   $<$<BOOL:${NON_NIX_BUILD}>:opus>
   $<$<BOOL:${NON_NIX_BUILD}>:OpusFile::opusfile>
@@ -50,8 +52,6 @@ target_link_libraries(ChatNotifier PRIVATE
   ${ogg_LIBRARIES}
   ${opus_LIBRARIES}
   ${opusfile_LIBRARIES}
-
-  miniaudio
 )
 
 if (WIN32)

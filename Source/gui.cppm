@@ -1,8 +1,16 @@
 module;
 
-#define GLFW_INCLUDE_NONE // Don't include OpenGL headers, we are using gl3w
+#define GLFW_INCLUDE_NONE				// Don't include OpenGL headers, we are using glbinding
+#define IMGUI_IMPL_OPENGL_LOADER_CUSTOM // Same goes for ImGui
 
+#if __has_include(<glbinding/glbinding.h>)
+#define GL_LOADER_GLBINDING
+#include <glbinding/glbinding.h>
+#include <glbinding/gl33core/gl.h>
+#else
 #include <gl3w/GL/gl3w.h>
+#endif
+
 #include <GLFW/glfw3.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -23,6 +31,10 @@ import audio;
 import notification;
 import twitch;
 import commands;
+
+#ifdef GL_LOADER_GLBINDING
+using namespace gl;
+#endif
 
 // Class which manages the GUI + notifications
 export class NotifierGUI {
@@ -73,15 +85,19 @@ public:
 		glfwMakeContextCurrent(m_mainWindow);
 		glfwSwapInterval(1); // V-Sync
 
-		// GL3W INITIALIZATION //
+		// GLBINDING/GL3W INITIALIZATION //
+#ifdef GL_LOADER_GLBINDING
+		glbinding::initialize(glfwGetProcAddress, false);
+#else
 		if (gl3wInit()) {
-			fmt::println(stderr, "Failed to initialize GL3W");
+			fmt::print(stderr, "Failed to initialize OpenGL loader!\n");
 			return;
 		}
 		if (!gl3wIsSupported(3, 3)) {
-			fmt::println(stderr, "OpenGL 3.3 not supported");
+			fmt::print(stderr, "OpenGL 3.3 not supported!\n");
 			return;
 		}
+#endif
 
 		// Print OpenGL version
 		fmt::println("OpenGL Version: {}", get_gl_string(GL_VERSION));
