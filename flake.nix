@@ -38,6 +38,7 @@
 
               include = with nix-filter.lib; [
                 "CMakeLists.txt"
+                (inDirectory "Assets")
                 (inDirectory "Source")
               ];
             };
@@ -55,6 +56,7 @@
               fmt
               glbinding
               glfw
+              gl3w
               libogg
               libopus
               opusfile
@@ -70,6 +72,8 @@
             inputsFrom = [
               target
             ];
+
+            NIX_HARDENING_ENABLE = target.NIX_HARDENING_ENABLE;
 
             IMGUI_DIR = target.IMGUI_DIR;
             MINIAUDIO_DIR = target.MINIAUDIO_DIR;

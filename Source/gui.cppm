@@ -51,7 +51,7 @@ public:
 		glfwSetErrorCallback(glfw_error_callback);
 		// If on linux, force X11 as glfw lacks proper wayland support
 #ifdef __linux__
-		glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+		//glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
 #endif
 		if (!glfwInit())
 			return;
