@@ -37,6 +37,7 @@ target_link_libraries(ChatNotifier PRIVATE
   glfw
   hv
 
+  $<$<BOOL:${WIN32}>:glbinding::KHRplatform>
   $<$<BOOL:${NON_NIX_BUILD}>:glbinding::glbinding>
   $<$<NOT:$<BOOL:${NON_NIX_BUILD}>>:glbinding>
 
