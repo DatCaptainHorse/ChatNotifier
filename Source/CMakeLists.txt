@@ -34,9 +34,12 @@ target_include_directories(ChatNotifier PRIVATE
 target_link_libraries(ChatNotifier PRIVATE
   fmt::fmt-header-only
   miniaudio
-  glbinding
+
   glfw
   hv
+
+  $<$<BOOL:${NON_NIX_BUILD}>:glbinding::glbinding>
+  $<$<NOT:$<BOOL:${NON_NIX_BUILD}>>:glbinding>
 
   $<$<BOOL:${NON_NIX_BUILD}>:ogg>
   $<$<BOOL:${NON_NIX_BUILD}>:opus>
