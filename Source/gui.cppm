@@ -105,7 +105,7 @@ public:
 		// NotoSansMono.ttf for main text
 		if (AssetsHandler::get_font_exists("NotoSansMono.ttf")) {
 			m_mainFont = io.Fonts->AddFontFromFileTTF(
-				AssetsHandler::get_font_path("NotoSansMono.ttf").c_str(),
+				AssetsHandler::get_font_path("NotoSansMono.ttf").string().c_str(),
 				static_cast<float>(mainFontSize), nullptr, io.Fonts->GetGlyphRangesDefault());
 
 			// Set as default font
@@ -121,7 +121,7 @@ public:
 		if (AssetsHandler::get_font_exists("NotoSansSymbols2.ttf")) {
 			const std::array<ImWchar, 5> notif_ranges = {0x0020, 0x00FF, 0x2800, 0x28FF, 0};
 			m_notifFont = io.Fonts->AddFontFromFileTTF(
-				AssetsHandler::get_font_path("NotoSansSymbols2.ttf").c_str(),
+				AssetsHandler::get_font_path("NotoSansSymbols2.ttf").string().c_str(),
 				static_cast<float>(notifFontSize), nullptr, notif_ranges.data());
 		} else {
 			// NOT strictly required, warn about lacking symbols and just set notif font to main
