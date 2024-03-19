@@ -40,7 +40,8 @@ public:
 		resourceManagerConfig.decodedFormat = ma_format_f32;
 		resourceManagerConfig.decodedChannels = 0;
 		resourceManagerConfig.decodedSampleRate = engineConfig.sampleRate;
-		resourceManagerConfig.allocationCallbacks = ma_allocation_callbacks_init_default();
+		ma_allocation_callbacks_init_copy(&resourceManagerConfig.allocationCallbacks,
+										  &engineConfig.allocationCallbacks);
 		resourceManagerConfig.pVFS = engineConfig.pResourceManagerVFS;
 		resourceManagerConfig.ppCustomDecodingBackendVTables = pCustomBackendVTables.data();
 		resourceManagerConfig.customDecodingBackendCount = pCustomBackendVTables.size();

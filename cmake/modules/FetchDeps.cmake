@@ -44,12 +44,11 @@ FetchContent_Declare(
   miniaudio
   GIT_REPOSITORY "https://github.com/mackron/miniaudio.git"
   GIT_TAG "0.11.21"
-  OVERRIDE_FIND_PACKAGE
 )
 # Miniaudio has no CMakeLists, just a single header (miniaudio.h), need to turn it into an interface library
 FetchContent_MakeAvailable(miniaudio)
-add_library(miniaudio INTERFACE)
-target_include_directories(miniaudio INTERFACE ${miniaudio_SOURCE_DIR})
+add_library(miniaudio-header-only INTERFACE)
+target_include_directories(miniaudio-header-only INTERFACE ${miniaudio_SOURCE_DIR})
 
 # Fetch imgui
 # Needs special patch to have transparent framebuffers

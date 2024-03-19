@@ -33,7 +33,7 @@ target_include_directories(ChatNotifier PRIVATE
 
 target_link_libraries(ChatNotifier PRIVATE
   fmt::fmt-header-only
-  miniaudio
+  miniaudio-header-only
   glbinding
   glfw
   hv
