@@ -20,7 +20,7 @@ auto main(int argc, char **argv) -> int {
 
 	// Play tutturuu (if it exists) to test audio
 	if (AssetsHandler::get_egg_sound_exists("tutturuu"))
-		AudioPlayer::play_oneshot(AssetsHandler::get_egg_sound_path("tutturuu"));
+		AudioPlayer::play_oneshot(AssetsHandler::get_egg_sound_path("tutturuu").string());
 
 	// GUI and CommandHandler initialization
 	NotifierGUI::initialize();
