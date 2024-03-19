@@ -31,6 +31,9 @@
         };
 
         mkChatNotifier = { targetPkgs }:
+          let
+            stdenv = targetPkgs.llvmPackages_17.libcxxStdenv;
+          in
           targetPkgs.llvmPackages_17.libcxxStdenv.mkDerivation {
             pname = "chatnotifier";
             version = "1.0.0";
@@ -58,13 +61,17 @@
 
             buildInputs = with targetPkgs; [
               fmt
+              curl
               glfw
               gl3w
               libogg
               libopus
-              opusfile
+              nghttp2
               openssl
-              libhv
+              opusfile
+
+              (glbinding.override { inherit stdenv; })
+              (libhv.override { inherit stdenv; })
             ];
 
             IMGUI_DIR = targetPkgs.imgui;
