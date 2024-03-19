@@ -26,13 +26,6 @@
           overlays = [
             (final: prev: {
               imgui = prev.callPackage ./nix/pkgs/imgui { };
-
-              # Fix issues with c++20 compilation.
-              websocketpp = prev.websocketpp.overrideAttrs (oldAttrs: {
-                patches = [
-                  ./cmake/patches/0001-Fix-cpp20-build.patch
-                ];
-              });
             })
           ];
         };
@@ -64,14 +57,14 @@
             ];
 
             buildInputs = with targetPkgs; [
-              asio
               fmt
               glfw
               gl3w
               libogg
               libopus
               opusfile
-              websocketpp
+              openssl
+              libhv
             ];
 
             IMGUI_DIR = targetPkgs.imgui;

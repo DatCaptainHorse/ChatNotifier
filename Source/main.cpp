@@ -4,10 +4,10 @@
 
 import common;
 import assets;
-import commands;
 import audio;
 import gui;
 import twitch;
+import commands;
 
 void twc_callback_handler(const TwitchChatMessage &msg);
 

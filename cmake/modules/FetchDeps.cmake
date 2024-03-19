@@ -76,16 +76,6 @@ FetchContent_Declare(
 # While fmt has C++20 modules, the CMake script they have for it is broken..
 FetchContent_MakeAvailable(fmt)
 
-# Fetch glbinding
-message(STATUS "Fetching glbinding")
-FetchContent_Declare(
-  glbinding
-  GIT_REPOSITORY "https://github.com/cginternals/glbinding.git"
-  GIT_TAG "v3.3.0"
-  OVERRIDE_FIND_PACKAGE
-)
-FetchContent_MakeAvailable(glbinding)
-
 # Fetch glfw
 message(STATUS "Fetching GLFW")
 FetchContent_Declare(
@@ -102,40 +92,12 @@ if (UNIX AND NOT APPLE)
 endif ()
 FetchContent_MakeAvailable(glfw3)
 
-# ASIO standalone..
-message(STATUS "Fetching ASIO")
+# Fetch libhv
+message(STATUS "Fetching libhv")
 FetchContent_Declare(
-  asio
-  GIT_REPOSITORY "https://github.com/chriskohlhoff/asio.git"
-  GIT_TAG "asio-1-29-0"
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-)
-FetchContent_GetProperties(asio)
-if (NOT asio_POPULATED)
-  FetchContent_Populate(asio)
-endif ()
-# Since ASIO has no CMake support, create an interface library ourselves
-add_library(asio INTERFACE)
-target_include_directories(asio INTERFACE ${asio_SOURCE_DIR}/asio/include)
-
-# Fetch websocketpp
-# Needs patch as well
-message(STATUS "Fetching websocket++")
-set(WEBSOCKETPP_PATCH git apply "${PROJECT_SOURCE_DIR}/cmake/patches/0001-Fix-cpp20-build.patch")
-FetchContent_Declare(
-  websocketpp
-  GIT_REPOSITORY "https://github.com/zaphoyd/websocketpp.git"
-  GIT_TAG "0.8.2"
+  libhv
+  GIT_REPOSITORY "https://github.com/ithewei/libhv.git"
+  GIT_TAG "v1.3.2"
   OVERRIDE_FIND_PACKAGE
-  PATCH_COMMAND ${WEBSOCKETPP_PATCH}
-  UPDATE_DISCONNECTED 1
 )
-FetchContent_GetProperties(websocketpp)
-if(NOT websocketpp_POPULATED)
-  FetchContent_Populate(websocketpp)
-  add_subdirectory(${websocketpp_SOURCE_DIR} ${websocketpp_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
-# add interface library with all websocketpp dependencies
-add_library(websocketpp INTERFACE)
-target_include_directories(websocketpp INTERFACE ${websocketpp_SOURCE_DIR})
+FetchContent_MakeAvailable(libhv)

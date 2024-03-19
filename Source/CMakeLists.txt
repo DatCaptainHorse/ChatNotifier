@@ -1,6 +1,8 @@
 add_executable(ChatNotifier
   main.cpp
 
+  gl3w/GL/gl3w.c
+
   ${IMGUI_DIR}/imgui.cpp
   ${IMGUI_DIR}/imgui_demo.cpp
   ${IMGUI_DIR}/imgui_draw.cpp
@@ -31,20 +33,12 @@ target_include_directories(ChatNotifier PRIVATE
   ${opusfile_INCLUDE_DIRS}
 )
 
-# Specifically include websocketpp before the rest of the includes
-target_include_directories(ChatNotifier BEFORE PRIVATE
-  ${websocketpp_SOURCE_DIR}
-)
-
 target_link_libraries(ChatNotifier PRIVATE
   fmt::fmt-header-only
   miniaudio
   glfw
+  hv
 
-  $<$<BOOL:${NON_NIX_BUILD}>:glbinding::glbinding>
-  $<$<NOT:$<BOOL:${NON_NIX_BUILD}>>:gl3w>
-
-  $<$<BOOL:${NON_NIX_BUILD}>:asio>
   $<$<BOOL:${NON_NIX_BUILD}>:ogg>
   $<$<BOOL:${NON_NIX_BUILD}>:opus>
   $<$<BOOL:${NON_NIX_BUILD}>:OpusFile::opusfile>
