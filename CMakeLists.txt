@@ -19,8 +19,8 @@ if ("$ENV{IMGUI_DIR}" STREQUAL "" OR "$ENV{MINIAUDIO_DIR}" STREQUAL "")
 else ()
   set(IMGUI_DIR $ENV{IMGUI_DIR})
 
-  add_library(miniaudio-header-only INTERFACE)
-  target_include_directories(miniaudio-header-only INTERFACE $ENV{MINIAUDIO_DIR})
+  add_library(miniaudio INTERFACE)
+  target_include_directories(miniaudio INTERFACE $ENV{MINIAUDIO_DIR})
 endif ()
 
 include(CMakeDependentOption)
