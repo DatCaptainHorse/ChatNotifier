@@ -77,16 +77,6 @@ FetchContent_Declare(
 # While fmt has C++20 modules, the CMake script they have for it is broken..
 FetchContent_MakeAvailable(fmt)
 
-# Fetch glbinding
-message(STATUS "Fetching glbinding")
-FetchContent_Declare(
-  glbinding
-  GIT_REPOSITORY "https://github.com/cginternals/glbinding.git"
-  GIT_TAG "v3.3.0"
-  OVERRIDE_FIND_PACKAGE
-)
-FetchContent_MakeAvailable(glbinding)
-
 # Fetch glfw
 message(STATUS "Fetching GLFW")
 FetchContent_Declare(

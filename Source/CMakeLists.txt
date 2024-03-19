@@ -1,6 +1,8 @@
 add_executable(ChatNotifier
   main.cpp
 
+  gl3w/GL/gl3w.c
+
   ${IMGUI_DIR}/imgui.cpp
   ${IMGUI_DIR}/imgui_demo.cpp
   ${IMGUI_DIR}/imgui_draw.cpp
@@ -24,6 +26,7 @@ target_sources(ChatNotifier PRIVATE FILE_SET CXX_MODULES FILES
 
 target_include_directories(ChatNotifier PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/gl3w
   ${IMGUI_DIR}
   ${IMGUI_DIR}/backends
   ${ogg_INCLUDE_DIRS}
@@ -36,10 +39,6 @@ target_link_libraries(ChatNotifier PRIVATE
   miniaudio
   glfw
   hv
-
-  $<$<BOOL:${WIN32}>:glbinding::KHRplatform>
-  $<$<BOOL:${NON_NIX_BUILD}>:glbinding::glbinding>
-  $<$<NOT:$<BOOL:${NON_NIX_BUILD}>>:glbinding>
 
   $<$<BOOL:${NON_NIX_BUILD}>:ogg>
   $<$<BOOL:${NON_NIX_BUILD}>:opus>

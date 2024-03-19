@@ -1,10 +1,9 @@
 module;
 
-#define GLFW_INCLUDE_NONE				// Don't include OpenGL headers, we are using glbinding
+#define GLFW_INCLUDE_NONE				// Don't include OpenGL headers by default
 #define IMGUI_IMPL_OPENGL_LOADER_CUSTOM // Same goes for ImGui
 
-#include <glbinding/glbinding.h>
-#include <glbinding/gl33core/gl.h>
+#include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -25,8 +24,6 @@ import audio;
 import notification;
 import twitch;
 import commands;
-
-using namespace gl33core;
 
 // Class which manages the GUI + notifications
 export class NotifierGUI {
@@ -77,8 +74,15 @@ public:
 		glfwMakeContextCurrent(m_mainWindow);
 		glfwSwapInterval(1); // V-Sync
 
-		// GLBINDING INITIALIZATION //
-		glbinding::initialize(glfwGetProcAddress, false);
+		// GL3W INITIALIZATION //
+		if (gl3wInit()) {
+			fmt::println(stderr, "Failed to initialize OpenGL loader!");
+			return;
+		}
+		if (!gl3wIsSupported(3, 3)) {
+			fmt::println(stderr, "OpenGL 3.3 not supported!");
+			return;
+		}
 
 		// Print OpenGL version
 		fmt::println("OpenGL Version: {}", get_gl_string(GL_VERSION));

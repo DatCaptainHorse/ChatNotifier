@@ -43,7 +43,6 @@ find_package(fmt REQUIRED)
 find_package(glfw3 REQUIRED)
 
 if (NON_NIX_BUILD)
-  find_package(glbinding REQUIRED)
   find_package(libhv REQUIRED)
   find_package(ogg REQUIRED)
   find_package(opus REQUIRED)
