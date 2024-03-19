@@ -38,7 +38,7 @@ target_link_libraries(ChatNotifier PRIVATE
   fmt::fmt-header-only
   miniaudio
   glfw
-  hv
+  hv_static
 
   $<$<BOOL:${NON_NIX_BUILD}>:ogg>
   $<$<BOOL:${NON_NIX_BUILD}>:opus>
