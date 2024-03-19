@@ -26,6 +26,8 @@ import notification;
 import twitch;
 import commands;
 
+using namespace gl33core;
+
 // Class which manages the GUI + notifications
 export class NotifierGUI {
 	static inline bool m_keepRunning = false;
@@ -79,7 +81,7 @@ public:
 		glbinding::initialize(glfwGetProcAddress, false);
 
 		// Print OpenGL version
-		fmt::println("OpenGL Version: {}", get_gl_string(gl::GL_VERSION));
+		fmt::println("OpenGL Version: {}", get_gl_string(GL_VERSION));
 
 		// IMGUI INITIALIZATION //
 		IMGUI_CHECKVERSION();
@@ -369,9 +371,9 @@ public:
 		ImGui::Render();
 		int display_w = 0, display_h = 0;
 		glfwGetFramebufferSize(m_mainWindow, &display_w, &display_h);
-		gl::glViewport(0, 0, display_w, display_h);
-		gl::glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-		gl::glClear(gl::GL_COLOR_BUFFER_BIT);
+		glViewport(0, 0, display_w, display_h);
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
@@ -407,7 +409,7 @@ private:
 	}
 
 	// Method that provides better glGetString, returns const char* instead of GLubyte*
-	static auto get_gl_string(const gl::GLenum name) -> const char * {
+	static auto get_gl_string(const GLenum name) -> const char * {
 		return reinterpret_cast<const char *>(glGetString(name));
 	}
 };
