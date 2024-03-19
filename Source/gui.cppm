@@ -1,9 +1,10 @@
 module;
 
-#define GLFW_INCLUDE_NONE				// Don't include OpenGL headers, we are using gl3w
+#define GLFW_INCLUDE_NONE				// Don't include OpenGL headers, we are using glbinding
 #define IMGUI_IMPL_OPENGL_LOADER_CUSTOM // Same goes for ImGui
 
-#include <gl3w/GL/gl3w.h>
+#include <glbinding/glbinding.h>
+#include <glbinding/gl33core/gl.h>
 #include <GLFW/glfw3.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -74,18 +75,11 @@ public:
 		glfwMakeContextCurrent(m_mainWindow);
 		glfwSwapInterval(1); // V-Sync
 
-		// GL3W INITIALIZATION //
-		if (gl3wInit()) {
-			fmt::print(stderr, "Failed to initialize OpenGL loader!\n");
-			return;
-		}
-		if (!gl3wIsSupported(3, 3)) {
-			fmt::print(stderr, "OpenGL 3.3 not supported!\n");
-			return;
-		}
+		// GLBINDING INITIALIZATION //
+		glbinding::initialize(glfwGetProcAddress, false);
 
 		// Print OpenGL version
-		fmt::println("OpenGL Version: {}", get_gl_string(GL_VERSION));
+		fmt::println("OpenGL Version: {}", get_gl_string(gl::GL_VERSION));
 
 		// IMGUI INITIALIZATION //
 		IMGUI_CHECKVERSION();
@@ -375,9 +369,9 @@ public:
 		ImGui::Render();
 		int display_w = 0, display_h = 0;
 		glfwGetFramebufferSize(m_mainWindow, &display_w, &display_h);
-		glViewport(0, 0, display_w, display_h);
-		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		gl::glViewport(0, 0, display_w, display_h);
+		gl::glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		gl::glClear(gl::GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
@@ -413,7 +407,7 @@ private:
 	}
 
 	// Method that provides better glGetString, returns const char* instead of GLubyte*
-	static auto get_gl_string(const GLenum name) -> const char * {
+	static auto get_gl_string(const gl::GLenum name) -> const char * {
 		return reinterpret_cast<const char *>(glGetString(name));
 	}
 };

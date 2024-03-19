@@ -1,8 +1,6 @@
 add_executable(ChatNotifier
   main.cpp
 
-  gl3w/GL/gl3w.c
-
   ${IMGUI_DIR}/imgui.cpp
   ${IMGUI_DIR}/imgui_demo.cpp
   ${IMGUI_DIR}/imgui_draw.cpp
@@ -36,6 +34,7 @@ target_include_directories(ChatNotifier PRIVATE
 target_link_libraries(ChatNotifier PRIVATE
   fmt::fmt-header-only
   miniaudio
+  glbinding
   glfw
   hv
 

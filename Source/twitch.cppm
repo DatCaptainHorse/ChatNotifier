@@ -4,6 +4,7 @@ module;
 #include <fmt/format.h>
 
 #include <functional>
+#include <string>
 
 export module twitch;
 
