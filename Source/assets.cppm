@@ -23,11 +23,12 @@ export class AssetsHandler {
 
 public:
 	// Method that initializes assets, finds them and populates resources
-	static void initialize(const std::filesystem::path &argv_path) {
+	static auto initialize(const std::filesystem::path &argv_path) -> Result {
 		exec_path = argv_path.parent_path();
 		populate_font_files();
 		populate_ascii_art_files();
 		populate_egg_sounds();
+		return Result();
 	}
 
 	// Cleans up resources used by AssetsHandler
@@ -36,6 +37,13 @@ public:
 		ascii_art_files.clear();
 		egg_sounds.clear();
 		exec_path.clear();
+	}
+
+	// Finds new assets and populates resources
+	static void refresh() {
+		populate_font_files();
+		populate_ascii_art_files();
+		populate_egg_sounds();
 	}
 
 	// Returns path to assets folder
@@ -62,7 +70,6 @@ public:
 	// Returns available font keys as a vector
 	static auto get_font_keys() -> std::vector<std::string> {
 		std::vector<std::string> keys;
-		keys.reserve(font_files.size());
 		for (const auto &key : font_files | std::views::keys)
 			keys.push_back(key);
 
@@ -94,7 +101,6 @@ public:
 	// Returns available ascii art keys as a vector
 	static auto get_ascii_art_keys() -> std::vector<std::string> {
 		std::vector<std::string> keys;
-		keys.reserve(ascii_art_files.size());
 		for (const auto &key : ascii_art_files | std::views::keys)
 			keys.push_back(key);
 
@@ -112,7 +118,6 @@ public:
 	// Returns available easter-egg sound keys as a vector
 	static auto get_egg_sound_keys() -> std::vector<std::string> {
 		std::vector<std::string> keys;
-		keys.reserve(egg_sounds.size());
 		for (const auto &key : egg_sounds | std::views::keys)
 			keys.push_back(key);
 

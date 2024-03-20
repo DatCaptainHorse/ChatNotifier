@@ -1,8 +1,12 @@
 #include <ranges>
+#include <thread>
+#include <chrono>
+#include <format>
+#include <iostream>
 #include <algorithm>
 #include <filesystem>
-#include <fmt/format.h>
 
+import config;
 import common;
 import assets;
 import audio;
@@ -10,27 +14,67 @@ import gui;
 import twitch;
 import commands;
 
+// Method for printing Result errors
+void print_error(const Result &res) {
+	if (!res)
+		std::cerr << "Error: " << res.message << std::endl;
+}
+
 void twc_callback_handler(const TwitchChatMessage &msg);
 
 // Main method
 auto main(int argc, char **argv) -> int {
+	// LOAD CONFIG //
+	if (const auto res = global_config.load(); !res) {
+		print_error(res);
+		return res.code;
+	}
+
 	// INITIALIZE //
-	AssetsHandler::initialize(argv[0]);
-	AudioPlayer::initialize();
-	TwitchChatConnector::initialize(twc_callback_handler);
+	if (const auto res = AssetsHandler::initialize(argv[0]); !res) {
+		print_error(res);
+		return res.code;
+	}
+
+	if (const auto res = AudioPlayer::initialize(); !res) {
+		print_error(res);
+		return res.code;
+	}
+
+	if (const auto res = TwitchChatConnector::initialize(twc_callback_handler); !res) {
+		print_error(res);
+		return res.code;
+	}
 
 	// Play tutturuu (if it exists) to test audio
 	if (AssetsHandler::get_egg_sound_exists("tutturuu"))
 		AudioPlayer::play_oneshot(AssetsHandler::get_egg_sound_path("tutturuu").string());
 
 	// GUI and CommandHandler initialization
-	NotifierGUI::initialize();
-	CommandHandler::initialize(NotifierGUI::launch_notification);
+	if (const auto res = NotifierGUI::initialize(); !res) {
+		print_error(res);
+		return res.code;
+	}
 
-	// Run the main loop (GUI)
+	if (const auto res = CommandHandler::initialize(NotifierGUI::launch_notification); !res) {
+		print_error(res);
+		return res.code;
+	}
+
+	// Run the main loop
 	while (!NotifierGUI::should_close()) {
 		// Update the GUI
 		NotifierGUI::render();
+		// Update the audio
+		AudioPlayer::update();
+		// Sleep for 5ms to lighten the load on the CPU
+		std::this_thread::sleep_for(std::chrono::milliseconds(5));
+	}
+
+	// SAVE CONFIG //
+	if (const auto res = global_config.save(); !res) {
+		print_error(res);
+		return res.code;
 	}
 
 	// CLEANUP //
@@ -58,7 +102,7 @@ void twc_callback_handler(const TwitchChatMessage &msg) {
 			const auto &[_, func] = pair;
 
 			// Command with the "!" prefix to match the message
-			const auto fullCommand = fmt::format("!{}", command);
+			const auto fullCommand = std::format("!{}", command);
 
 			// Make sure the message is long enough to contain the command
 			if (msg.message.size() < fullCommand.size())

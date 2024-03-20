@@ -23,7 +23,8 @@ export class CommandHandler {
 public:
 	// Initializes CommandHandler, adding the default commands
 	// requires passing the method for launching notifications, circular dependency stuff..
-	static void initialize(const std::function<void(const std::string &)> &launch_notification) {
+	static auto initialize(const std::function<void(const std::string &)> &launch_notification)
+		-> Result {
 		if (m_notificationStrings.empty()) {
 			m_notificationStrings = {
 				"Check the chat, nerd!",
@@ -50,34 +51,37 @@ public:
 			m_commandsMap["ccc"] = {
 				"Custom Notification", [launch_notification](const std::string &msg) {
 					std::string notifMsg = msg;
+					// Split to words (space-separated)
+					auto words = split_string(notifMsg, ' ');
 
-					// Ascii art prepending, if key with the same name exists
+					// Get the first ascii art from words and prepend it to the notification
 					const auto asciiarts = AssetsHandler::get_ascii_art_keys();
-					// Get the first ascii art key that is found in the message
-					if (const auto asciiart = std::ranges::find_if(asciiarts,
-																   [&](const auto &key) {
-																	   return notifMsg.find(key) !=
-																			  std::string::npos;
-																   });
-						asciiart != asciiarts.end()) {
-						// Reformat notifMsg
-						notifMsg = AssetsHandler::get_ascii_art_text(*asciiart) + "\n" + notifMsg;
+					for (const auto &word : words) {
+						if (const auto found = std::ranges::find(asciiarts, word);
+							found != asciiarts.end()) {
+							notifMsg = AssetsHandler::get_ascii_art_text(*found) + "\n" + notifMsg;
+							break;
+						}
 					}
 
-					// Play easter-egg sound if one is found, just the first found sound
+					// Find all easter egg sound words, pushing into vector, limited to 3
+					std::vector<std::filesystem::path> sounds;
 					const auto eggSounds = AssetsHandler::get_egg_sound_keys();
-					if (const auto eggSound = std::ranges::find_if(eggSounds,
-																   [&](const auto &key) {
-																	   return notifMsg.find(key) !=
-																			  std::string::npos;
-																   });
-						eggSound != eggSounds.end()) {
-						AudioPlayer::play_oneshot(AssetsHandler::get_egg_sound_path(*eggSound).string());
+					for (const auto &word : words) {
+						if (const auto found = std::ranges::find(eggSounds, word);
+							found != eggSounds.end() && sounds.size() < 3) {
+							sounds.push_back(AssetsHandler::get_egg_sound_path(*found));
+						}
 					}
+					// Play easter egg sounds
+					if (!sounds.empty())
+						AudioPlayer::play_sequential(sounds);
 
 					launch_notification(notifMsg);
 				}};
 		}
+
+		return Result();
 	}
 
 	// Cleans up resources used by CommandHandler

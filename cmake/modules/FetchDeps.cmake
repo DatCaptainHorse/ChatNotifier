@@ -12,6 +12,8 @@ FetchContent_Declare(
   GIT_TAG "v1.3.5"
   OVERRIDE_FIND_PACKAGE
 )
+# INSTALL_DOCS to OFF, since we don't care about the docs
+set(INSTALL_DOCS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(ogg)
 
 # Fetch libopus
@@ -66,17 +68,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(imgui)
 set(IMGUI_DIR ${imgui_SOURCE_DIR})
 
-# Fetch fmtlib
-message(STATUS "Fetching fmtlib")
-FetchContent_Declare(
-  fmt
-  GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
-  GIT_TAG "10.2.1"
-  OVERRIDE_FIND_PACKAGE
-)
-# While fmt has C++20 modules, the CMake script they have for it is broken..
-FetchContent_MakeAvailable(fmt)
-
 # Fetch glfw
 message(STATUS "Fetching GLFW")
 FetchContent_Declare(
@@ -91,6 +82,8 @@ if (UNIX AND NOT APPLE)
   set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
   set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
 endif ()
+# We don't care about docs..
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(glfw3)
 
 # Fetch libhv
@@ -101,4 +94,18 @@ FetchContent_Declare(
   GIT_TAG "v1.3.2"
   OVERRIDE_FIND_PACKAGE
 )
+# BUILD_SHARED, BUILD_EXAMPLES to OFF, we don't need them
+set(BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(libhv)
+
+# Fetch glaze
+message(STATUS "Fetching glaze")
+FetchContent_Declare(
+  glaze
+  GIT_REPOSITORY https://github.com/stephenberry/glaze.git
+  GIT_TAG "v2.3.0"
+  GIT_SHALLOW TRUE
+  OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(glaze)

@@ -1,13 +1,15 @@
 module;
 
-#include <hv/WebSocketClient.h>
-#include <fmt/format.h>
-
-#include <functional>
 #include <string>
+#include <format>
+#include <functional>
+#include <string_view>
+
+#include <hv/WebSocketClient.h>
 
 export module twitch;
 
+import config;
 import common;
 
 // Struct for Twitch message data
@@ -26,14 +28,14 @@ export class TwitchChatConnector {
 	static inline ConnectionStatus m_connStatus;
 	static inline hv::WebSocketClient m_client;
 
-	static inline std::string m_authToken, m_authUser, m_channel;
 	static inline TwitchChatMessageCallback m_onMessage;
 
 public:
 	// Initializes the connector resources, with given callback
-	static void initialize(const TwitchChatMessageCallback &onMessage) {
+	static auto initialize(const TwitchChatMessageCallback &onMessage) -> Result {
 		m_connStatus = ConnectionStatus::eDisconnected;
 		m_onMessage = onMessage;
+		return Result();
 	}
 
 	// Cleans up resources used by the connector, disconnecting first if connected
@@ -43,20 +45,25 @@ public:
 	}
 
 	// Connects to the given channel's chat
-	static void connect(const std::string &authToken, const std::string &authUser,
-						const std::string &channel) {
+	static auto connect(const std::string &authToken, const std::string &authUser,
+						const std::string &channel) -> Result {
 		// If already connected or any parameter is empty, return
 		if (m_connStatus > ConnectionStatus::eDisconnected || channel.empty() ||
 			authToken.empty() || authUser.empty())
-			return;
+			return Result(1, "Already connected or invalid parameters");
 
 		// Set to connecting
 		m_connStatus = ConnectionStatus::eConnecting;
 
 		// Set params
-		m_authToken = authToken;
-		m_authUser = authUser;
-		m_channel = channel;
+		global_config.twitchAuthToken = authToken;
+		global_config.twitchAuthUser = authUser;
+		global_config.twitchChannel = channel;
+
+		// Remove extra \0's from config strings (resize causes auth to fail)
+		std::erase(global_config.twitchAuthToken, '\0');
+		std::erase(global_config.twitchAuthUser, '\0');
+		std::erase(global_config.twitchChannel, '\0');
 
 		// Set handlers
 		m_client.onopen = handle_open;
@@ -65,14 +72,15 @@ public:
 
 		// Set auto-reconnect settings
 		auto reconn = reconn_setting_s();
-		reconn.max_retry_cnt = 5;
 		m_client.setReconnect(&reconn);
 
 		// Connection making
 		if (m_client.open("ws://irc-ws.chat.twitch.tv:80") != 0) {
-			fmt::println("Failed to connect to Twitch WS endpoint");
 			m_connStatus = ConnectionStatus::eDisconnected;
+			return Result(2, "Failed to open connection");
 		}
+
+		return Result();
 	}
 
 	// Disconnects existing connection
@@ -89,18 +97,46 @@ public:
 
 private: // Handlers
 	static void handle_open() {
-		m_client.send(fmt::format("PASS oauth:{}\r\n", m_authToken));
-		m_client.send(fmt::format("NICK {}\r\n", m_authUser));
-		m_client.send(fmt::format("JOIN #{}\r\n", m_channel));
+		m_client.send(std::format("PASS oauth:{}\r\n", global_config.twitchAuthToken));
+		m_client.send(std::format("NICK {}\r\n", global_config.twitchAuthUser));
 		m_connStatus = ConnectionStatus::eConnected;
 	}
 
 	static void handle_message(const std::string &msg) {
+		// If ":tmi.twitch.tv NOTICE * :Login authentication failed" is found, report error
+		if (msg.find(":tmi.twitch.tv NOTICE * :Login authentication failed") != std::string::npos) {
+			std::cerr << "Error: Login authentication failed" << std::endl;
+			disconnect();
+			return;
+		}
+
+		// If "PING :tmi.twitch.tv", respond with "PONG :tmi.twitch.tv"
+		if (msg.find("PING :tmi.twitch.tv") != std::string::npos) {
+			m_client.send("PONG :tmi.twitch.tv\r\n");
+			return;
+		}
+
+		// If ":tmi.twitch.tv 001" is received, join the channel
+		if (msg.find(":tmi.twitch.tv 001") != std::string::npos) {
+			m_client.send(std::format("JOIN #{}\r\n", global_config.twitchChannel));
+			return;
+		}
+
 		// Validate message, then get user and message, passing them to the callback
-		if (const std::string_view message = msg; message.find("PRIVMSG") != std::string::npos) {
-			const auto user = message.substr(1, message.find('!') - 1);
-			const auto chat = message.substr(message.find(':', 1) + 1);
-			m_onMessage({std::string(user), std::string(chat)});
+		if (const std::string message = msg; message.find("PRIVMSG") != std::string::npos) {
+			auto user = message.substr(1, message.find('!') - 1);
+			// Trim away newlines, carriage returns and tabs
+			std::erase(user, '\n');
+			std::erase(user, '\r');
+			std::erase(user, '\t');
+
+			auto chat = message.substr(message.find(':', 1) + 1);
+			// Trim away newlines, carriage returns and tabs
+			std::erase(chat, '\n');
+			std::erase(chat, '\r');
+			std::erase(chat, '\t');
+
+			m_onMessage({user, chat});
 		}
 	}
 

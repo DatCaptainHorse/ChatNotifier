@@ -9,15 +9,18 @@ module;
 #include <imgui_impl_opengl3.h>
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <fmt/format.h>
 
 #include <algorithm>
+#include <iostream>
 #include <numeric>
 #include <vector>
+#include <format>
 #include <array>
+#include <memory>
 
 export module gui;
 
+import config;
 import common;
 import assets;
 import audio;
@@ -33,25 +36,21 @@ export class NotifierGUI {
 	static inline ImFont *m_notifFont;
 	static inline float m_DPI;
 
-	static inline float m_notifAnimationLength;
-	static inline float m_notifEffectSpeed;
-	static inline std::vector<std::string> m_approvedUsers;
-
 	// Vector of live-notifications
 	static inline std::vector<std::unique_ptr<Notification>> m_notifications;
 
+	static inline auto m_colorOK = ImVec4(0.0f, 0.8f, 0.0f, 1.0f);
+	static inline auto m_colorError = ImVec4(0.8f, 0.0f, 0.0f, 1.0f);
+	static inline auto m_colorWait = ImVec4(0.8f, 0.4f, 0.0f, 1.0f);
+	static inline auto m_colorDisabled = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
+
 public:
 	// Initialize the GUI and it's resources
-	static void initialize() {
-		// Set default notification show time to 5 seconds
-		m_notifAnimationLength = 5.0f;
-		// Default effect speed multiplier to 5
-		m_notifEffectSpeed = 5.0f;
-
+	static auto initialize() -> Result {
 		// GLFW INITIALIZATION //
 		glfwSetErrorCallback(glfw_error_callback);
 		if (!glfwInit())
-			return;
+			return Result(1, "Failed to initialize GLFW!");
 
 		// WINDOW CREATION //
 		const auto monitor = glfwGetPrimaryMonitor();
@@ -69,23 +68,21 @@ public:
 		// Main window
 		m_mainWindow = glfwCreateWindow(420, 690, "ChatNotifier", nullptr, nullptr);
 		if (!m_mainWindow)
-			return;
+			return Result(2, "Failed to create GLFW window!");
 
 		glfwMakeContextCurrent(m_mainWindow);
 		glfwSwapInterval(1); // V-Sync
 
 		// GL3W INITIALIZATION //
 		if (gl3wInit()) {
-			fmt::println(stderr, "Failed to initialize OpenGL loader!");
-			return;
+			return Result(3, "Failed to initialize GL3W!");
 		}
 		if (!gl3wIsSupported(3, 3)) {
-			fmt::println(stderr, "OpenGL 3.3 not supported!");
-			return;
+			return Result(4, "OpenGL 3.3 not supported!");
 		}
 
 		// Print OpenGL version
-		fmt::println("OpenGL Version: {}", get_gl_string(GL_VERSION));
+		std::cout << std::format("OpenGL Version: {}", get_gl_string(GL_VERSION)) << std::endl;
 
 		// IMGUI INITIALIZATION //
 		IMGUI_CHECKVERSION();
@@ -105,8 +102,6 @@ public:
 		m_DPI = std::sqrt(std::pow(mode->width, 2) + std::pow(mode->height, 2)) / mode->width;
 		const auto mainFontSize = 18.0 * m_DPI;
 		const auto notifFontSize = 64.0 * m_DPI;
-		fmt::println("DPI: {}, Main font size: {}, Notification font size: {}", m_DPI, mainFontSize,
-					 notifFontSize);
 
 		// NotoSansMono.ttf for main text
 		if (AssetsHandler::get_font_exists("NotoSansMono.ttf")) {
@@ -118,8 +113,7 @@ public:
 			io.FontDefault = m_mainFont;
 		} else {
 			// We require this font
-			fmt::print(stderr, "Required font NotoSansMono.ttf not found!");
-			return;
+			return Result(5, "Main font NotoSansMono.ttf not found!");
 		}
 
 		// NotoSansSymbols2.ttf for notifications
@@ -130,10 +124,10 @@ public:
 				AssetsHandler::get_font_path("NotoSansSymbols2.ttf").string().c_str(),
 				static_cast<float>(notifFontSize), nullptr, notif_ranges.data());
 		} else {
-			// NOT strictly required, warn about lacking symbols and just set notif font to main
-			// font
-			fmt::print(stderr, "Special symbols font NotoSansSymbols2.ttf not found, using main "
-							   "font for notifications");
+			// NOT strictly required, warn about lacking symbols
+			std::cout
+				<< "Warning: Notification font NotoSansSymbols2.ttf not found, using default font."
+				<< std::endl;
 			m_notifFont = m_mainFont;
 		}
 
@@ -146,6 +140,8 @@ public:
 
 		// Ready to run
 		m_keepRunning = true;
+
+		return Result();
 	}
 
 	// Cleans up the GUI and it's resources
@@ -183,7 +179,8 @@ public:
 			ImGui::SetNextWindowSize(mainViewport->Size, ImGuiCond_Once);
 			ImGui::Begin("Chat Notifier Controls", &m_keepRunning,
 						 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
-							 ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration);
+							 ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration |
+							 ImGuiWindowFlags_AlwaysVerticalScrollbar);
 
 			// Settings portion, separators n stuff
 			ImGui::Separator();
@@ -194,23 +191,34 @@ public:
 
 			// Slider for notification show time, integer-steps from 1 to 10
 			ImGui::Text("Notification show time:");
-			ImGui::SliderFloat("##showTime", &m_notifAnimationLength, 1.0f, 10.0f, "%.0f");
+			ImGui::SliderFloat("##showTime", &global_config.notifAnimationLength, 1.0f, 10.0f,
+							   "%.0f");
 
 			// Slider for notification effect speed, float from 0.1 to 10.0
 			ImGui::Text("Notification effect speed:");
-			ImGui::SliderFloat("##effectSpeed", &m_notifEffectSpeed, 0.1f, 10.0f, "%.1f");
+			ImGui::SliderFloat("##effectSpeed", &global_config.notifEffectSpeed, 0.1f, 10.0f,
+							   "%.1f");
 
 			// Slider for notification font scale, float from 0.5 to 2.0
 			ImGui::Text("Notification font scale:");
-			ImGui::SliderFloat("##fontScale", &m_notifFont->Scale, 0.5f, 2.0f, "%.1f");
+			if (ImGui::SliderFloat("##fontScale", &global_config.notifFontScale, 0.5f, 2.0f,
+								   "%.1f"))
+				m_notifFont->Scale = global_config.notifFontScale;
 
 			// Slider for global audio volume, which is a float from 0.0f to 1.0f
-			// Volume inputslider text formatting as 0 to 100% instead of 0.0 to 1.0
 			ImGui::Text("Global audio volume:");
-			static float global_vol_buf = AudioPlayer::get_global_volume() * 100.0f;
-			if (ImGui::SliderFloat("##globalVol", &global_vol_buf, 0.0f, 100.0f, "%.0f%%")) {
-				AudioPlayer::set_global_volume(global_vol_buf / 100.0f);
-			}
+			if (ImGui::SliderFloat("##globalVol", &global_config.globalAudioVolume, 0.0f, 1.0f,
+								   "%.2f"))
+				AudioPlayer::set_global_volume(global_config.globalAudioVolume);
+
+			// Button to refresh assets
+			ImGui::Dummy(ImVec2(0, 10));
+			if (ImGui::Button("Find New Assets", ImVec2(-1, 30)))
+				AssetsHandler::refresh();
+
+			// Button to stop all sounds
+			if (ImGui::Button("Stop Sounds", ImVec2(-1, 30)))
+				AudioPlayer::stop_sounds();
 
 			// Add padding before separators
 			ImGui::Dummy(ImVec2(0, 10));
@@ -228,7 +236,7 @@ public:
 			if (ImGui::Button("Add")) {
 				if (user_buf[0] != '\0') {
 					// Add the user to the list
-					m_approvedUsers.emplace_back(user_buf.data());
+					global_config.approvedUsers.emplace_back(user_buf.data());
 					// Clear the input buffer
 					std::ranges::fill(user_buf, '\0');
 				}
@@ -237,15 +245,15 @@ public:
 			ImGui::InputText("##approvedUsers", user_buf.data(), user_buf.size());
 
 			// List of approved users, if empty, show warning text
-			if (m_approvedUsers.empty())
+			if (global_config.approvedUsers.empty())
 				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f),
 								   "If the list is empty,\nanyone can trigger commands!");
 			else {
-				for (const auto &user : m_approvedUsers) {
+				for (const auto &user : global_config.approvedUsers) {
 					ImGui::PushID(&user);
 					if (ImGui::Button("Remove")) {
 						// Remove the user from the list
-						std::erase(m_approvedUsers, user);
+						std::erase(global_config.approvedUsers, user);
 					}
 					ImGui::PopID();
 					ImGui::SameLine();
@@ -286,7 +294,7 @@ public:
 						extraWord = eggsounds[random_int(0, eggsounds.size() - 1)];
 					}
 				}
-				CommandHandler::execute_command(it->first, fmt::format("Test {}", extraWord));
+				CommandHandler::execute_command(it->first, std::format("Test {}", extraWord));
 			}
 
 			// Button for setting the new keyword
@@ -309,53 +317,49 @@ public:
 
 			// Input boxes for connection
 			ImGui::Text("Twitch Auth Token:");
-			static std::array<char, 64> auth_buf = {""};
-			ImGui::InputText("##authToken", auth_buf.data(), auth_buf.size(),
-							 ImGuiInputTextFlags_Password);
+			ImGui::InputText("##authToken", global_config.twitchAuthToken.data(),
+							 global_config.twitchAuthToken.size(), ImGuiInputTextFlags_Password);
 
 			ImGui::Text("Twitch Auth User:");
-			static std::array<char, 32> authuser_buf = {""};
-			ImGui::InputText("##authUser", authuser_buf.data(), authuser_buf.size(),
-							 ImGuiInputTextFlags_Password);
+			ImGui::InputText("##authUser", global_config.twitchAuthUser.data(),
+							 global_config.twitchAuthUser.size(), ImGuiInputTextFlags_Password);
 
 			ImGui::Text("Twitch Channel:");
-			static std::array<char, 32> channel_buf = {""};
-			ImGui::InputText("##channel", channel_buf.data(), channel_buf.size());
+			ImGui::InputText("##channel", global_config.twitchChannel.data(),
+							 global_config.twitchChannel.size());
 
 			// Padding
 			ImGui::Dummy(ImVec2(0, 10));
 
 			// Connect button
+			static auto connResult = Result();
 			const auto connStatus = TwitchChatConnector::get_connection_status();
-			if (connStatus == ConnectionStatus::eConnecting)
-				ImGui::BeginDisabled();
+			const auto buttonText =
+				connStatus == ConnectionStatus::eConnected ? "Disconnect" : "Connect";
+			const auto textColor = get_connection_status_color(connStatus, connResult);
 
-			if (connStatus < ConnectionStatus::eConnected) {
-				if (ImGui::Button("Connect", ImVec2(-1, 30))) {
-					// Allow only if all fields are filled
-					if (auth_buf[0] != '\0' && authuser_buf[0] != '\0' && channel_buf[0] != '\0') {
-						TwitchChatConnector::connect(auth_buf.data(), authuser_buf.data(),
-													 channel_buf.data());
-					}
-				}
-			} else {
-				if (ImGui::Button("Disconnect", ImVec2(-1, 30))) {
+			const auto fieldsFilled = !global_config.twitchAuthToken.empty() &&
+									  !global_config.twitchAuthUser.empty() &&
+									  !global_config.twitchChannel.empty();
+			ImGui::BeginDisabled(connStatus == ConnectionStatus::eConnecting || !fieldsFilled);
+
+			if (ImGui::Button(buttonText, ImVec2(-1, 30))) {
+				if (connStatus == ConnectionStatus::eConnected)
 					TwitchChatConnector::disconnect();
+				else {
+					// Allow only if all fields are filled
+					if (fieldsFilled) {
+						connResult = TwitchChatConnector::connect(global_config.twitchAuthToken,
+																  global_config.twitchAuthUser,
+																  global_config.twitchChannel);
+					}
 				}
 			}
 
-			if (connStatus == ConnectionStatus::eConnecting)
-				ImGui::EndDisabled();
+			ImGui::TextColored(textColor, "Connection Status: [%s]",
+							   get_connection_status_string(connStatus, connResult).c_str());
 
-			// Connection status (gray for disconnected, green for connected, orange for connecting)
-			ImGui::TextColored(
-				connStatus == ConnectionStatus::eDisconnected ? ImVec4(0.5f, 0.5f, 0.5f, 1.0f)
-				: connStatus == ConnectionStatus::eConnected  ? ImVec4(0.0f, 1.0f, 0.0f, 1.0f)
-															  : ImVec4(1.0f, 0.5f, 0.0f, 1.0f),
-				"Connection status: %s",
-				connStatus == ConnectionStatus::eDisconnected ? "Disconnected"
-				: connStatus == ConnectionStatus::eConnected  ? "Connected"
-															  : "Connecting");
+			ImGui::EndDisabled();
 
 			// End window
 			ImGui::End();
@@ -394,22 +398,52 @@ public:
 
 	// Method for launching new notification
 	static void launch_notification(std::string text) {
-		m_notifications.emplace_back(
-			std::make_unique<Notification>(std::move(text), m_notifAnimationLength,
-										   static_cast<float>(glfwGetTime()), m_notifEffectSpeed));
+		m_notifications.emplace_back(std::make_unique<Notification>(
+			std::move(text), global_config.notifAnimationLength, static_cast<float>(glfwGetTime()),
+			global_config.notifEffectSpeed));
 	}
 
 	// Method to return approved users
 	[[nodiscard]] static auto get_approved_users() -> const std::vector<std::string> & {
-		return m_approvedUsers;
+		return global_config.approvedUsers;
 	}
 
 private:
-	// GLFW error callback using fmt
+	// Returns string depending on connection status and result
+	static auto get_connection_status_string(const ConnectionStatus status, const Result &res)
+		-> std::string {
+		switch (status) {
+		case ConnectionStatus::eConnecting:
+			return "Connecting..";
+		case ConnectionStatus::eConnected:
+			return "Connected!";
+		case ConnectionStatus::eDisconnected:
+			return "Disconnected";
+		default:
+			return std::format("Error: {}", res.message);
+		}
+	}
+
+	// Returns color depending on connection status and result
+	static auto get_connection_status_color(const ConnectionStatus status, const Result &res)
+		-> ImVec4 {
+		switch (status) {
+		case ConnectionStatus::eConnecting:
+			return m_colorWait;
+		case ConnectionStatus::eConnected:
+			return m_colorOK;
+		case ConnectionStatus::eDisconnected:
+			return m_colorDisabled;
+		default:
+			return m_colorError;
+		}
+	}
+
+	// GLFW error callback using format
 	static void glfw_error_callback(int error, const char *description) {
 		// Ignore GLFW_FEATURE_UNAVAILABLE as they're expected with Wayland
 		if (error != GLFW_FEATURE_UNAVAILABLE)
-			fmt::println(stderr, "GLFW error {}: {}", error, description);
+			std::cerr << std::format("GLFW error {}: {}", error, description);
 	}
 
 	// Method that provides better glGetString, returns const char* instead of GLubyte*

@@ -1,5 +1,9 @@
 module;
 
+#include <tuple>
+#include <vector>
+#include <ranges>
+#include <string>
 #include <random>
 #include <algorithm>
 
@@ -24,3 +28,47 @@ export auto strip_extension(const std::string &filename) -> std::string {
 	return filename.find('.') != std::string::npos ? filename.substr(0, filename.find('.'))
 												   : filename;
 }
+
+// Method for splitting string by delimiter
+export auto split_string(const std::string &str, const char delimiter) -> std::vector<std::string> {
+	std::vector<std::string> result;
+	std::string token;
+	std::ranges::for_each(str, [&](const char c) {
+		if (c == delimiter) {
+			result.push_back(token);
+			token.clear();
+		} else {
+			token += c;
+		}
+	});
+	result.push_back(token);
+	return result;
+}
+
+// Method for returning a GUID string
+export auto generate_guid() -> std::string {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<int> dis(0, 15);
+	const std::string hex = "0123456789abcdef";
+	std::string uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
+	for (auto &ch : uuid) {
+		if (ch == 'x') {
+			ch = hex[dis(gen)];
+		} else if (ch == 'y') {
+			ch = hex[(dis(gen) & 0x3) | 0x8];
+		}
+	}
+	return uuid;
+}
+
+// Simple struct for returning an result code and message with arguments
+export struct Result {
+	int code = 0;
+	std::string message = "";
+	std::tuple<std::string> args = {};
+
+	explicit operator bool() const {
+		return code == 0;
+	}
+};

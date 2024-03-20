@@ -22,6 +22,7 @@ target_sources(ChatNotifier PRIVATE FILE_SET CXX_MODULES FILES
   twitch.cppm
   notification.cppm
   gui.cppm
+  config.cppm
 )
 
 target_include_directories(ChatNotifier PRIVATE
@@ -35,7 +36,7 @@ target_include_directories(ChatNotifier PRIVATE
 )
 
 target_link_libraries(ChatNotifier PRIVATE
-  fmt::fmt-header-only
+  glaze::glaze
   miniaudio
   glfw
   hv_static

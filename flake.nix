@@ -60,7 +60,6 @@
             ];
 
             buildInputs = with targetPkgs; [
-              fmt
               curl
               glfw
               gl3w
