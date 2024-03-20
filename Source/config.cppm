@@ -30,8 +30,12 @@ struct Config {
 
 	auto load() -> Result {
 		// Check if file exists first
-		if (!std::filesystem::exists(AssetsHandler::get_assets_path() / "config.json"))
+		if (!std::filesystem::exists(AssetsHandler::get_assets_path() / "config.json")) {
+			twitchAuthToken.resize(64);
+			twitchAuthUser.resize(64);
+			twitchChannel.resize(64);
 			return Result();
+		}
 
 		if (const auto ec = glz::read_file_json(
 				*this, (AssetsHandler::get_assets_path() / "config.json").string(), std::string{}))
@@ -47,4 +51,4 @@ struct Config {
 };
 
 // Global config instance
-export inline Config global_config;
+export Config global_config;
