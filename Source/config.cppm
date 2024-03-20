@@ -4,7 +4,7 @@ module;
 #include <vector>
 #include <filesystem>
 
-#include <glaze/glaze.hpp>
+//#include <glaze/glaze.hpp>
 
 export module config;
 
@@ -21,9 +21,9 @@ struct Config {
 	std::string twitchAuthToken, twitchAuthUser, twitchChannel;
 
 	auto save() -> Result {
-		if (const auto ec = glz::write_file_json(
-				this, (AssetsHandler::get_assets_path() / "config.json").string(), std::string{}))
-			return Result(1, "Failed to save config: {}", std::to_string(ec));
+		//if (const auto ec = glz::write_file_json(
+		//		this, (AssetsHandler::get_assets_path() / "config.json").string(), std::string{}))
+		//	return Result(1, "Failed to save config: {}", std::to_string(ec));
 
 		return Result();
 	}
@@ -37,9 +37,9 @@ struct Config {
 			return Result();
 		}
 
-		if (const auto ec = glz::read_file_json(
-				*this, (AssetsHandler::get_assets_path() / "config.json").string(), std::string{}))
-			return Result(1, "Failed to load config: {}", std::to_string(ec));
+		//if (const auto ec = glz::read_file_json(
+		//		*this, (AssetsHandler::get_assets_path() / "config.json").string(), std::string{}))
+		//	return Result(1, "Failed to load config: {}", std::to_string(ec));
 
 		// Resize twitch variables so ImGui can handle them (64 ought to be enough)
 		twitchAuthToken.resize(64);
