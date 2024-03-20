@@ -10,6 +10,7 @@ module;
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include <filesystem>
 #include <algorithm>
 #include <iostream>
 #include <numeric>
