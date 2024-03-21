@@ -37,7 +37,6 @@ target_include_directories(ChatNotifier PRIVATE
 
 target_link_libraries(ChatNotifier PRIVATE
 #  glaze::glaze
-  nlohmann_json
   miniaudio
   glfw
   hv_static

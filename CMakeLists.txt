@@ -50,7 +50,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 #find_package(glaze REQUIRED)
-find_package(nlohmann_json REQUIRED)
 find_package(glfw3 REQUIRED)
 
 if (NON_NIX_BUILD)

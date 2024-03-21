@@ -109,13 +109,3 @@ FetchContent_MakeAvailable(libhv)
 #  OVERRIDE_FIND_PACKAGE
 #)
 #FetchContent_MakeAvailable(glaze)
-
-# Fetch nlohmann_json (until MSVC fixes it's dumbness so glaze can be used)
-message(STATUS "Fetching nlohmann_json")
-FetchContent_Declare(
-  nlohmann_json
-  GIT_REPOSITORY "https://github.com/nlohmann/json.git"
-  GIT_TAG "v3.11.3"
-  OVERRIDE_FIND_PACKAGE
-)
-FetchContent_MakeAvailable(nlohmann_json)
