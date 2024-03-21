@@ -28,9 +28,9 @@ export struct Config {
 	float audioSequenceOffset = -1.0f; //< Offset for how long to wait between audio triggers
 
 	auto save() -> Result {
-		if (const auto ec = glz::write_file_json(
-				this, (AssetsHandler::get_assets_path() / "config.json").string(), std::string{}))
-			return Result(1, "Failed to save config: {}", std::to_string(ec));
+		if (glz::write_file_json(this, (AssetsHandler::get_assets_path() / "config.json").string(),
+								 std::string{}))
+			return Result(1, "Failed to save config");
 
 		return Result();
 	}
@@ -44,9 +44,9 @@ export struct Config {
 			return Result();
 		}
 
-		if (const auto ec = glz::read_file_json(
-				*this, (AssetsHandler::get_assets_path() / "config.json").string(), std::string{}))
-			return Result(1, "Failed to load config: {}", std::to_string(ec));
+		if (glz::read_file_json(*this, (AssetsHandler::get_assets_path() / "config.json").string(),
+								std::string{}))
+			return Result(1, "Failed to load config");
 
 		// Resize twitch variables so ImGui can handle them (64 ought to be enough)
 		twitchAuthToken.resize(64);
