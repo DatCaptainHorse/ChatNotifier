@@ -212,6 +212,16 @@ public:
 								   "%.2f"))
 				AudioPlayer::set_global_volume(global_config.globalAudioVolume);
 
+			// Slider for audio sequence offset, which is a float from -5.0f to 5.0f
+			ImGui::Text("Audio sequence offset:");
+			ImGui::SliderFloat("##audioSeqOffset", &global_config.audioSequenceOffset, -5.0f, 5.0f,
+							   "%.1f");
+
+			// Slider for max audio triggers, which is an integer from 0 to 10
+			ImGui::Text("Max audio triggers:");
+			ImGui::SliderInt("##maxAudioTriggers",
+							 reinterpret_cast<int *>(&global_config.maxAudioTriggers), 0, 10);
+
 			// Button to refresh assets
 			ImGui::Dummy(ImVec2(0, 10));
 			if (ImGui::Button("Find New Assets", ImVec2(-1, 30)))
@@ -230,6 +240,22 @@ public:
 								 ImGui::CalcTextSize("Twitch Settings").x / 2);
 			ImGui::Text("Twitch Settings");
 			ImGui::Separator();
+
+			// Dropdown for cooldown type
+			ImGui::Text("Command cooldown type:");
+			constexpr std::array cooldownTypes = {"None", "Global", "Per User"};
+			ImGui::Combo("##cooldownType", reinterpret_cast<int *>(&global_config.cooldownType),
+						 cooldownTypes.data(), cooldownTypes.size());
+
+			// Input box for cooldown time
+			if (global_config.cooldownType != CommandCooldownType::eNone) {
+				ImGui::Text("Cooldown time:");
+				ImGui::InputScalar("##cooldownTime", ImGuiDataType_U32,
+								   &global_config.cooldownTime);
+			}
+
+			// Padding
+			ImGui::Dummy(ImVec2(0, 10));
 
 			// Modifiable list of approved users
 			ImGui::Text("Approved users:");
@@ -250,6 +276,8 @@ public:
 				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f),
 								   "If the list is empty,\nanyone can trigger commands!");
 			else {
+				// List inside child window for scrolling
+				ImGui::BeginChild("##approvedUsersList", ImVec2(0, 100), true);
 				for (const auto &user : global_config.approvedUsers) {
 					ImGui::PushID(&user);
 					if (ImGui::Button("Remove")) {
@@ -260,6 +288,7 @@ public:
 					ImGui::SameLine();
 					ImGui::Text("%s", user.c_str());
 				}
+				ImGui::EndChild();
 			}
 
 			// Padding

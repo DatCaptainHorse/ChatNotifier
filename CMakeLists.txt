@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.28)
 project(ChatNotifier)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # We don't want to use any compiler-specific extensions
 set(CMAKE_CXX_SCAN_FOR_MODULES ON) # We use C++20, might as well use modules
@@ -15,6 +15,17 @@ endif ()
 if ("$ENV{IMGUI_DIR}" STREQUAL "" OR "$ENV{MINIAUDIO_DIR}" STREQUAL "")
   message(STATUS "`IMGUI_DIR` or `MINIAUDIO_DIR` not set, setting NON_NIX_BUILD")
   set(NON_NIX_BUILD ON)
+
+  # If clang compiler, use libc++ rather than libstdc++ (if available)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("-stdlib=libc++" HAS_LIBCXX)
+    if (HAS_LIBCXX)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
+    endif ()
+  endif ()
+
   include(FetchDeps)
 else ()
   set(IMGUI_DIR $ENV{IMGUI_DIR})

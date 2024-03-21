@@ -2,11 +2,13 @@ module;
 
 #include <map>
 #include <string>
+#include <ranges>
 #include <functional>
 #include <filesystem>
 
 export module commands;
 
+import config;
 import common;
 import assets;
 import audio;
@@ -52,7 +54,7 @@ public:
 				"Custom Notification", [launch_notification](const std::string &msg) {
 					std::string notifMsg = msg;
 					// Split to words (space-separated)
-					auto words = split_string(notifMsg, ' ');
+					const auto words = split_string(notifMsg, " ");
 
 					// Get the first ascii art from words and prepend it to the notification
 					const auto asciiarts = AssetsHandler::get_ascii_art_keys();
@@ -64,12 +66,14 @@ public:
 						}
 					}
 
-					// Find all easter egg sound words, pushing into vector, limited to 3
+					// Find all easter egg sound words, pushing into vector
+					// limited to global_config.maxAudioTriggers
 					std::vector<std::filesystem::path> sounds;
 					const auto eggSounds = AssetsHandler::get_egg_sound_keys();
 					for (const auto &word : words) {
 						if (const auto found = std::ranges::find(eggSounds, word);
-							found != eggSounds.end() && sounds.size() < 3) {
+							found != eggSounds.end() &&
+							sounds.size() < global_config.maxAudioTriggers) {
 							sounds.push_back(AssetsHandler::get_egg_sound_path(*found));
 						}
 					}

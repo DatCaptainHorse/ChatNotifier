@@ -1,9 +1,9 @@
 module;
 
+#include <map>
+#include <chrono>
 #include <string>
-#include <format>
 #include <functional>
-#include <string_view>
 
 #include <hv/WebSocketClient.h>
 
@@ -29,6 +29,11 @@ export class TwitchChatConnector {
 	static inline hv::WebSocketClient m_client;
 
 	static inline TwitchChatMessageCallback m_onMessage;
+
+	// Keep track of user -> last command time for cooldowns
+	static inline std::chrono::time_point<std::chrono::steady_clock> m_lastCommandTime;
+	static inline std::map<std::string, std::chrono::time_point<std::chrono::steady_clock>>
+		m_lastCommandTimes;
 
 public:
 	// Initializes the connector resources, with given callback
@@ -135,6 +140,28 @@ private: // Handlers
 			std::erase(chat, '\n');
 			std::erase(chat, '\r');
 			std::erase(chat, '\t');
+
+			// Check cooldown (global_config.cooldownType + global_config.cooldownTime) before
+			// calling the callback
+			switch (global_config.cooldownType) {
+			case CommandCooldownType::eGlobal: {
+				if (std::chrono::steady_clock::now() - m_lastCommandTime <
+					std::chrono::seconds(global_config.cooldownTime))
+					return;
+				m_lastCommandTime = std::chrono::steady_clock::now();
+				break;
+			}
+			case CommandCooldownType::ePerUser: {
+				if (std::chrono::steady_clock::now() - m_lastCommandTimes[user] <
+					std::chrono::seconds(global_config.cooldownTime))
+					return;
+				m_lastCommandTimes[user] = std::chrono::steady_clock::now();
+				break;
+			case CommandCooldownType::eNone:
+			default:
+				break;
+			}
+			}
 
 			m_onMessage({user, chat});
 		}

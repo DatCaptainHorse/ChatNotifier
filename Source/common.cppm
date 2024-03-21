@@ -30,19 +30,11 @@ export auto strip_extension(const std::string &filename) -> std::string {
 }
 
 // Method for splitting string by delimiter
-export auto split_string(const std::string &str, const char delimiter) -> std::vector<std::string> {
-	std::vector<std::string> result;
-	std::string token;
-	std::ranges::for_each(str, [&](const char c) {
-		if (c == delimiter) {
-			result.push_back(token);
-			token.clear();
-		} else {
-			token += c;
-		}
-	});
-	result.push_back(token);
-	return result;
+export auto split_string(std::string_view str, std::string_view delimeter)
+	-> std::vector<std::string> {
+	return std::ranges::to<std::vector<std::string>>(
+		str | std::views::split(delimeter) |
+		std::views::transform([](auto &&part) { return std::string(part.begin(), part.end()); }));
 }
 
 // Method for returning a GUID string
@@ -68,7 +60,5 @@ export struct Result {
 	std::string message = "";
 	std::tuple<std::string> args = {};
 
-	explicit operator bool() const {
-		return code == 0;
-	}
+	explicit operator bool() const { return code == 0; }
 };

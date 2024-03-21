@@ -17,6 +17,7 @@ module;
 
 export module audio;
 
+import config;
 import common;
 import opus_decoder;
 
@@ -25,8 +26,10 @@ export class AudioPlayer {
 	static inline ma_engine m_engine;
 	static inline float m_volume;
 
-	// Vector of sounds
+	// Map of sounds
 	static inline std::map<std::string, std::deque<std::shared_ptr<ma_sound>>> m_sounds;
+	// Deque of sounds to uninit
+	static inline std::deque<std::shared_ptr<ma_sound>> m_sounds_waiting_clean;
 
 	static inline ma_decoding_backend_vtable decoding_backend_opus{
 		ma_decoding_backend_init_libopus, ma_decoding_backend_init_file_libopus,
@@ -80,20 +83,34 @@ public:
 		ma_engine_uninit(&m_engine);
 	}
 
-	// Handles uninitializing ended sounds, and playing next sound in sequence
+	// Handles uninitializing ended sounds and playing next sound in sequence
 	static void update() {
+		// Clean sounds first
+		for (auto &sound : m_sounds_waiting_clean) {
+			if (!ma_sound_at_end(sound.get()))
+				continue;
+
+			ma_sound_uninit(sound.get());
+			m_sounds_waiting_clean.pop_front();
+		}
+
 		for (auto &[guid, sounds] : m_sounds) {
 			if (sounds.empty())
 				continue;
 
-			// Play next sound in sequence if current one has ended (ma_sound_at_end)
-			if (ma_sound_at_end(sounds.front().get())) {
-				// Uninitialize sound
-				ma_sound_uninit(sounds.front().get());
-				// Remove from deque
+			// Play next sound in sequence if current one has reached end - audioSequenceOffset
+			const auto &soundTime =
+				static_cast<float>(ma_sound_get_time_in_milliseconds(sounds.front().get())) /
+				1000.0f;
+			float soundLength = 0;
+			ma_sound_get_length_in_seconds(sounds.front().get(), &soundLength);
+
+			if (ma_sound_at_end(sounds.front().get()) ||
+				soundTime >= soundLength + global_config.audioSequenceOffset) {
+				// Move to cleanable sounds
+				m_sounds_waiting_clean.push_back(sounds.front());
 				sounds.pop_front();
 
-				// Play next sound in sequence
 				if (!sounds.empty())
 					ma_sound_start(sounds.front().get());
 			}
@@ -102,12 +119,18 @@ public:
 
 	// Stops all sounds
 	static void stop_sounds() {
+		for (auto &sound : m_sounds_waiting_clean) {
+			ma_sound_stop(sound.get());
+			ma_sound_uninit(sound.get());
+		}
+
 		for (auto &[name, sounds] : m_sounds) {
 			for (auto &sound : sounds) {
 				ma_sound_stop(sound.get());
 				ma_sound_uninit(sound.get());
 			}
 		}
+		m_sounds_waiting_clean.clear();
 		m_sounds.clear();
 	}
 
