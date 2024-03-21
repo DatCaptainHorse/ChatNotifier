@@ -2,9 +2,11 @@ module;
 
 #include <string>
 #include <vector>
+#include <fstream>
 #include <filesystem>
 
-#include <glaze/glaze.hpp>
+//#include <glaze/glaze.hpp>
+#include <nlohmann/json.hpp>
 
 export module config;
 
@@ -28,9 +30,31 @@ export struct Config {
 	float audioSequenceOffset = -1.0f; //< Offset for how long to wait between audio triggers
 
 	auto save() -> Result {
-		if (glz::write_file_json(this, (AssetsHandler::get_assets_path() / "config.json").string(),
-								 std::string{}))
-			return Result(1, "Failed to save config");
+		//if (glz::write_file_json(this, (AssetsHandler::get_assets_path() / "config.json").string(),
+		//						 std::string{}))
+		//	return Result(1, "Failed to save config");
+
+		// Using nlohmann json for now
+		nlohmann::json j;
+		j["notifAnimationLength"] = notifAnimationLength;
+		j["notifEffectSpeed"] = notifEffectSpeed;
+		j["notifFontScale"] = notifFontScale;
+		j["globalAudioVolume"] = globalAudioVolume;
+		j["approvedUsers"] = approvedUsers;
+		j["twitchAuthToken"] = twitchAuthToken;
+		j["twitchAuthUser"] = twitchAuthUser;
+		j["twitchChannel"] = twitchChannel;
+		j["cooldownType"] = static_cast<int>(cooldownType);
+		j["cooldownTime"] = cooldownTime;
+		j["maxAudioTriggers"] = maxAudioTriggers;
+		j["audioSequenceOffset"] = audioSequenceOffset;
+
+		std::ofstream file(AssetsHandler::get_assets_path() / "config.json");
+		if (!file.is_open())
+			return Result(1, "Failed to open config file for writing");
+
+		file << j.dump(4);
+		file.close();
 
 		return Result();
 	}
@@ -44,9 +68,31 @@ export struct Config {
 			return Result();
 		}
 
-		if (glz::read_file_json(*this, (AssetsHandler::get_assets_path() / "config.json").string(),
-								std::string{}))
-			return Result(1, "Failed to load config");
+		//if (glz::read_file_json(*this, (AssetsHandler::get_assets_path() / "config.json").string(),
+		//						std::string{}))
+		//	return Result(1, "Failed to load config");
+
+		// Using nlohmann json for now
+		nlohmann::json j;
+		std::ifstream file(AssetsHandler::get_assets_path() / "config.json");
+		if (!file.is_open())
+			return Result(1, "Failed to open config file for reading");
+
+		file >> j;
+		file.close();
+
+		notifAnimationLength = j["notifAnimationLength"];
+		notifEffectSpeed = j["notifEffectSpeed"];
+		notifFontScale = j["notifFontScale"];
+		globalAudioVolume = j["globalAudioVolume"];
+		approvedUsers = j["approvedUsers"];
+		twitchAuthToken = j["twitchAuthToken"];
+		twitchAuthUser = j["twitchAuthUser"];
+		twitchChannel = j["twitchChannel"];
+		cooldownType = static_cast<CommandCooldownType>(j["cooldownType"]);
+		cooldownTime = j["cooldownTime"];
+		maxAudioTriggers = j["maxAudioTriggers"];
+		audioSequenceOffset = j["audioSequenceOffset"];
 
 		// Resize twitch variables so ImGui can handle them (64 ought to be enough)
 		twitchAuthToken.resize(64);

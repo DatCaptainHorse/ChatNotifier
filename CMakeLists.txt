@@ -22,7 +22,6 @@ if ("$ENV{IMGUI_DIR}" STREQUAL "" OR "$ENV{MINIAUDIO_DIR}" STREQUAL "")
     check_cxx_compiler_flag("-stdlib=libc++" HAS_LIBCXX)
     if (HAS_LIBCXX)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
     endif ()
   endif ()
 
@@ -50,7 +49,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-find_package(glaze REQUIRED)
+#find_package(glaze REQUIRED)
+find_package(nlohmann_json REQUIRED)
 find_package(glfw3 REQUIRED)
 
 if (NON_NIX_BUILD)

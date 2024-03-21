@@ -100,12 +100,22 @@ set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(libhv)
 
 # Fetch glaze
-message(STATUS "Fetching glaze")
+#message(STATUS "Fetching glaze")
+#FetchContent_Declare(
+#  glaze
+#  GIT_REPOSITORY "https://github.com/stephenberry/glaze.git"
+#  GIT_TAG "v2.3.1"
+#  GIT_SHALLOW TRUE
+#  OVERRIDE_FIND_PACKAGE
+#)
+#FetchContent_MakeAvailable(glaze)
+
+# Fetch nlohmann_json (until MSVC fixes it's dumbness so glaze can be used)
+message(STATUS "Fetching nlohmann_json")
 FetchContent_Declare(
-  glaze
-  GIT_REPOSITORY https://github.com/stephenberry/glaze.git
-  GIT_TAG "v2.3.1"
-  GIT_SHALLOW TRUE
+  nlohmann_json
+  GIT_REPOSITORY "https://github.com/nlohmann/json.git"
+  GIT_TAG "v3.11.3"
   OVERRIDE_FIND_PACKAGE
 )
-FetchContent_MakeAvailable(glaze)
+FetchContent_MakeAvailable(nlohmann_json)
