@@ -169,13 +169,38 @@ add_library(ucd STATIC
 target_include_directories(ucd PUBLIC ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/include)
 # Create config.h with "#define PACKAGE_VERSION" to avoid errors
 file(WRITE ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/config.h "#define PACKAGE_VERSION \"1.51.1\"")
-# Glob all c files in src/libespeak-ng
-file(GLOB_RECURSE espeak-ng_SOURCE_FILES ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/*.c)
-# Exclude sPlayer.c and sPlayer.h
-list(FILTER espeak-ng_SOURCE_FILES EXCLUDE REGEX ".*sPlayer\\.[ch]")
-add_library(espeaklib STATIC ${espeak-ng_SOURCE_FILES})
+add_library(espeaklib STATIC
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/common.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/mnemonics.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/error.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/ieee80.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/compiledata.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/compiledict.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/dictionary.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/encoding.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/intonation.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/langopts.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/numbers.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/phoneme.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/phonemelist.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/readclause.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/setlengths.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/soundicon.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/spect.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/ssml.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/synthdata.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/synthesize.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/tr_languages.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/translate.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/translateword.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/voices.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/wavegen.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/speech.c
+  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/espeak_api.c
+)
 target_include_directories(espeaklib PUBLIC ${espeak-ng_SOURCE_DIR}/src/include ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/include)
 target_link_libraries(espeaklib PRIVATE ucd)
+target_compile_definitions(espeaklib PRIVATE "LIBESPEAK_NG_EXPORT=1")
 
 # Fetch piper-phonemize for piper
 message(STATUS "Fetching piper-phonemize")
