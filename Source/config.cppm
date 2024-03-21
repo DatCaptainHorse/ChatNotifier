@@ -15,7 +15,7 @@ import assets;
 export enum class CommandCooldownType { eNone, eGlobal, ePerUser };
 
 // Struct for keeping configs across launches
-struct Config {
+export struct Config {
 	float notifAnimationLength = 5.0f;
 	float notifEffectSpeed = 5.0f;
 	float notifFontScale = 1.0f;
