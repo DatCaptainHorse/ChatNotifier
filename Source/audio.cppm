@@ -140,7 +140,7 @@ public:
 		ma_engine_set_volume(&m_engine, m_volume);
 	}
 
-	static void play_oneshot(const std::filesystem::path &file) {
+	static void play_oneshot(const std::filesystem::path &file, const float volume = 1.0f) {
 		// Create new sound
 		const auto sound = std::make_shared<ma_sound>();
 		if (ma_sound_init_from_file(&m_engine, file.string().c_str(),
@@ -150,7 +150,9 @@ public:
 			return;
 		}
 
-		ma_sound_start(m_sounds[generate_guid()].emplace_back(sound).get());
+		auto snd = m_sounds[generate_guid()].emplace_back(sound);
+		ma_sound_start(snd.get());
+		ma_sound_set_volume(snd.get(), volume);
 	}
 
 	// Plays given sounds in order, waiting for last one to finish before starting next
@@ -172,4 +174,22 @@ public:
 		// Play first sound
 		ma_sound_start(m_sounds[groupGUID].front().get());
 	}
+
+	// Plays wav from memory
+	/*static void play_oneshot_memory(const std::vector<std::int16_t> &data) {
+		const ma_audio_buffer_config bufferConfig = ma_audio_buffer_config_init(
+			ma_format_s16, 1, static_cast<ma_uint32>(data.size()), data.data(), nullptr);
+		ma_audio_buffer buffer;
+		ma_audio_buffer_init(&bufferConfig, &buffer);
+
+		const auto sound = std::make_shared<ma_sound>();
+		if (ma_sound_init_from_data_source(&m_engine, &buffer,
+										   MA_SOUND_FLAG_ASYNC | MA_SOUND_FLAG_NO_PITCH |
+											   MA_SOUND_FLAG_NO_SPATIALIZATION,
+										   nullptr, sound.get()) != MA_SUCCESS) {
+			return;
+		}
+
+		ma_sound_start(m_sounds[generate_guid()].emplace_back(sound).get());
+	}*/
 };

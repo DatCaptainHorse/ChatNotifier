@@ -109,3 +109,105 @@ FetchContent_MakeAvailable(libhv)
 #  OVERRIDE_FIND_PACKAGE
 #)
 #FetchContent_MakeAvailable(glaze)
+
+# Fetch spdlog
+message(STATUS "Fetching spdlog")
+FetchContent_Declare(
+  spdlog
+  GIT_REPOSITORY "https://github.com/gabime/spdlog.git"
+  GIT_TAG "v1.13.0"
+  GIT_SHALLOW TRUE
+  OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(spdlog)
+
+# Fetch onnxruntime for piper (using release zip because they don't have library targets)
+message(STATUS "Fetching onnxruntime")
+# If not win32
+if (NOT WIN32)
+  FetchContent_Declare(
+    onnxruntime
+    URL "https://github.com/microsoft/onnxruntime/releases/download/v1.17.1/onnxruntime-linux-x64-1.17.1.tgz"
+    URL_HASH MD5=405e3ef137247c5229207da596ac45c0
+  )
+else ()
+  FetchContent_Declare(
+    onnxruntime
+    URL "https://github.com/microsoft/onnxruntime/releases/download/v1.17.1/onnxruntime-win-x64-1.17.1.zip"
+    URL_HASH MD5=26138ecd0cb6d4abe00c4070a27e5234
+  )
+endif ()
+FetchContent_MakeAvailable(onnxruntime)
+# Add onnxruntime to the project
+add_library(onnxruntime INTERFACE)
+target_include_directories(onnxruntime INTERFACE ${onnxruntime_SOURCE_DIR}/include)
+# If not win32
+if (NOT WIN32)
+  target_link_libraries(onnxruntime INTERFACE ${onnxruntime_SOURCE_DIR}/lib/libonnxruntime.so)
+else ()
+  target_link_libraries(onnxruntime INTERFACE ${onnxruntime_SOURCE_DIR}/lib/onnxruntime.lib)
+endif ()
+
+# Fetch espeak-ng for piper
+message(STATUS "Fetching espeak-ng")
+FetchContent_Declare(
+  espeak-ng
+  GIT_REPOSITORY "https://github.com/rhasspy/espeak-ng.git"
+  GIT_COMMIT "8593723f10cfd9befd50de447f14bf0a9d2a14a4"
+)
+# No extras so just make our own library
+FetchContent_Populate(espeak-ng)
+# Sub-library ucd
+add_library(ucd STATIC
+  ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/case.c
+  ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/categories.c
+  ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/ctype.c
+  ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/proplist.c
+  ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/scripts.c
+  ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/tostring.c
+)
+target_include_directories(ucd PUBLIC ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/include)
+# Create config.h with "#define PACKAGE_VERSION" to avoid errors
+file(WRITE ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/config.h "#define PACKAGE_VERSION \"1.51.1\"")
+# Glob all c files in src/libespeak-ng
+file(GLOB_RECURSE espeak-ng_SOURCE_FILES ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/*.c)
+# Exclude sPlayer.c and sPlayer.h
+list(FILTER espeak-ng_SOURCE_FILES EXCLUDE REGEX ".*sPlayer\\.[ch]")
+add_library(espeaklib STATIC ${espeak-ng_SOURCE_FILES})
+target_include_directories(espeaklib PUBLIC ${espeak-ng_SOURCE_DIR}/src/include ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/include)
+target_link_libraries(espeaklib PRIVATE ucd)
+
+# Fetch piper-phonemize for piper
+message(STATUS "Fetching piper-phonemize")
+FetchContent_Declare(
+  piper-phonemize
+  GIT_REPOSITORY "https://github.com/rhasspy/piper-phonemize.git"
+  GIT_TAG "2023.11.14-4"
+)
+# Customize library..
+FetchContent_Populate(piper-phonemize)
+add_library(piper_phonemize STATIC
+  ${piper-phonemize_SOURCE_DIR}/src/phonemize.cpp
+  ${piper-phonemize_SOURCE_DIR}/src/phoneme_ids.cpp
+  ${piper-phonemize_SOURCE_DIR}/src/shared.cpp
+  ${piper-phonemize_SOURCE_DIR}/src/tashkeel.cpp
+)
+target_include_directories(piper_phonemize PUBLIC ${piper-phonemize_SOURCE_DIR}/src)
+target_link_libraries(piper_phonemize PUBLIC onnxruntime espeaklib)
+
+# Fetch piper
+message(STATUS "Fetching piper")
+# Patch..
+set(PIPER_PATCH git apply "${PROJECT_SOURCE_DIR}/cmake/fix-piper.patch")
+FetchContent_Declare(
+  piper
+  GIT_REPOSITORY "https://github.com/rhasspy/piper.git"
+  GIT_TAG "2023.11.14-2"
+  PATCH_COMMAND ${PIPER_PATCH}
+  UPDATE_DISCONNECTED 1
+)
+# There's no library, we need to create one ourselves
+FetchContent_MakeAvailable(piper)
+add_library(piperlib STATIC ${piper_SOURCE_DIR}/src/cpp/piper.cpp)
+target_include_directories(piperlib PUBLIC ${piper_SOURCE_DIR}/src/cpp ${piper-phonemize_SOURCE_DIR}/src ${onnxruntime_SOURCE_DIR}/include)
+target_link_libraries(piperlib PRIVATE piper_phonemize spdlog)

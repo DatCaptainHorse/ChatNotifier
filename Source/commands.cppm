@@ -12,6 +12,7 @@ import config;
 import common;
 import assets;
 import audio;
+import tts;
 
 // Class for commands handling
 export class CommandHandler {
@@ -42,15 +43,13 @@ public:
 		}
 
 		if (m_commandsMap.empty()) {
-			m_commandsMap["cc"] = {
-				"Random Notification", [launch_notification](const std::string &) {
-					// Pick a random notification string
-					const auto &notifMsg =
-						m_notificationStrings[random_int(0, m_notificationStrings.size() - 1)];
-
-					launch_notification(notifMsg);
+			m_commandsMap["tts"] = {
+				"TTS Notification", [launch_notification](const std::string &msg) {
+					const std::string notifMsg = msg;
+					TTSHandler::voiceString(notifMsg);
+					//launch_notification(notifMsg);
 				}};
-			m_commandsMap["ccc"] = {
+			m_commandsMap["cc"] = {
 				"Custom Notification", [launch_notification](const std::string &msg) {
 					std::string notifMsg = msg;
 					// Split to words (space-separated)

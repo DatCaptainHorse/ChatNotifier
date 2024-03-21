@@ -46,10 +46,14 @@ public:
 		populate_egg_sounds();
 	}
 
+	// Returns executable path
+	static auto get_exec_path() -> std::filesystem::path { return exec_path; }
 	// Returns path to assets folder
-	static auto get_assets_path() -> std::filesystem::path { return exec_path / "Assets/"; }
+	static auto get_assets_path() -> std::filesystem::path { return get_exec_path() / "Assets/"; }
 	// Returns path to font assets folder
 	static auto get_font_assets_path() -> std::filesystem::path { return get_assets_path() / "Fonts/"; }
+	// Returns path to TTS model folder
+	static auto get_tts_model_path() -> std::filesystem::path { return get_assets_path() / "TTS/"; }
 	// Returns path to trigger ASCII art folder
 	static auto get_trigger_ascii_path() -> std::filesystem::path {
 		return get_assets_path() / "TriggerASCII/";

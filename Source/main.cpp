@@ -13,6 +13,7 @@ import audio;
 import gui;
 import twitch;
 import commands;
+import tts;
 
 // Method for printing Result errors
 void print_error(const Result &res) {
@@ -42,6 +43,11 @@ auto main(int argc, char **argv) -> int {
 	}
 
 	if (const auto res = TwitchChatConnector::initialize(twc_callback_handler); !res) {
+		print_error(res);
+		return res.code;
+	}
+
+	if (const auto res = TTSHandler::initialize(); !res) {
 		print_error(res);
 		return res.code;
 	}
@@ -80,6 +86,7 @@ auto main(int argc, char **argv) -> int {
 	// CLEANUP //
 	NotifierGUI::cleanup();
 	CommandHandler::cleanup();
+	TTSHandler::cleanup();
 	TwitchChatConnector::cleanup();
 	AudioPlayer::cleanup();
 	AssetsHandler::cleanup();
