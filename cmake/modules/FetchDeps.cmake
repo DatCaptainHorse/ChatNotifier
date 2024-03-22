@@ -97,6 +97,8 @@ FetchContent_Declare(
 # BUILD_SHARED, BUILD_EXAMPLES to OFF, we don't need them
 set(BUILD_SHARED OFF CACHE BOOL "" FORCE)
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+# We want static-static
+set(BUILD_FOR_MT ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(libhv)
 
 # Fetch glaze
