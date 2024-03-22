@@ -80,3 +80,8 @@ set_target_properties(ChatNotifier PROPERTIES
 target_compile_definitions(ChatNotifier PRIVATE
   $<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS>
 )
+
+# Static runtime
+if (WIN32)
+  set_property(TARGET ChatNotifier PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif ()
