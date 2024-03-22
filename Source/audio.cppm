@@ -6,8 +6,6 @@ module;
 #define MA_NO_FLAC
 #include <miniaudio.h>
 
-#include <map>
-#include <deque>
 #include <array>
 #include <vector>
 #include <memory>
@@ -21,15 +19,30 @@ import config;
 import common;
 import opus_decoder;
 
+enum class SoundType {
+	eOneshot,
+	eSequential,
+	eMemory,
+};
+
+struct AudioPlayerSound {
+	SoundType type = SoundType::eOneshot;
+	std::shared_ptr<ma_sound> sound = nullptr;
+	std::shared_ptr<ma_audio_buffer> buffer = nullptr;
+	std::shared_ptr<AudioPlayerSound> next = nullptr;
+
+	explicit AudioPlayerSound(const SoundType &type,
+							  const std::shared_ptr<ma_audio_buffer> &buffer = nullptr)
+		: type(type), sound(std::make_shared<ma_sound>()), buffer(buffer) {}
+};
+
 // Super-duper simple audio player
 export class AudioPlayer {
 	static inline ma_engine m_engine;
 	static inline float m_volume;
 
-	// Map of sounds
-	static inline std::map<std::string, std::deque<std::shared_ptr<ma_sound>>> m_sounds;
-	// Deque of sounds to uninit
-	static inline std::deque<std::shared_ptr<ma_sound>> m_sounds_waiting_clean;
+	// Vector of sounds
+	static inline std::vector<std::shared_ptr<AudioPlayerSound>> m_sounds;
 
 	static inline ma_decoding_backend_vtable decoding_backend_opus{
 		ma_decoding_backend_init_libopus, ma_decoding_backend_init_file_libopus,
@@ -85,52 +98,48 @@ public:
 
 	// Handles uninitializing ended sounds and playing next sound in sequence
 	static void update() {
-		// Clean sounds first
-		for (auto &sound : m_sounds_waiting_clean) {
-			if (!ma_sound_at_end(sound.get()))
-				continue;
-
-			ma_sound_uninit(sound.get());
-			m_sounds_waiting_clean.pop_front();
-		}
-
-		for (auto &[guid, sounds] : m_sounds) {
-			if (sounds.empty())
-				continue;
-
-			// Play next sound in sequence if current one has reached end - audioSequenceOffset
+		for (const auto sound : m_sounds) {
+			// Play next sound in sequence if current one has reached the point
 			const auto &soundTime =
-				static_cast<float>(ma_sound_get_time_in_milliseconds(sounds.front().get())) /
-				1000.0f;
+				static_cast<float>(ma_sound_get_time_in_milliseconds(sound->sound.get())) / 1000.0f;
 			float soundLength = 0;
-			ma_sound_get_length_in_seconds(sounds.front().get(), &soundLength);
+			ma_sound_get_length_in_seconds(sound->sound.get(), &soundLength);
 
-			if (ma_sound_at_end(sounds.front().get()) ||
-				soundTime >= soundLength + global_config.audioSequenceOffset) {
-				// Move to cleanable sounds
-				m_sounds_waiting_clean.push_back(sounds.front());
-				sounds.pop_front();
-
-				if (!sounds.empty())
-					ma_sound_start(sounds.front().get());
+			if (sound->type == SoundType::eSequential &&
+				(ma_sound_at_end(sound->sound.get()) ||
+				 soundTime >= soundLength + global_config.audioSequenceOffset)) {
+				// Start playback of next sound
+				if (sound->next != nullptr)
+					ma_sound_start(sound->next->sound.get());
 			}
 		}
+
+		// Clean ended sounds
+		std::vector<std::shared_ptr<AudioPlayerSound>> soundsToRemove;
+		for (const auto sound : m_sounds) {
+			if (ma_sound_at_end(sound->sound.get())) {
+				ma_sound_stop(sound->sound.get());
+				ma_sound_uninit(sound->sound.get());
+				if (sound->buffer != nullptr)
+					ma_audio_buffer_uninit(sound->buffer.get());
+
+				soundsToRemove.push_back(sound);
+			}
+		}
+
+		// Remove sounds
+		for (const auto sound : soundsToRemove)
+			m_sounds.erase(std::ranges::find(m_sounds, sound));
 	}
 
 	// Stops all sounds
 	static void stop_sounds() {
-		for (auto &sound : m_sounds_waiting_clean) {
-			ma_sound_stop(sound.get());
-			ma_sound_uninit(sound.get());
+		for (const auto sound : m_sounds) {
+			ma_sound_stop(sound->sound.get());
+			ma_sound_uninit(sound->sound.get());
+			if (sound->buffer != nullptr)
+				ma_audio_buffer_uninit(sound->buffer.get());
 		}
-
-		for (auto &[name, sounds] : m_sounds) {
-			for (auto &sound : sounds) {
-				ma_sound_stop(sound.get());
-				ma_sound_uninit(sound.get());
-			}
-		}
-		m_sounds_waiting_clean.clear();
 		m_sounds.clear();
 	}
 
@@ -142,54 +151,66 @@ public:
 
 	static void play_oneshot(const std::filesystem::path &file, const float volume = 1.0f) {
 		// Create new sound
-		const auto sound = std::make_shared<ma_sound>();
+		const auto sound =
+			m_sounds.emplace_back(std::make_shared<AudioPlayerSound>(SoundType::eOneshot));
 		if (ma_sound_init_from_file(&m_engine, file.string().c_str(),
 									MA_SOUND_FLAG_ASYNC | MA_SOUND_FLAG_NO_PITCH |
 										MA_SOUND_FLAG_NO_SPATIALIZATION,
-									nullptr, nullptr, sound.get()) != MA_SUCCESS) {
+									nullptr, nullptr, sound->sound.get()) != MA_SUCCESS) {
 			return;
 		}
 
-		auto snd = m_sounds[generate_guid()].emplace_back(sound);
-		ma_sound_start(snd.get());
-		ma_sound_set_volume(snd.get(), volume);
+		ma_sound_set_volume(sound->sound.get(), volume);
+		ma_sound_start(sound->sound.get());
 	}
 
 	// Plays given sounds in order, waiting for last one to finish before starting next
-	static void play_sequential(const std::vector<std::filesystem::path> &files) {
-		const auto groupGUID = generate_guid();
-		// Create sounds
+	static void play_sequential(const std::vector<std::filesystem::path> &files,
+								const float volume = 1.0f) {
+		std::vector<std::shared_ptr<AudioPlayerSound>> sequence;
 		for (const auto &file : files) {
-			const auto sound = std::make_shared<ma_sound>();
+			const auto sound = std::make_shared<AudioPlayerSound>(SoundType::eSequential);
 			if (ma_sound_init_from_file(&m_engine, file.string().c_str(),
 										MA_SOUND_FLAG_ASYNC | MA_SOUND_FLAG_NO_PITCH |
 											MA_SOUND_FLAG_NO_SPATIALIZATION,
-										nullptr, nullptr, sound.get()) != MA_SUCCESS) {
+										nullptr, nullptr, sound->sound.get()) != MA_SUCCESS) {
 				return;
 			}
 
-			m_sounds[groupGUID].emplace_back(sound);
+			ma_sound_set_volume(sound->sound.get(), volume);
+			// Assign next sound in sequence
+			if (!sequence.empty())
+				sequence.back()->next = sound;
+
+			sequence.push_back(sound);
 		}
 
-		// Play first sound
-		ma_sound_start(m_sounds[groupGUID].front().get());
+		// Add to sounds
+		m_sounds.insert(m_sounds.end(), sequence.begin(), sequence.end());
+
+		// Begin playback of first sound
+		ma_sound_start(sequence.front()->sound.get());
 	}
 
-	// Plays wav from memory
-	/*static void play_oneshot_memory(const std::vector<std::int16_t> &data) {
-		const ma_audio_buffer_config bufferConfig = ma_audio_buffer_config_init(
-			ma_format_s16, 1, static_cast<ma_uint32>(data.size()), data.data(), nullptr);
-		ma_audio_buffer buffer;
-		ma_audio_buffer_init(&bufferConfig, &buffer);
+	// Plays from memory
+	static void play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
+									const float volume = 1.0f) {
+		ma_audio_buffer_config bufferConfig =
+			ma_audio_buffer_config_init(ma_format_f32, 1, data.size(), data.data(), nullptr);
+		bufferConfig.sampleRate = samplerate;
+		const auto buffer = std::make_shared<ma_audio_buffer>();
+		ma_audio_buffer_init(&bufferConfig, buffer.get());
 
-		const auto sound = std::make_shared<ma_sound>();
-		if (ma_sound_init_from_data_source(&m_engine, &buffer,
+		const auto sound =
+			m_sounds.emplace_back(std::make_shared<AudioPlayerSound>(SoundType::eMemory, buffer));
+		if (ma_sound_init_from_data_source(&m_engine, buffer.get(),
 										   MA_SOUND_FLAG_ASYNC | MA_SOUND_FLAG_NO_PITCH |
 											   MA_SOUND_FLAG_NO_SPATIALIZATION,
-										   nullptr, sound.get()) != MA_SUCCESS) {
+										   nullptr, sound->sound.get()) != MA_SUCCESS) {
 			return;
 		}
 
-		ma_sound_start(m_sounds[generate_guid()].emplace_back(sound).get());
-	}*/
+		ma_sound_set_volume(sound->sound.get(), volume);
+		ma_sound_start(sound->sound.get());
+	}
 };

@@ -10,6 +10,7 @@ add_executable(ChatNotifier
   ${IMGUI_DIR}/imgui_widgets.cpp
   ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
   ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+  ${IMGUI_DIR}/misc/cpp/imgui_stdlib.cpp
 )
 
 # C++20 module files
@@ -41,8 +42,7 @@ target_link_libraries(ChatNotifier PRIVATE
   miniaudio
   glfw
   hv_static
-  onnxruntime
-  piperlib
+  sherpacapi
 
   $<$<BOOL:${NON_NIX_BUILD}>:ogg>
   $<$<BOOL:${NON_NIX_BUILD}>:opus>
@@ -80,20 +80,3 @@ set_target_properties(ChatNotifier PROPERTIES
 target_compile_definitions(ChatNotifier PRIVATE
   $<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS>
 )
-
-if (TARGET onnxruntime)
-  # Make sure shared library is copied
-  if (WIN32)
-    add_custom_command(TARGET ChatNotifier POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different
-      ${onnxruntime_SOURCE_DIR}/lib/onnxruntime.dll
-      $<TARGET_FILE_DIR:ChatNotifier>
-    )
-  else ()
-    add_custom_command(TARGET ChatNotifier POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different
-      ${onnxruntime_SOURCE_DIR}/lib/libonnxruntime.so
-      $<TARGET_FILE_DIR:ChatNotifier>
-    )
-  endif ()
-endif ()

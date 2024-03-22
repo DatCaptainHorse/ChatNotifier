@@ -4,7 +4,7 @@ module;
 #include <vector>
 #include <filesystem>
 
-//#include <glaze/glaze.hpp>
+// #include <glaze/glaze.hpp>
 
 export module config;
 
@@ -25,33 +25,24 @@ export struct Config {
 	CommandCooldownType cooldownType = CommandCooldownType::eGlobal;
 	std::size_t cooldownTime = 5;
 	std::size_t maxAudioTriggers = 3;  //< How many audio triggers can a message cause
-	float audioSequenceOffset = -1.0f; //< Offset for how long to wait between audio triggers
+	float audioSequenceOffset = -0.5f; //< Offset for how long to wait between audio triggers
 
 	auto save() -> Result {
-		//if (glz::write_file_json(this, (AssetsHandler::get_assets_path() / "config.json").string(),
-		//						 std::string{}))
-		//	return Result(1, "Failed to save config");
+		// if (glz::write_file_json(this, (AssetsHandler::get_exec_path() /
+		// "config.json").string(), 						 std::string{})) 	return Result(1,
+		// "Failed to save config");
 
 		return Result();
 	}
 
 	auto load() -> Result {
 		// Check if file exists first
-		if (!std::filesystem::exists(AssetsHandler::get_assets_path() / "config.json")) {
-			twitchAuthToken.resize(64);
-			twitchAuthUser.resize(64);
-			twitchChannel.resize(64);
+		if (!std::filesystem::exists(AssetsHandler::get_exec_path() / "config.json"))
 			return Result();
-		}
 
-		//if (glz::read_file_json(*this, (AssetsHandler::get_assets_path() / "config.json").string(),
-		//						std::string{}))
-		//	return Result(1, "Failed to load config");
-
-		// Resize twitch variables so ImGui can handle them (64 ought to be enough)
-		twitchAuthToken.resize(64);
-		twitchAuthUser.resize(64);
-		twitchChannel.resize(64);
+		// if (glz::read_file_json(*this, (AssetsHandler::get_exec_path() /
+		// "config.json").string(), 						std::string{})) 	return Result(1,
+		// "Failed to load config");
 
 		return Result();
 	}

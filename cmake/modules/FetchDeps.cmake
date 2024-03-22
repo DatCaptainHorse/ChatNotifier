@@ -121,118 +121,34 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
-# Fetch onnxruntime for piper (using release zip because they don't have library targets)
-message(STATUS "Fetching onnxruntime")
-# If not win32
+# Fetch sherpa-onnx from their releases
+message(STATUS "Fetching sherpa-onnx")
 if (NOT WIN32)
   FetchContent_Declare(
-    onnxruntime
-    URL "https://github.com/microsoft/onnxruntime/releases/download/v1.17.1/onnxruntime-linux-x64-1.17.1.tgz"
-    URL_HASH MD5=405e3ef137247c5229207da596ac45c0
+    sherpa-onnx
+    URL "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.9.12/sherpa-onnx-v1.9.12-linux-x64.tar.bz2"
+    URL_HASH MD5=d30dae18bb959972a43c90a52651a346
   )
 else ()
   FetchContent_Declare(
-    onnxruntime
-    URL "https://github.com/microsoft/onnxruntime/releases/download/v1.17.1/onnxruntime-win-x64-1.17.1.zip"
-    URL_HASH MD5=26138ecd0cb6d4abe00c4070a27e5234
+    sherpa-onnx
+    URL "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.9.12/sherpa-onnx-v1.9.12-win-x64.tar.bz2"
+    URL_HASH MD5=e27d5cb855fbe5612e99d7f41e81a0e8
   )
 endif ()
-FetchContent_MakeAvailable(onnxruntime)
-# Add onnxruntime to the project
-add_library(onnxruntime INTERFACE)
-target_include_directories(onnxruntime INTERFACE ${onnxruntime_SOURCE_DIR}/include)
-# If not win32
-if (NOT WIN32)
-  target_link_libraries(onnxruntime INTERFACE ${onnxruntime_SOURCE_DIR}/lib/libonnxruntime.so)
+FetchContent_MakeAvailable(sherpa-onnx)
+# Libs are under "lib" and headers under "include"
+add_library(sherpacapi INTERFACE)
+target_include_directories(sherpacapi INTERFACE ${sherpa-onnx_SOURCE_DIR}/include)
+target_link_directories(sherpacapi INTERFACE ${sherpa-onnx_SOURCE_DIR}/lib)
+if (WIN32)
+  target_link_libraries(sherpacapi INTERFACE
+    ${sherpa-onnx_SOURCE_DIR}/lib/onnxruntime.lib
+    ${sherpa-onnx_SOURCE_DIR}/lib/sherpa-onnx-c-api.lib
+  )
 else ()
-  target_link_libraries(onnxruntime INTERFACE ${onnxruntime_SOURCE_DIR}/lib/onnxruntime.lib)
+  target_link_libraries(sherpacapi INTERFACE
+    ${sherpa-onnx_SOURCE_DIR}/lib/libonnxruntime.so
+    ${sherpa-onnx_SOURCE_DIR}/lib/libsherpa-onnx-c-api.so
+  )
 endif ()
-
-# Fetch espeak-ng for piper
-message(STATUS "Fetching espeak-ng")
-FetchContent_Declare(
-  espeak-ng
-  GIT_REPOSITORY "https://github.com/rhasspy/espeak-ng.git"
-  GIT_COMMIT "8593723f10cfd9befd50de447f14bf0a9d2a14a4"
-)
-# No extras so just make our own library
-FetchContent_Populate(espeak-ng)
-# Sub-library ucd
-add_library(ucd STATIC
-  ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/case.c
-  ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/categories.c
-  ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/ctype.c
-  ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/proplist.c
-  ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/scripts.c
-  ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/tostring.c
-)
-target_include_directories(ucd PUBLIC ${espeak-ng_SOURCE_DIR}/src/ucd-tools/src/include)
-# Create config.h with "#define PACKAGE_VERSION" to avoid errors
-file(WRITE ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/config.h "#define PACKAGE_VERSION \"1.51.1\"")
-add_library(espeaklib STATIC
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/common.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/mnemonics.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/error.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/ieee80.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/compiledata.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/compiledict.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/dictionary.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/encoding.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/intonation.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/langopts.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/numbers.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/phoneme.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/phonemelist.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/readclause.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/setlengths.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/soundicon.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/spect.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/ssml.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/synthdata.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/synthesize.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/tr_languages.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/translate.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/translateword.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/voices.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/wavegen.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/speech.c
-  ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/espeak_api.c
-)
-target_include_directories(espeaklib PUBLIC ${espeak-ng_SOURCE_DIR}/src/include ${espeak-ng_SOURCE_DIR}/src/libespeak-ng/include)
-target_link_libraries(espeaklib PRIVATE ucd)
-target_compile_definitions(espeaklib PRIVATE "LIBESPEAK_NG_EXPORT=1")
-
-# Fetch piper-phonemize for piper
-message(STATUS "Fetching piper-phonemize")
-FetchContent_Declare(
-  piper-phonemize
-  GIT_REPOSITORY "https://github.com/rhasspy/piper-phonemize.git"
-  GIT_TAG "2023.11.14-4"
-)
-# Customize library..
-FetchContent_Populate(piper-phonemize)
-add_library(piper_phonemize STATIC
-  ${piper-phonemize_SOURCE_DIR}/src/phonemize.cpp
-  ${piper-phonemize_SOURCE_DIR}/src/phoneme_ids.cpp
-  ${piper-phonemize_SOURCE_DIR}/src/shared.cpp
-  ${piper-phonemize_SOURCE_DIR}/src/tashkeel.cpp
-)
-target_include_directories(piper_phonemize PUBLIC ${piper-phonemize_SOURCE_DIR}/src)
-target_link_libraries(piper_phonemize PUBLIC onnxruntime espeaklib)
-
-# Fetch piper
-message(STATUS "Fetching piper")
-# Patch..
-set(PIPER_PATCH git apply "${PROJECT_SOURCE_DIR}/cmake/fix-piper.patch")
-FetchContent_Declare(
-  piper
-  GIT_REPOSITORY "https://github.com/rhasspy/piper.git"
-  GIT_TAG "2023.11.14-2"
-  PATCH_COMMAND ${PIPER_PATCH}
-  UPDATE_DISCONNECTED 1
-)
-# There's no library, we need to create one ourselves
-FetchContent_MakeAvailable(piper)
-add_library(piperlib STATIC ${piper_SOURCE_DIR}/src/cpp/piper.cpp)
-target_include_directories(piperlib PUBLIC ${piper_SOURCE_DIR}/src/cpp ${piper-phonemize_SOURCE_DIR}/src ${onnxruntime_SOURCE_DIR}/include)
-target_link_libraries(piperlib PRIVATE piper_phonemize spdlog)

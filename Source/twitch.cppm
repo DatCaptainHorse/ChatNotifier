@@ -1,8 +1,9 @@
 module;
 
 #include <map>
-#include <chrono>
 #include <string>
+#include <ranges>
+#include <chrono>
 #include <functional>
 
 #include <hv/WebSocketClient.h>
@@ -50,25 +51,13 @@ public:
 	}
 
 	// Connects to the given channel's chat
-	static auto connect(const std::string &authToken, const std::string &authUser,
-						const std::string &channel) -> Result {
+	static auto connect() -> Result {
 		// If already connected or any parameter is empty, return
-		if (m_connStatus > ConnectionStatus::eDisconnected || channel.empty() ||
-			authToken.empty() || authUser.empty())
-			return Result(1, "Already connected or invalid parameters");
+		if (m_connStatus > ConnectionStatus::eDisconnected)
+			return Result(1, "Already connected");
 
 		// Set to connecting
 		m_connStatus = ConnectionStatus::eConnecting;
-
-		// Set params
-		global_config.twitchAuthToken = authToken;
-		global_config.twitchAuthUser = authUser;
-		global_config.twitchChannel = channel;
-
-		// Remove extra \0's from config strings (resize causes auth to fail)
-		std::erase(global_config.twitchAuthToken, '\0');
-		std::erase(global_config.twitchAuthUser, '\0');
-		std::erase(global_config.twitchChannel, '\0');
 
 		// Set handlers
 		m_client.onopen = handle_open;

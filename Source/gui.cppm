@@ -9,6 +9,7 @@ module;
 #include <imgui_impl_opengl3.h>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <misc/cpp/imgui_stdlib.h>
 
 #include <filesystem>
 #include <algorithm>
@@ -18,6 +19,7 @@ module;
 #include <format>
 #include <array>
 #include <memory>
+#include <ranges>
 
 export module gui;
 
@@ -212,9 +214,9 @@ public:
 								   "%.2f"))
 				AudioPlayer::set_global_volume(global_config.globalAudioVolume);
 
-			// Slider for audio sequence offset, which is a float from -5.0f to 5.0f
+			// Slider for audio sequence offset, which is a float from -5.0f to 0.0f
 			ImGui::Text("Audio sequence offset:");
-			ImGui::SliderFloat("##audioSeqOffset", &global_config.audioSequenceOffset, -5.0f, 5.0f,
+			ImGui::SliderFloat("##audioSeqOffset", &global_config.audioSequenceOffset, -5.0f, 0.0f,
 							   "%.1f");
 
 			// Slider for max audio triggers, which is an integer from 0 to 10
@@ -301,10 +303,10 @@ public:
 			// Dropdown box of "cmdDescription [!cmdKey]" for each command
 			ImGui::Combo("##commandsDrop", &selectedCommand,
 						 std::accumulate(CommandHandler::get_commands_map().begin(),
-										 CommandHandler::get_commands_map().end(), std::string(),
-										 [](std::string acc, const auto &tuple) {
-											 return acc + tuple.first + " [" + tuple.first + "]" +
-													'\0';
+										 CommandHandler::get_commands_map().end(), std::string{},
+										 [](const auto &acc, const auto &pair) {
+											 return acc + std::get<0>(pair.second) + " [" +
+													pair.first + "]" + '\0';
 										 })
 							 .c_str());
 			// On same line, have test button
@@ -347,16 +349,13 @@ public:
 
 			// Input boxes for connection
 			ImGui::Text("Twitch Auth Token:");
-			ImGui::InputText("##authToken", global_config.twitchAuthToken.data(),
-							 global_config.twitchAuthToken.size(), ImGuiInputTextFlags_Password);
+			ImGui::InputText("##authToken", &global_config.twitchAuthToken, ImGuiInputTextFlags_Password);
 
 			ImGui::Text("Twitch Auth User:");
-			ImGui::InputText("##authUser", global_config.twitchAuthUser.data(),
-							 global_config.twitchAuthUser.size(), ImGuiInputTextFlags_Password);
+			ImGui::InputText("##authUser", &global_config.twitchAuthUser, ImGuiInputTextFlags_Password);
 
 			ImGui::Text("Twitch Channel:");
-			ImGui::InputText("##channel", global_config.twitchChannel.data(),
-							 global_config.twitchChannel.size());
+			ImGui::InputText("##channel", &global_config.twitchChannel);
 
 			// Padding
 			ImGui::Dummy(ImVec2(0, 10));
@@ -378,11 +377,8 @@ public:
 					TwitchChatConnector::disconnect();
 				else {
 					// Allow only if all fields are filled
-					if (fieldsFilled) {
-						connResult = TwitchChatConnector::connect(global_config.twitchAuthToken,
-																  global_config.twitchAuthUser,
-																  global_config.twitchChannel);
-					}
+					if (fieldsFilled)
+						connResult = TwitchChatConnector::connect();
 				}
 			}
 

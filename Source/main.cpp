@@ -73,6 +73,8 @@ auto main(int argc, char **argv) -> int {
 		NotifierGUI::render();
 		// Update the audio
 		AudioPlayer::update();
+		// TTS update
+		TTSHandler::update();
 		// Sleep for 5ms to lighten the load on the CPU
 		std::this_thread::sleep_for(std::chrono::milliseconds(5));
 	}
