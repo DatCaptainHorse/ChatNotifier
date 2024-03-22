@@ -84,6 +84,7 @@ if (UNIX AND NOT APPLE)
 endif ()
 # We don't care about docs..
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(glfw3)
 
 # Fetch libhv
@@ -97,7 +98,6 @@ FetchContent_Declare(
 # BUILD_SHARED, BUILD_EXAMPLES to OFF, we don't need them
 set(BUILD_SHARED OFF CACHE BOOL "" FORCE)
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-# We want static-static
 set(BUILD_FOR_MT ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(libhv)
 
@@ -145,12 +145,24 @@ target_include_directories(sherpacapi INTERFACE ${sherpa-onnx_SOURCE_DIR}/includ
 target_link_directories(sherpacapi INTERFACE ${sherpa-onnx_SOURCE_DIR}/lib)
 if (WIN32)
   target_link_libraries(sherpacapi INTERFACE
+    ${sherpa-onnx_SOURCE_DIR}/lib/espeak-ng.lib
     ${sherpa-onnx_SOURCE_DIR}/lib/onnxruntime.lib
+    ${sherpa-onnx_SOURCE_DIR}/lib/sherpa-onnx-fst.lib
+    ${sherpa-onnx_SOURCE_DIR}/lib/sherpa-onnx-core.lib
     ${sherpa-onnx_SOURCE_DIR}/lib/sherpa-onnx-c-api.lib
+    ${sherpa-onnx_SOURCE_DIR}/lib/kaldi-decoder-core.lib
+    ${sherpa-onnx_SOURCE_DIR}/lib/kaldi-native-fbank-core.lib
+    ${sherpa-onnx_SOURCE_DIR}/lib/sherpa-onnx-kaldifst-core.lib
   )
 else ()
   target_link_libraries(sherpacapi INTERFACE
+    ${sherpa-onnx_SOURCE_DIR}/lib/libespeak-ng.so
     ${sherpa-onnx_SOURCE_DIR}/lib/libonnxruntime.so
+    ${sherpa-onnx_SOURCE_DIR}/lib/libsherpa-onnx-fst.so
+    ${sherpa-onnx_SOURCE_DIR}/lib/libsherpa-onnx-core.so
     ${sherpa-onnx_SOURCE_DIR}/lib/libsherpa-onnx-c-api.so
+    ${sherpa-onnx_SOURCE_DIR}/lib/libkaldi-decoder-core.so
+    ${sherpa-onnx_SOURCE_DIR}/lib/libkaldi-native-fbank-core.so
+    ${sherpa-onnx_SOURCE_DIR}/lib/libsherpa-onnx-kaldifst-core.so
   )
 endif ()

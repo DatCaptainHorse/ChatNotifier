@@ -8,6 +8,13 @@ set(CMAKE_CXX_SCAN_FOR_MODULES ON) # We use C++20, might as well use modules
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules")
 
+# If win32, force MSVC_RUNTIME_LIBRARY to static
+if (WIN32)
+  set(MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  # Also allow multiple definitions
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /FORCE:MULTIPLE")
+endif ()
+
 if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
   message(FATAL_ERROR "Building within the source tree is unsupported")
 endif ()
