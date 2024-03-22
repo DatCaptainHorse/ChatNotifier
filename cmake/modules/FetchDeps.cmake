@@ -145,8 +145,10 @@ target_include_directories(sherpacapi INTERFACE ${sherpa-onnx_SOURCE_DIR}/includ
 target_link_directories(sherpacapi INTERFACE ${sherpa-onnx_SOURCE_DIR}/lib)
 if (WIN32)
   target_link_libraries(sherpacapi INTERFACE
+    ${sherpa-onnx_SOURCE_DIR}/lib/ucd.lib
     ${sherpa-onnx_SOURCE_DIR}/lib/espeak-ng.lib
     ${sherpa-onnx_SOURCE_DIR}/lib/onnxruntime.lib
+    ${sherpa-onnx_SOURCE_DIR}/lib/piper_phonemize.lib
     ${sherpa-onnx_SOURCE_DIR}/lib/sherpa-onnx-fst.lib
     ${sherpa-onnx_SOURCE_DIR}/lib/sherpa-onnx-core.lib
     ${sherpa-onnx_SOURCE_DIR}/lib/sherpa-onnx-c-api.lib
@@ -156,8 +158,10 @@ if (WIN32)
   )
 else ()
   target_link_libraries(sherpacapi INTERFACE
+    ${sherpa-onnx_SOURCE_DIR}/lib/libucd.so
     ${sherpa-onnx_SOURCE_DIR}/lib/libespeak-ng.so
     ${sherpa-onnx_SOURCE_DIR}/lib/libonnxruntime.so
+    ${sherpa-onnx_SOURCE_DIR}/lib/libpiper_phonemize.so
     ${sherpa-onnx_SOURCE_DIR}/lib/libsherpa-onnx-fst.so
     ${sherpa-onnx_SOURCE_DIR}/lib/libsherpa-onnx-core.so
     ${sherpa-onnx_SOURCE_DIR}/lib/libsherpa-onnx-c-api.so
