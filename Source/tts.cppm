@@ -73,11 +73,10 @@ public:
 		// Do in separate thread
 		m_threads.emplace_back([text]() {
 			const auto speakerID = random_int(0, 108);
-			const auto audio = SherpaOnnxOfflineTtsGenerateWithCallback(
-				m_tts, text.c_str(), speakerID, 1.0f, [](const float *samples, const int32_t n) {
-					const std::vector audiodata(samples, samples + n);
-					AudioPlayer::play_oneshot_memory(audiodata, 22000);
-				});
+			const auto audio = SherpaOnnxOfflineTtsGenerate(m_tts, text.c_str(), speakerID,
+															global_config.ttsVoiceSpeed);
+			const std::vector audiodata(audio->samples, audio->samples + audio->n);
+			AudioPlayer::play_oneshot_memory(audiodata, 22000);
 			SherpaOnnxDestroyOfflineTtsGeneratedAudio(audio);
 		});
 	}

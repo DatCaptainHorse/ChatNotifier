@@ -208,6 +208,21 @@ public:
 								   "%.1f"))
 				m_notifFont->Scale = global_config.notifFontScale;
 
+			// Button to refresh assets
+			ImGui::Dummy(ImVec2(0, 10));
+			if (ImGui::Button("Find New Assets", ImVec2(-1, 30)))
+				AssetsHandler::refresh();
+
+			// Add padding before separators
+			ImGui::Dummy(ImVec2(0, 10));
+
+			// Audio settings
+			ImGui::Separator();
+			ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 -
+								 ImGui::CalcTextSize("Audio Settings").x / 2);
+			ImGui::Text("Audio Settings");
+			ImGui::Separator();
+
 			// Slider for global audio volume, which is a float from 0.0f to 1.0f
 			ImGui::Text("Global audio volume:");
 			if (ImGui::SliderFloat("##globalVol", &global_config.globalAudioVolume, 0.0f, 1.0f,
@@ -224,17 +239,28 @@ public:
 			ImGui::SliderInt("##maxAudioTriggers",
 							 reinterpret_cast<int *>(&global_config.maxAudioTriggers), 0, 10);
 
-			// Button to refresh assets
-			ImGui::Dummy(ImVec2(0, 10));
-			if (ImGui::Button("Find New Assets", ImVec2(-1, 30)))
-				AssetsHandler::refresh();
-
 			// Button to stop all sounds
+			ImGui::Dummy(ImVec2(0, 10));
 			if (ImGui::Button("Stop Sounds", ImVec2(-1, 30)))
 				AudioPlayer::stop_sounds();
 
 			// Add padding before separators
 			ImGui::Dummy(ImVec2(0, 10));
+
+			// TTS settings
+			ImGui::Separator();
+			ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 -
+								 ImGui::CalcTextSize("TTS Settings").x / 2);
+			ImGui::Text("TTS Settings");
+			ImGui::Separator();
+
+			// Slider for TTS voice speed, which is a float from 0.5f to 2.0f
+			ImGui::Text("TTS voice speed:");
+			ImGui::SliderFloat("##ttsVoiceSpeed", &global_config.ttsVoiceSpeed, 0.5f, 2.0f, "%.1f");
+
+			// Add padding before separators
+			ImGui::Dummy(ImVec2(0, 10));
+
 			// Dividers + Title for Twitch settings
 			ImGui::Separator();
 			// Center the text horizontally
@@ -296,63 +322,62 @@ public:
 			// Padding
 			ImGui::Dummy(ImVec2(0, 10));
 
-			// Dropdown of command_map keys, inputbox and button for changing the command
-			// keyword
+			// Dropdown of command_map keys, inputbox and button for changing the command call str
 			ImGui::Text("Choose command:");
 			static int selectedCommand = 0;
+			const auto it = std::next(CommandHandler::get_commands_map().begin(), selectedCommand);
+			// Checkbox for enabling/disabling the command
+			auto enabled = it->second.enabled;
+			if (ImGui::Checkbox("##cmdEnabled", &enabled))
+				CommandHandler::set_command_enabled(it->first, enabled);
+
+			ImGui::SameLine();
 			// Dropdown box of "cmdDescription [!cmdKey]" for each command
 			ImGui::Combo("##commandsDrop", &selectedCommand,
 						 std::accumulate(CommandHandler::get_commands_map().begin(),
 										 CommandHandler::get_commands_map().end(), std::string{},
 										 [](const auto &acc, const auto &pair) {
-											 return acc + std::get<0>(pair.second) + " [" +
-													pair.first + "]" + '\0';
+											 return acc + pair.second.description + " [" +
+													pair.second.callstr + "]" + '\0';
 										 })
 							 .c_str());
+
 			// On same line, have test button
 			ImGui::SameLine();
-			const auto it = std::next(CommandHandler::get_commands_map().begin(), selectedCommand);
-			if (ImGui::Button("Test")) {
-				std::string extraWord = "Message";
-				// If there are any ascii art files or egg word sounds, choose one of them
-				// randomly
-				if (random_int(0, 1) == 0) {
-					if (const auto asciis = AssetsHandler::get_ascii_art_keys(); !asciis.empty()) {
-						extraWord = asciis[random_int(0, asciis.size() - 1)];
-					}
-				} else {
-					if (const auto eggsounds = AssetsHandler::get_egg_sound_keys();
-						!eggsounds.empty()) {
-						extraWord = eggsounds[random_int(0, eggsounds.size() - 1)];
-					}
-				}
-				CommandHandler::execute_command(it->first, std::format("Test {}", extraWord));
-			}
+			ImGui::BeginDisabled(!it->second.enabled);
+			if (ImGui::Button("Test"))
+				CommandHandler::test_command(it->first);
+
+			ImGui::EndDisabled();
 
 			// Button for setting the new keyword
 			static std::array<char, 16> cmd_change_buf = {""};
-			if (ImGui::Button("Set as keyword")) {
+			ImGui::BeginDisabled(cmd_change_buf[0] == '\0');
+			if (ImGui::Button("Set as new keyword")) {
 				// If the input is not empty, set the new keyword
 				if (cmd_change_buf[0] != '\0') {
-					CommandHandler::change_command_key(it->first, cmd_change_buf.data());
+					CommandHandler::change_command_call(it->first, cmd_change_buf.data());
 					// Clear the input buffer
 					std::ranges::fill(cmd_change_buf, '\0');
 				}
 			}
+			ImGui::EndDisabled();
 			ImGui::SameLine();
-			// Input box for changing the command keyword, hint is selected command current key
-			ImGui::InputTextWithHint("##cmdChange", it->first.c_str(), cmd_change_buf.data(),
-									 cmd_change_buf.size());
+			// Input box for changing the command keyword, hint is selected command current callstr
+			ImGui::InputTextWithHint("##cmdChange", it->second.callstr.c_str(),
+									 cmd_change_buf.data(), cmd_change_buf.size());
 
 			// Padding
 			ImGui::Dummy(ImVec2(0, 10));
 
 			// Input boxes for connection
 			ImGui::Text("Twitch Auth Token:");
-			ImGui::InputText("##authToken", &global_config.twitchAuthToken, ImGuiInputTextFlags_Password);
+			ImGui::InputText("##authToken", &global_config.twitchAuthToken,
+							 ImGuiInputTextFlags_Password);
 
 			ImGui::Text("Twitch Auth User:");
-			ImGui::InputText("##authUser", &global_config.twitchAuthUser, ImGuiInputTextFlags_Password);
+			ImGui::InputText("##authUser", &global_config.twitchAuthUser,
+							 ImGuiInputTextFlags_Password);
 
 			ImGui::Text("Twitch Channel:");
 			ImGui::InputText("##channel", &global_config.twitchChannel);

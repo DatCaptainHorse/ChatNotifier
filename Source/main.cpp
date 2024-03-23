@@ -107,11 +107,9 @@ void twc_callback_handler(const TwitchChatMessage &msg) {
 			return lowercase(user) == lowercase(msg.user);
 		})) {
 		// Check for command and execute
-		for (const auto &[command, pair] : CommandHandler::get_commands_map()) {
-			const auto &[_, func] = pair;
-
+		for (const auto &[key, command] : CommandHandler::get_commands_map()) {
 			// Command with the "!" prefix to match the message
-			const auto fullCommand = std::format("!{}", command);
+			const auto fullCommand = std::format("!{}", command.callstr);
 
 			// Make sure the message is long enough to contain the command
 			if (msg.message.size() < fullCommand.size())
@@ -137,7 +135,7 @@ void twc_callback_handler(const TwitchChatMessage &msg) {
 				// Cut off the command from the message + space if there is one
 				const auto msgWithoutCommand = msg.message.substr(
 					fullCommand.size() + (msg.message[fullCommand.size()] == ' '));
-				func(msgWithoutCommand);
+				CommandHandler::execute_command(key, msgWithoutCommand);
 				break;
 			}
 		}
