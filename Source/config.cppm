@@ -17,7 +17,8 @@ export enum class CommandCooldownType { eNone, eGlobal, ePerUser };
 // Struct for keeping configs across launches
 export struct Config {
 	float notifAnimationLength = 5.0f;
-	float notifEffectSpeed = 5.0f;
+	float notifEffectSpeed = 2.0f;
+	float notifEffectIntensity = 2.0f;
 	float notifFontScale = 1.0f;
 	float globalAudioVolume = 0.75f;
 	std::vector<std::string> approvedUsers;
@@ -32,6 +33,7 @@ export struct Config {
 		JSONed::JSON json;
 		json["notifAnimationLength"].set<float>(notifAnimationLength);
 		json["notifEffectSpeed"].set<float>(notifEffectSpeed);
+		json["notifEffectIntensity"].set<float>(notifEffectIntensity);
 		json["notifFontScale"].set<float>(notifFontScale);
 		json["globalAudioVolume"].set<float>(globalAudioVolume);
 		json["twitchAuthToken"].set<std::string>(twitchAuthToken);
@@ -44,23 +46,21 @@ export struct Config {
 		json["ttsVoiceSpeed"].set<float>(ttsVoiceSpeed);
 		json["approvedUsers"].set<std::vector<std::string>>(approvedUsers);
 
-		if (!json.save(get_config_path()))
-			return Result(1, "Failed to save config");
+		if (!json.save(get_config_path())) return Result(1, "Failed to save config");
 
 		return Result();
 	}
 
 	auto load() -> Result {
 		// Check if file exists first
-		if (!std::filesystem::exists(get_config_path()))
-			return Result();
+		if (!std::filesystem::exists(get_config_path())) return Result();
 
 		JSONed::JSON json;
-		if (!json.load(get_config_path()))
-			return Result(1, "Failed to load config");
+		if (!json.load(get_config_path())) return Result(1, "Failed to load config");
 
 		notifAnimationLength = json["notifAnimationLength"].get<float>();
 		notifEffectSpeed = json["notifEffectSpeed"].get<float>();
+		notifEffectIntensity = json["notifEffectIntensity"].get<float>();
 		notifFontScale = json["notifFontScale"].get<float>();
 		globalAudioVolume = json["globalAudioVolume"].get<float>();
 		twitchAuthToken = json["twitchAuthToken"].get<std::string>();

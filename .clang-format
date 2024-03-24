@@ -17,3 +17,5 @@ AlwaysBreakTemplateDeclarations: Yes
 IndentRequiresClause: false
 # Allow single while loops without braces
 AllowShortLoopsOnASingleLine: true
+AllowShortBlocksOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: WithoutElse

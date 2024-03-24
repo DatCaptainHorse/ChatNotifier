@@ -52,8 +52,7 @@ public:
 	static auto initialize() -> Result {
 		// GLFW INITIALIZATION //
 		glfwSetErrorCallback(glfw_error_callback);
-		if (!glfwInit())
-			return Result(1, "Failed to initialize GLFW!");
+		if (!glfwInit()) return Result(1, "Failed to initialize GLFW!");
 
 		// WINDOW CREATION //
 		const auto monitor = glfwGetPrimaryMonitor();
@@ -70,8 +69,7 @@ public:
 
 		// Main window
 		m_mainWindow = glfwCreateWindow(420, 690, "ChatNotifier", nullptr, nullptr);
-		if (!m_mainWindow)
-			return Result(2, "Failed to create GLFW window!");
+		if (!m_mainWindow) return Result(2, "Failed to create GLFW window!");
 
 		glfwMakeContextCurrent(m_mainWindow);
 		glfwSwapInterval(1); // V-Sync
@@ -202,6 +200,11 @@ public:
 			ImGui::SliderFloat("##effectSpeed", &global_config.notifEffectSpeed, 0.1f, 10.0f,
 							   "%.1f");
 
+			// Slider for notification effect intensity, float from 0.1 to 10.0
+			ImGui::Text("Notification effect intensity:");
+			ImGui::SliderFloat("##effectIntensity", &global_config.notifEffectIntensity, 0.1f, 10.0f,
+							   "%.1f");
+
 			// Slider for notification font scale, float from 0.5 to 2.0
 			ImGui::Text("Notification font scale:");
 			if (ImGui::SliderFloat("##fontScale", &global_config.notifFontScale, 0.5f, 2.0f,
@@ -210,8 +213,7 @@ public:
 
 			// Button to refresh assets
 			ImGui::Dummy(ImVec2(0, 10));
-			if (ImGui::Button("Find New Assets", ImVec2(-1, 30)))
-				AssetsHandler::refresh();
+			if (ImGui::Button("Find New Assets", ImVec2(-1, 30))) AssetsHandler::refresh();
 
 			// Add padding before separators
 			ImGui::Dummy(ImVec2(0, 10));
@@ -241,8 +243,7 @@ public:
 
 			// Button to stop all sounds
 			ImGui::Dummy(ImVec2(0, 10));
-			if (ImGui::Button("Stop Sounds", ImVec2(-1, 30)))
-				AudioPlayer::stop_sounds();
+			if (ImGui::Button("Stop Sounds", ImVec2(-1, 30))) AudioPlayer::stop_sounds();
 
 			// Add padding before separators
 			ImGui::Dummy(ImVec2(0, 10));
@@ -345,8 +346,7 @@ public:
 			// On same line, have test button
 			ImGui::SameLine();
 			ImGui::BeginDisabled(!it->second.enabled);
-			if (ImGui::Button("Test"))
-				CommandHandler::test_command(it->first);
+			if (ImGui::Button("Test")) CommandHandler::test_command(it->first);
 
 			ImGui::EndDisabled();
 
@@ -402,8 +402,7 @@ public:
 					TwitchChatConnector::disconnect();
 				else {
 					// Allow only if all fields are filled
-					if (fieldsFilled)
-						connResult = TwitchChatConnector::connect();
+					if (fieldsFilled) connResult = TwitchChatConnector::connect();
 				}
 			}
 
@@ -422,8 +421,7 @@ public:
 			std::erase_if(m_notifications, [](const auto &notif) { return notif->is_dead(); });
 
 			// Render notifications
-			for (const auto &notif : m_notifications)
-				notif->render(m_notifFont);
+			for (const auto &notif : m_notifications) notif->render(m_notifFont);
 		}
 
 		// IMGUI RENDERING //
@@ -449,9 +447,7 @@ public:
 
 	// Method for launching new notification
 	static void launch_notification(std::string text) {
-		m_notifications.emplace_back(std::make_unique<Notification>(
-			std::move(text), global_config.notifAnimationLength, static_cast<float>(glfwGetTime()),
-			global_config.notifEffectSpeed));
+		m_notifications.emplace_back(std::make_unique<Notification>(std::move(text)));
 	}
 
 	// Method to return approved users

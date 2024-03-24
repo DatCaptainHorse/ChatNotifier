@@ -55,12 +55,10 @@ export auto trim_string(std::string str, const std::string &trim) -> std::string
 export auto get_string_between(const std::string &str, const std::string &start,
 							   const std::string &end, const size_t pos = 0) -> std::string {
 	const auto startPos = str.find(start, pos);
-	if (startPos == std::string::npos)
-		return "";
+	if (startPos == std::string::npos) return "";
 
 	const auto endPos = str.find(end, startPos + start.size());
-	if (endPos == std::string::npos)
-		return "";
+	if (endPos == std::string::npos) return "";
 
 	return str.substr(startPos + start.size(), endPos - startPos - start.size());
 }
@@ -69,10 +67,34 @@ export auto get_string_between(const std::string &str, const std::string &start,
 export auto get_string_until(const std::string &str, const std::string &delim, const size_t pos = 0)
 	-> std::string {
 	const auto endPos = str.find(delim, pos);
-	if (endPos == std::string::npos)
-		return "";
+	if (endPos == std::string::npos) return "";
 
 	return str.substr(pos, endPos - pos);
+}
+
+// Method for getting invidual letters of a string for multi-byte characters
+export auto get_letters_mb(const std::string &str) -> std::vector<std::string> {
+	std::vector<std::string> letters;
+	const auto *start = str.c_str();
+	const auto *end = start + str.size();
+	while (start < end) {
+		const auto bytes = std::mblen(start, end - start);
+		if (bytes < 1) break;
+		letters.emplace_back(start, start + bytes);
+		start += bytes;
+	}
+	return letters;
+}
+
+// Returns whether string has letters only
+export auto is_letters(const std::string &str) -> bool {
+	return std::ranges::all_of(str, ::isalpha);
+}
+
+// Remaps a value from one range to another
+export auto remap_value(const float value, const float inMin, const float inMax, const float outMin,
+						const float outMax) -> float {
+	return outMin + (value - inMin) * (outMax - outMin) / (inMax - inMin);
 }
 
 // Method for returning a GUID string

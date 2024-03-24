@@ -21,6 +21,7 @@ target_sources(ChatNotifier PRIVATE FILE_SET CXX_MODULES FILES
   opus_decoder.cppm
   audio.cppm
   twitch.cppm
+  effect.cppm
   notification.cppm
   gui.cppm
   jsoned.cppm
