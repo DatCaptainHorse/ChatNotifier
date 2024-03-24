@@ -2,13 +2,12 @@ module;
 
 #include <string>
 #include <vector>
+#include <fstream>
 #include <filesystem>
-
-// #include <glaze/glaze.hpp>
-#include <toml.hpp>
 
 export module config;
 
+import jsoned;
 import common;
 import assets;
 
@@ -30,97 +29,56 @@ export struct Config {
 	float ttsVoiceSpeed = 1.0f;			//< Speed of TTS voice
 
 	auto save() -> Result {
-		// if (glz::write_file_json(this, (AssetsHandler::get_exec_path() /
-		// "config.json").string(), 						 std::string{})) 	return Result(1,
-		// "Failed to save config");
+		JSONed::JSON json;
+		json["notifAnimationLength"].set<float>(notifAnimationLength);
+		json["notifEffectSpeed"].set<float>(notifEffectSpeed);
+		json["notifFontScale"].set<float>(notifFontScale);
+		json["globalAudioVolume"].set<float>(globalAudioVolume);
+		json["twitchAuthToken"].set<std::string>(twitchAuthToken);
+		json["twitchAuthUser"].set<std::string>(twitchAuthUser);
+		json["twitchChannel"].set<std::string>(twitchChannel);
+		json["cooldownType"].set<int>(static_cast<int>(cooldownType));
+		json["cooldownTime"].set<std::uint32_t>(cooldownTime);
+		json["maxAudioTriggers"].set<std::uint32_t>(maxAudioTriggers);
+		json["audioSequenceOffset"].set<float>(audioSequenceOffset);
+		json["ttsVoiceSpeed"].set<float>(ttsVoiceSpeed);
+		json["approvedUsers"].set<std::vector<std::string>>(approvedUsers);
 
-		// Use toml++ for now until MSVC fixes it's dumbness
-		auto config = toml::table{{"notifications",
-								   toml::table{
-									   {"notifAnimationLength", notifAnimationLength},
-									   {"notifEffectSpeed", notifEffectSpeed},
-									   {"notifFontScale", notifFontScale},
-								   }},
-								  {"audio",
-								   toml::table{
-									   {"globalAudioVolume", globalAudioVolume},
-									   {"maxAudioTriggers", maxAudioTriggers},
-									   {"audioSequenceOffset", audioSequenceOffset},
-								   }},
-								  {"twitch",
-								   toml::table{
-									   {"twitchAuthToken", twitchAuthToken},
-									   {"twitchAuthUser", twitchAuthUser},
-									   {"twitchChannel", twitchChannel},
-								   }},
-								  {"commands",
-								   toml::table{
-									   {"cooldownType", static_cast<std::uint32_t>(cooldownType)},
-									   {"cooldownTime", cooldownTime},
-								   }},
-								  {"tts",
-								   toml::table{
-									   {"ttsVoiceSpeed", ttsVoiceSpeed},
-								   }},
-								  {"approvedUsers", toml::array{}}};
-
-		// Add users to the approvedUsers array
-		if (!approvedUsers.empty()) {
-			const auto node = config["approvedUsers"].as_array();
-			for (const auto &user : approvedUsers)
-				node->push_back(user);
-		}
-
-		std::ofstream file((AssetsHandler::get_exec_path() / "config.toml").string());
-		if (!file.is_open())
+		if (!json.save(get_config_path()))
 			return Result(1, "Failed to save config");
-
-		file << config;
-		file.close();
 
 		return Result();
 	}
 
 	auto load() -> Result {
 		// Check if file exists first
-		// if (!std::filesystem::exists(AssetsHandler::get_exec_path() / "config.json"))
-		if (!std::filesystem::exists(AssetsHandler::get_exec_path() / "config.toml"))
+		if (!std::filesystem::exists(get_config_path()))
 			return Result();
 
-		// if (glz::read_file_json(*this, (AssetsHandler::get_exec_path() /
-		// "config.json").string(), 						std::string{})) 	return Result(1,
-		// "Failed to load config");
+		JSONed::JSON json;
+		if (!json.load(get_config_path()))
+			return Result(1, "Failed to load config");
 
-		// Same here, toml++
-		toml::table config;
-		try {
-			config = toml::parse_file((AssetsHandler::get_exec_path() / "config.toml").string());
-		} catch (toml::parse_error &e) {
-			return Result(1, e.what());
-		}
-
-		notifAnimationLength =
-			config["notifications"]["notifAnimationLength"].value_or(notifAnimationLength);
-		notifEffectSpeed = config["notifications"]["notifEffectSpeed"].value_or(notifEffectSpeed);
-		notifFontScale = config["notifications"]["notifFontScale"].value_or(notifFontScale);
-		globalAudioVolume = config["audio"]["globalAudioVolume"].value_or(globalAudioVolume);
-		twitchAuthToken = config["twitch"]["twitchAuthToken"].value_or(twitchAuthToken);
-		twitchAuthUser = config["twitch"]["twitchAuthUser"].value_or(twitchAuthUser);
-		twitchChannel = config["twitch"]["twitchChannel"].value_or(twitchChannel);
-		cooldownType = config["commands"]["cooldownType"].value_or(cooldownType);
-		cooldownTime = config["commands"]["cooldownTime"].value_or(cooldownTime);
-		maxAudioTriggers = config["audio"]["maxAudioTriggers"].value_or(maxAudioTriggers);
-		audioSequenceOffset = config["audio"]["audioSequenceOffset"].value_or(audioSequenceOffset);
-		ttsVoiceSpeed = config["tts"]["ttsVoiceSpeed"].value_or(ttsVoiceSpeed);
-
-		// Load approved users
-		if (const auto node = config["approvedUsers"].as_array(); node) {
-			approvedUsers.clear();
-			for (const auto &user : *node)
-				approvedUsers.push_back(user.as_string()->get());
-		}
+		notifAnimationLength = json["notifAnimationLength"].get<float>();
+		notifEffectSpeed = json["notifEffectSpeed"].get<float>();
+		notifFontScale = json["notifFontScale"].get<float>();
+		globalAudioVolume = json["globalAudioVolume"].get<float>();
+		twitchAuthToken = json["twitchAuthToken"].get<std::string>();
+		twitchAuthUser = json["twitchAuthUser"].get<std::string>();
+		twitchChannel = json["twitchChannel"].get<std::string>();
+		cooldownType = static_cast<CommandCooldownType>(json["cooldownType"].get<int>());
+		cooldownTime = json["cooldownTime"].get<std::uint32_t>();
+		maxAudioTriggers = json["maxAudioTriggers"].get<std::uint32_t>();
+		audioSequenceOffset = json["audioSequenceOffset"].get<float>();
+		ttsVoiceSpeed = json["ttsVoiceSpeed"].get<float>();
+		approvedUsers = json["approvedUsers"].get<std::vector<std::string>>();
 
 		return Result();
+	}
+
+private:
+	static auto get_config_path() -> std::filesystem::path {
+		return AssetsHandler::get_exec_path() / "config.json";
 	}
 };
 

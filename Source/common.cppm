@@ -37,6 +37,44 @@ export auto split_string(std::string_view str, std::string_view delimeter)
 		std::views::transform([](auto &&part) { return std::string(part.begin(), part.end()); }));
 }
 
+// Method for trimming string of special characters (\n, \r, \t, space..)
+export auto trim_string(std::string str) -> std::string {
+	std::erase_if(str, [](const auto &ch) {
+		return ch == '\n' || ch == '\r' || ch == '\t' || std::isspace(ch);
+	});
+	return str;
+}
+
+// Method for trimming string, but with a custom string to trim
+export auto trim_string(std::string str, const std::string &trim) -> std::string {
+	std::erase_if(str, [&trim](const auto &ch) { return trim.find(ch) != std::string::npos; });
+	return str;
+}
+
+// Method for getting string between two delimiters, with optional starting position
+export auto get_string_between(const std::string &str, const std::string &start,
+							   const std::string &end, const size_t pos = 0) -> std::string {
+	const auto startPos = str.find(start, pos);
+	if (startPos == std::string::npos)
+		return "";
+
+	const auto endPos = str.find(end, startPos + start.size());
+	if (endPos == std::string::npos)
+		return "";
+
+	return str.substr(startPos + start.size(), endPos - startPos - start.size());
+}
+
+// Method for getting string until a delimiter, with optional starting position
+export auto get_string_until(const std::string &str, const std::string &delim, const size_t pos = 0)
+	-> std::string {
+	const auto endPos = str.find(delim, pos);
+	if (endPos == std::string::npos)
+		return "";
+
+	return str.substr(pos, endPos - pos);
+}
+
 // Method for returning a GUID string
 export auto generate_guid() -> std::string {
 	std::random_device rd;

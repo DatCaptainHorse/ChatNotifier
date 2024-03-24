@@ -23,6 +23,7 @@ target_sources(ChatNotifier PRIVATE FILE_SET CXX_MODULES FILES
   twitch.cppm
   notification.cppm
   gui.cppm
+  jsoned.cppm
   config.cppm
   tts.cppm
 )
