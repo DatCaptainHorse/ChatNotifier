@@ -259,6 +259,10 @@ public:
 			ImGui::Text("TTS voice speed:");
 			ImGui::SliderFloat("##ttsVoiceSpeed", &global_config.ttsVoiceSpeed, 0.5f, 2.0f, "%.1f");
 
+			// Slider for TTS voice volume, which is a float from 0.0f to 1.0f
+			ImGui::Text("TTS voice volume:");
+			ImGui::SliderFloat("##ttsVoiceVolume", &global_config.ttsVoiceVolume, 0.0f, 1.0f, "%.2f");
+
 			// Add padding before separators
 			ImGui::Dummy(ImVec2(0, 10));
 
