@@ -76,7 +76,7 @@ public:
 			const auto audio = SherpaOnnxOfflineTtsGenerate(m_tts, text.c_str(), speakerID,
 															global_config.ttsVoiceSpeed);
 			const std::vector audiodata(audio->samples, audio->samples + audio->n);
-			AudioPlayer::play_oneshot_memory(audiodata, 22000);
+			AudioPlayer::play_oneshot_memory(audiodata, 22000, global_config.ttsVoiceVolume);
 			SherpaOnnxDestroyOfflineTtsGeneratedAudio(audio);
 		});
 	}

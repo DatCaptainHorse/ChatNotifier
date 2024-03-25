@@ -28,6 +28,7 @@ export struct Config {
 	std::uint32_t maxAudioTriggers = 3; //< How many audio triggers can a message cause
 	float audioSequenceOffset = -0.5f;	//< Offset for how long to wait between audio triggers
 	float ttsVoiceSpeed = 1.0f;			//< Speed of TTS voice
+	float ttsVoiceVolume = 1.0f;		//< Volume of TTS voice
 
 	auto save() -> Result {
 		JSONed::JSON json;
@@ -44,6 +45,7 @@ export struct Config {
 		json["maxAudioTriggers"].set<std::uint32_t>(maxAudioTriggers);
 		json["audioSequenceOffset"].set<float>(audioSequenceOffset);
 		json["ttsVoiceSpeed"].set<float>(ttsVoiceSpeed);
+		json["ttVoiceVolume"].set<float>(ttsVoiceVolume);
 		json["approvedUsers"].set<std::vector<std::string>>(approvedUsers);
 
 		if (!json.save(get_config_path())) return Result(1, "Failed to save config");
@@ -71,6 +73,7 @@ export struct Config {
 		maxAudioTriggers = json["maxAudioTriggers"].get<std::uint32_t>();
 		audioSequenceOffset = json["audioSequenceOffset"].get<float>();
 		ttsVoiceSpeed = json["ttsVoiceSpeed"].get<float>();
+		ttsVoiceVolume = json["ttsVoiceVolume"].get<float>();
 		approvedUsers = json["approvedUsers"].get<std::vector<std::string>>();
 
 		return Result();
