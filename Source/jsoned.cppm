@@ -7,16 +7,19 @@ module;
 #include <fstream>
 #include <variant>
 #include <iostream>
+#include <optional>
 #include <algorithm>
 #include <filesystem>
+#include <type_traits>
 
 export module jsoned;
 
 import common;
 
 template <typename T>
-concept JsonableAsValue = std::same_as<T, std::string> || std::is_integral_v<T> ||
-						  std::same_as<T, bool> || std::is_floating_point_v<T>;
+concept JsonableAsValue =
+	std::same_as<T, std::string> || std::is_integral_v<T> || std::same_as<T, bool> ||
+	std::is_floating_point_v<T> || std::is_integral_v<std::underlying_type_t<T>>;
 
 template <typename T>
 concept JsonableAsArray = requires(T t) {
@@ -38,30 +41,16 @@ export namespace JSONed {
 		template <JsonableAsValue T>
 		requires(!JsonableAsArray<T>)
 		void set(const T &v) {
-			if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T> ||
-						  std::same_as<T, bool>)
-				value = std::to_string(v);
-			else
-				value = v;
+			value = t_to_string<T>(v);
 		}
 
 		template <JsonableAsValue T>
 		requires(!JsonableAsArray<T>)
-		[[nodiscard]] auto get() const -> T {
+		[[nodiscard]] auto get() const -> std::optional<T> {
 			// Make sure the value is not empty
-			if (value.empty())
-				return T{};
+			if (value.empty()) return std::nullopt;
 
-			if constexpr (std::same_as<T, std::string>)
-				return value;
-			else if constexpr (std::is_integral_v<T>)
-				return std::stoi(value);
-			else if constexpr (std::is_floating_point_v<T>)
-				return std::stof(value);
-			else if constexpr (std::same_as<T, bool>)
-				return value == "true";
-			else
-				return T{};
+			return std::make_optional(t_from_string<T>(value));
 		}
 
 		auto to_string() const -> std::string { return std::format("\"{}\"", value); }
@@ -92,11 +81,10 @@ export namespace JSONed {
 		requires(!JsonableAsValue<T>)
 		[[nodiscard]] auto get() const -> T {
 			// Make sure the values is not empty
-			if (values.empty())
-				return T{};
+			if (values.empty()) return T{};
 
 			T array;
-			for (const auto &value : values) array.push_back(value.get<typename T::value_type>());
+			for (const auto &value : values) array.push_back(value.get<typename T::value_type>().value());
 			return array;
 		}
 
@@ -115,8 +103,7 @@ export namespace JSONed {
 			ArrayAccessor accessor;
 			const auto trimmed = trim_string(str);
 			const auto between = get_string_between(trimmed, "[", "]");
-			if (between.empty())
-				return accessor;
+			if (between.empty()) return accessor;
 
 			for (const auto splitted = split_string(between, ","); const auto &elem : splitted) {
 				auto trimmedElem = trim_string(elem);
@@ -162,13 +149,13 @@ export namespace JSONed {
 
 		template <Jsonable T>
 		requires(!JsonableAsArray<T>)
-		[[nodiscard]] auto get() const -> T {
+		[[nodiscard]] auto get() const -> std::optional<T> {
 			return std::get<ValueAccessor>(m_accessor).get<T>();
 		}
 
 		template <Jsonable T>
 		requires(JsonableAsArray<T>)
-		[[nodiscard]] auto get() const -> T {
+		[[nodiscard]] auto get() const -> std::optional<T> {
 			return std::get<ArrayAccessor>(m_accessor).get<T>();
 		}
 
@@ -183,8 +170,7 @@ export namespace JSONed {
 	public:
 		// Accessor for JSON data operators
 		auto operator[](const std::string &key) -> Accessor & {
-			if (!m_data.contains(key))
-				m_data[key] = Accessor();
+			if (!m_data.contains(key)) m_data[key] = Accessor();
 
 			return m_data[key];
 		}
@@ -192,8 +178,7 @@ export namespace JSONed {
 		// Save JSON to file
 		auto save(const std::filesystem::path &path) -> bool {
 			std::ofstream file(path);
-			if (!file.is_open())
-				return false;
+			if (!file.is_open()) return false;
 
 			file << "{\n";
 			for (const auto &[key, value] : m_data) {
@@ -211,8 +196,7 @@ export namespace JSONed {
 		// Load JSON from file
 		auto load(const std::filesystem::path &path) -> bool {
 			std::ifstream file(path);
-			if (!file.is_open())
-				return false;
+			if (!file.is_open()) return false;
 
 			std::string line;
 			while (std::getline(file, line)) {
@@ -220,13 +204,11 @@ export namespace JSONed {
 				auto trimmed = trim_string(line);
 				trimmed = trim_string(trimmed, "\"");
 				trimmed = trim_string(trimmed, ",");
-				if (trimmed.empty())
-					continue;
+				if (trimmed.empty()) continue;
 
 				// Split key and value
 				const auto splitted = split_string(trimmed, ":");
-				if (splitted.size() != 2)
-					continue;
+				if (splitted.size() != 2) continue;
 
 				auto key = splitted[0];
 				key = trim_string(key);

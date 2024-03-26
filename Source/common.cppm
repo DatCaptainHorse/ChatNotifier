@@ -1,11 +1,16 @@
 module;
 
+#include <map>
+#include <array>
 #include <tuple>
+#include <utility>
 #include <vector>
 #include <ranges>
 #include <string>
 #include <random>
+#include <format>
 #include <algorithm>
+#include <type_traits>
 
 export module common;
 
@@ -122,3 +127,181 @@ export struct Result {
 
 	explicit operator bool() const { return code == 0; }
 };
+
+// Template method for converting string to integer
+export template <typename T>
+requires std::is_integral_v<T>
+constexpr auto integral_from_string(const std::string &str) -> T {
+	if constexpr (std::same_as<T, std::int8_t>)
+		return std::stoi(str);
+	else if constexpr (std::same_as<T, std::int16_t>)
+		return std::stoi(str);
+	else if constexpr (std::same_as<T, std::int32_t>)
+		return std::stoi(str);
+	else if constexpr (std::same_as<T, std::int64_t>)
+		return std::stoll(str);
+	else if constexpr (std::same_as<T, std::uint8_t>)
+		return std::stoul(str);
+	else if constexpr (std::same_as<T, std::uint16_t>)
+		return std::stoul(str);
+	else if constexpr (std::same_as<T, std::uint32_t>)
+		return std::stoul(str);
+	else if constexpr (std::same_as<T, std::uint64_t>)
+		return std::stoull(str);
+	else
+		static_assert(false, "Unsupported type for integral_from_string");
+}
+
+// Tempalte method for converting string to floating point
+export template <typename T>
+requires std::is_floating_point_v<T>
+constexpr auto floating_from_string(const std::string &str) -> T {
+	if constexpr (std::same_as<T, float>)
+		return std::stof(str);
+	else if constexpr (std::same_as<T, double>)
+		return std::stod(str);
+	else if constexpr (std::same_as<T, long double>)
+		return std::stold(str);
+	else
+		static_assert(false, "Unsupported type for floating_from_string");
+}
+
+// Stringable concept for checking if a type is convertible to a string
+export template <typename T>
+concept Stringable =
+	std::same_as<T, bool> || std::is_integral_v<T> || std::is_floating_point_v<T> ||
+	std::same_as<T, std::string> || std::is_integral_v<std::underlying_type_t<T>> ||
+	std::is_floating_point_v<std::underlying_type_t<T>>;
+
+// Template method for converting a string to a specific type
+// takes care of calling proper conversion
+export template <typename T>
+requires Stringable<T>
+constexpr auto t_from_string(const std::string &str) -> T {
+	if constexpr (std::same_as<T, bool>)
+		return str == "true";
+	else if constexpr (std::same_as<T, std::string>)
+		return std::string(str);
+	else if constexpr (std::is_floating_point_v<T>)
+		return floating_from_string<T>(str);
+	else if constexpr (std::is_integral_v<T>)
+		return integral_from_string<T>(str);
+	else if constexpr (std::is_integral_v<std::underlying_type_t<T>>)
+		return static_cast<T>(integral_from_string<std::underlying_type_t<T>>(str));
+	else if constexpr (std::is_floating_point_v<std::underlying_type_t<T>>)
+		return static_cast<T>(floating_from_string<std::underlying_type_t<T>>(str));
+	else
+		static_assert(false, "Unsupported type for t_from_string");
+}
+
+// Template method for converting a specific type to a string
+// takes care of calling proper conversion
+export template <typename T>
+requires Stringable<T>
+constexpr auto t_to_string(const T &value) -> std::string {
+	if constexpr (std::same_as<T, bool>)
+		return value ? "true" : "false";
+	else if constexpr (std::same_as<T, std::string>)
+		return value;
+	else if constexpr (std::is_floating_point_v<T>)
+		return std::to_string(value);
+	else if constexpr (std::is_integral_v<T>)
+		return std::to_string(value);
+	else if constexpr (std::is_integral_v<std::underlying_type_t<T>>)
+		return std::to_string(static_cast<std::underlying_type_t<T>>(value));
+	else if constexpr (std::is_floating_point_v<std::underlying_type_t<T>>)
+		return std::to_string(static_cast<std::underlying_type_t<T>>(value));
+	else
+		static_assert(false, "Unsupported type for t_to_string");
+}
+
+// Templates to make enum classes work as bitmasks
+// <3 https://voithos.io/articles/enum-class-bitmasks/ <3
+export template <typename E>
+struct FEnableBitmaskOperators {
+	static constexpr bool enable = false;
+};
+export template <typename E>
+concept EnableBitmaskOperators = FEnableBitmaskOperators<E>::enable;
+
+export template <typename E>
+requires EnableBitmaskOperators<E>
+constexpr auto operator|(E l, E r) -> E {
+	return static_cast<E>(static_cast<std::underlying_type_t<E>>(l) |
+						  static_cast<std::underlying_type_t<E>>(r));
+}
+export template <typename E>
+requires EnableBitmaskOperators<E>
+constexpr auto operator&(E l, E r) -> bool {
+	return (static_cast<std::underlying_type_t<E>>(l) &
+			static_cast<std::underlying_type_t<E>>(r)) != 0;
+}
+export template <typename E>
+requires EnableBitmaskOperators<E>
+constexpr auto operator^(E l, E r) -> E {
+	return static_cast<E>(static_cast<std::underlying_type_t<E>>(l) ^
+						  static_cast<std::underlying_type_t<E>>(r));
+}
+export template <typename E>
+requires EnableBitmaskOperators<E>
+constexpr auto operator~(E e) -> E {
+	return static_cast<E>(~static_cast<std::underlying_type_t<E>>(e));
+}
+export template <typename E>
+requires EnableBitmaskOperators<E>
+auto operator|=(E &l, E r) -> E & {
+	return l = l | r;
+}
+export template <typename E>
+requires EnableBitmaskOperators<E>
+auto operator&=(E &l, E r) -> E & {
+	return l = l & r;
+}
+export template <typename E>
+requires EnableBitmaskOperators<E>
+auto operator^=(E &l, E r) -> E & {
+	return l = l ^ r;
+}
+// operator* which gets the underlying value of the enum
+export template <typename E>
+requires EnableBitmaskOperators<E>
+constexpr auto operator*(E &e) -> std::underlying_type_t<E> & {
+	return reinterpret_cast<std::underlying_type_t<E> &>(e);
+}
+
+// Struct for Twitch message data
+// TODO: Move to general module
+export struct TwitchChatMessage {
+	std::string user;
+	std::string message;
+	std::chrono::time_point<std::chrono::steady_clock> time;
+
+	TwitchChatMessage(std::string user, std::string message)
+		: user(std::move(user)), message(std::move(message)),
+		  time(std::chrono::steady_clock::now()) {}
+
+	[[nodiscard]] auto is_command() const -> bool { return message.starts_with('!'); }
+	[[nodiscard]] auto get_command() const -> std::string {
+		return get_string_between(message, "!", " ");
+	}
+
+	[[nodiscard]] auto get_message() const -> std::string {
+		return message.substr(message.find(' ') + 1);
+	}
+};
+
+// Struct for holding user data
+// TODO: Move to general module
+export struct TwitchUser {
+	std::string name;
+	bool bypassCooldown = false;
+	TwitchChatMessage lastMessage;
+	int userVoice = -1;
+
+	explicit TwitchUser(std::string name, TwitchChatMessage lastMessage)
+		: name(std::move(name)), lastMessage(std::move(lastMessage)) {}
+};
+
+// Cache of users
+// TODO: Move to general module
+export std::map<std::string, std::shared_ptr<TwitchUser>> global_users;

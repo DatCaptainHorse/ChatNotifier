@@ -301,7 +301,7 @@ public:
 	}
 };
 
-// Transition effect of coming from top to bottom of the screen
+// Transition effect of scrolling past the screen
 export class TextEffectTransition final : public TextEffect {
 public:
 	~TextEffectTransition() override = default;
@@ -312,9 +312,7 @@ public:
 		-> TextEffectData override {
 		auto newEffectData = effectData;
 
-		const auto transitionY =
-			std::lerp(-effectData.textSize.y,
-					  ImGui::GetWindowHeight() / 2.0f - effectData.textSize.y / 2.0f, time);
+		const auto transitionY = std::lerp(-effectData.textSize.y, ImGui::GetWindowHeight(), time);
 		newEffectData.position = ImVec2(0.0f, transitionY);
 
 		return newEffectData;

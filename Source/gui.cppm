@@ -202,8 +202,8 @@ public:
 
 			// Slider for notification effect intensity, float from 0.1 to 10.0
 			ImGui::Text("Notification effect intensity:");
-			ImGui::SliderFloat("##effectIntensity", &global_config.notifEffectIntensity, 0.1f, 10.0f,
-							   "%.1f");
+			ImGui::SliderFloat("##effectIntensity", &global_config.notifEffectIntensity, 0.1f,
+							   10.0f, "%.1f");
 
 			// Slider for notification font scale, float from 0.5 to 2.0
 			ImGui::Text("Notification font scale:");
@@ -261,7 +261,8 @@ public:
 
 			// Slider for TTS voice volume, which is a float from 0.0f to 1.0f
 			ImGui::Text("TTS voice volume:");
-			ImGui::SliderFloat("##ttsVoiceVolume", &global_config.ttsVoiceVolume, 0.0f, 1.0f, "%.2f");
+			ImGui::SliderFloat("##ttsVoiceVolume", &global_config.ttsVoiceVolume, 0.0f, 1.0f,
+							   "%.2f");
 
 			// Add padding before separators
 			ImGui::Dummy(ImVec2(0, 10));
@@ -274,18 +275,25 @@ public:
 			ImGui::Text("Twitch Settings");
 			ImGui::Separator();
 
-			// Dropdown for cooldown type
-			ImGui::Text("Command cooldown type:");
-			constexpr std::array cooldownTypes = {"None", "Global", "Per User"};
-			ImGui::Combo("##cooldownType", reinterpret_cast<int *>(&global_config.cooldownType),
-						 cooldownTypes.data(), cooldownTypes.size());
+			// Multiselect for enabledCooldowns bitmask (eNone, eGlobal, ePerUser, ePerCommand)
+			ImGui::Text("Enabled cooldowns:");
+			ImGui::CheckboxFlags("Global", &*global_config.enabledCooldowns,
+								 static_cast<unsigned int>(CommandCooldownType::eGlobal));
+			ImGui::SameLine();
+			ImGui::CheckboxFlags("Per User", &*global_config.enabledCooldowns,
+								 static_cast<unsigned int>(CommandCooldownType::ePerUser));
+			ImGui::SameLine();
+			ImGui::CheckboxFlags("Per Command", &*global_config.enabledCooldowns,
+								 static_cast<unsigned int>(CommandCooldownType::ePerCommand));
 
 			// Input box for cooldown time
-			if (global_config.cooldownType != CommandCooldownType::eNone) {
+			ImGui::BeginDisabled(global_config.enabledCooldowns == CommandCooldownType::eNone);
+			{
 				ImGui::Text("Cooldown time:");
 				ImGui::InputScalar("##cooldownTime", ImGuiDataType_U32,
 								   &global_config.cooldownTime);
 			}
+			ImGui::EndDisabled();
 
 			// Padding
 			ImGui::Dummy(ImVec2(0, 10));
@@ -452,11 +460,6 @@ public:
 	// Method for launching new notification
 	static void launch_notification(std::string text) {
 		m_notifications.emplace_back(std::make_unique<Notification>(std::move(text)));
-	}
-
-	// Method to return approved users
-	[[nodiscard]] static auto get_approved_users() -> const std::vector<std::string> & {
-		return global_config.approvedUsers;
 	}
 
 private:

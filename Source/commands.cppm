@@ -3,6 +3,7 @@ module;
 #include <map>
 #include <string>
 #include <ranges>
+#include <chrono>
 #include <functional>
 #include <filesystem>
 
@@ -29,11 +30,12 @@ constexpr std::array ttsTestMessages = {
 export struct Command {
 	bool enabled;
 	std::string callstr, description;
-	std::function<void(const std::string &)> func;
+	std::function<void(const TwitchChatMessage &)> func;
+	std::chrono::time_point<std::chrono::steady_clock> lastExecuted;
 
 	Command() = default;
 	Command(const std::string &call, const std::string &desc,
-					 const std::function<void(const std::string &)> &f)
+			const std::function<void(const TwitchChatMessage &)> &f)
 		: enabled(true), callstr(call), description(desc), func(f) {}
 };
 
@@ -49,13 +51,17 @@ public:
 		-> Result {
 		if (m_commandsMap.empty()) {
 			m_commandsMap["text_to_speech"] =
-				Command("tts", "TTS Notification", [](const std::string &msg) {
-					const std::string notifMsg = msg;
-					TTSHandler::voiceString(notifMsg);
+				Command("tts", "TTS Notification", [](const TwitchChatMessage &msg) {
+					const std::string notifMsg = msg.get_message();
+					auto speakerID = -1;
+					if (global_users.contains(msg.user))
+						speakerID = global_users[msg.user]->userVoice;
+
+					TTSHandler::voiceString(notifMsg, speakerID);
 				});
-			m_commandsMap["custom_notification"] =
-				Command("cc", "Custom Notification", [launch_notification](const std::string &msg) {
-					std::string notifMsg = msg;
+			m_commandsMap["custom_notification"] = Command(
+				"cc", "Custom Notification", [launch_notification](const TwitchChatMessage &msg) {
+					std::string notifMsg = msg.get_message();
 					// Split to words (space-separated)
 					const auto words = split_string(notifMsg, " ");
 
@@ -81,8 +87,7 @@ public:
 						}
 					}
 					// Play easter egg sounds
-					if (!sounds.empty())
-						AudioPlayer::play_sequential(sounds);
+					if (!sounds.empty()) AudioPlayer::play_sequential(sounds);
 
 					launch_notification(notifMsg);
 				});
@@ -97,12 +102,10 @@ public:
 	// Tests a command with random message from testMessages
 	static void test_command(const std::string &command) {
 		// If the command does not exist, skip
-		if (!m_commandsMap.contains(command))
-			return;
+		if (!m_commandsMap.contains(command)) return;
 
 		// Make sure the command is enabled
-		if (!m_commandsMap[command].enabled)
-			return;
+		if (!m_commandsMap[command].enabled) return;
 
 		std::string testMsg;
 		if (command == "text_to_speech")
@@ -120,7 +123,15 @@ public:
 		}
 
 		// Execute the command with the test message
-		execute_command(command, testMsg);
+		execute_command(command, TwitchChatMessage("testUser", testMsg));
+	}
+
+	// Returns key for command with given call string
+	static auto get_command_key(const std::string &call) -> std::string {
+		for (const auto &[key, cmd] : m_commandsMap)
+			if (cmd.callstr == call) return key;
+
+		return "";
 	}
 
 	// Returns a non-modifiable command map
@@ -131,8 +142,7 @@ public:
 	// Sets whether command is enabled
 	static void set_command_enabled(const std::string &key, const bool enabled) {
 		// If the key does not exist, skip
-		if (!m_commandsMap.contains(key))
-			return;
+		if (!m_commandsMap.contains(key)) return;
 
 		m_commandsMap[key].enabled = enabled;
 	}
@@ -140,28 +150,35 @@ public:
 	// Method for changing the call string of a command
 	static void change_command_call(const std::string &key, const std::string &newCall) {
 		// If the key does not exist, skip
-		if (!m_commandsMap.contains(key))
-			return;
+		if (!m_commandsMap.contains(key)) return;
 
 		// Make sure the new call is not empty
-		if (newCall.empty())
-			return;
+		if (newCall.empty()) return;
 
 		// Change the callstr
 		m_commandsMap[key].callstr = newCall;
 	}
 
 	// Method for executing a command
-	static void execute_command(const std::string &key, const std::string &msg) {
+	static void execute_command(const std::string &key, const TwitchChatMessage &msg) {
 		// If the command does not exist, skip
-		if (!m_commandsMap.contains(key))
-			return;
+		if (!m_commandsMap.contains(key)) return;
 
 		// Make sure the command is enabled
-		if (!m_commandsMap[key].enabled)
-			return;
+		if (!m_commandsMap[key].enabled) return;
 
 		// Execute the command
+		m_commandsMap[key].lastExecuted = std::chrono::steady_clock::now();
 		m_commandsMap[key].func(msg);
+	}
+
+	// Method for returning time when command was last executed
+	static auto get_last_executed_time(const std::string &key)
+		-> std::chrono::time_point<std::chrono::steady_clock> {
+		// If the key does not exist, return epoch
+		if (!m_commandsMap.contains(key))
+			return std::chrono::time_point<std::chrono::steady_clock>();
+
+		return m_commandsMap[key].lastExecuted;
 	}
 };

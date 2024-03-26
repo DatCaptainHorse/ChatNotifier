@@ -2,8 +2,8 @@ module;
 
 #include <map>
 #include <string>
-#include <ranges>
 #include <chrono>
+#include <memory>
 #include <functional>
 
 #include <hv/WebSocketClient.h>
@@ -12,10 +12,13 @@ export module twitch;
 
 import config;
 import common;
+import commands;
+import tts;
 
-// Struct for Twitch message data
-export struct TwitchChatMessage {
-	std::string user, message;
+// We use bitmask operators for CommandCooldownType here
+template <>
+struct FEnableBitmaskOperators<CommandCooldownType> {
+	static constexpr bool enable = true;
 };
 
 // Enum class of connection status
@@ -31,10 +34,8 @@ export class TwitchChatConnector {
 
 	static inline TwitchChatMessageCallback m_onMessage;
 
-	// Keep track of user -> last command time for cooldowns
+	// Global cooldown time
 	static inline std::chrono::time_point<std::chrono::steady_clock> m_lastCommandTime;
-	static inline std::map<std::string, std::chrono::time_point<std::chrono::steady_clock>>
-		m_lastCommandTimes;
 
 public:
 	// Initializes the connector resources, with given callback
@@ -46,15 +47,13 @@ public:
 
 	// Cleans up resources used by the connector, disconnecting first if connected
 	static void cleanup() {
-		if (m_connStatus > ConnectionStatus::eDisconnected)
-			disconnect();
+		if (m_connStatus > ConnectionStatus::eDisconnected) disconnect();
 	}
 
 	// Connects to the given channel's chat
 	static auto connect() -> Result {
 		// If already connected or any parameter is empty, return
-		if (m_connStatus > ConnectionStatus::eDisconnected)
-			return Result(1, "Already connected");
+		if (m_connStatus > ConnectionStatus::eDisconnected) return Result(1, "Already connected");
 
 		// Set to connecting
 		m_connStatus = ConnectionStatus::eConnecting;
@@ -80,8 +79,7 @@ public:
 	// Disconnects existing connection
 	static void disconnect() {
 		// If not connected, return
-		if (m_connStatus == ConnectionStatus::eDisconnected)
-			return;
+		if (m_connStatus == ConnectionStatus::eDisconnected) return;
 
 		m_client.close();
 		m_connStatus = ConnectionStatus::eDisconnected;
@@ -130,29 +128,57 @@ private: // Handlers
 			std::erase(chat, '\r');
 			std::erase(chat, '\t');
 
-			// Check cooldown (global_config.cooldownType + global_config.cooldownTime) before
-			// calling the callback
-			switch (global_config.cooldownType) {
-			case CommandCooldownType::eGlobal: {
-				if (std::chrono::steady_clock::now() - m_lastCommandTime <
-					std::chrono::seconds(global_config.cooldownTime))
-					return;
-				m_lastCommandTime = std::chrono::steady_clock::now();
-				break;
-			}
-			case CommandCooldownType::ePerUser: {
-				if (std::chrono::steady_clock::now() - m_lastCommandTimes[user] <
-					std::chrono::seconds(global_config.cooldownTime))
-					return;
-				m_lastCommandTimes[user] = std::chrono::steady_clock::now();
-				break;
-			case CommandCooldownType::eNone:
-			default:
-				break;
-			}
+			const auto chatMsg = TwitchChatMessage(user, chat);
+			if (!chatMsg.is_command()) {
+				if (!global_users.contains(user)) {
+					const auto twUser = std::make_shared<TwitchUser>(user, chatMsg);
+					twUser->userVoice = random_int(0, TTSHandler::get_num_voices() - 1);
+					global_users[user] = twUser;
+				} else
+					global_users[user]->lastMessage = chatMsg;
+
+				return;
 			}
 
-			m_onMessage({user, chat});
+			// Check cooldowns (global_config.enabledCooldowns, global_config.cooldownTime)
+			// before calling the callback
+			if (global_config.enabledCooldowns & CommandCooldownType::eGlobal) {
+				const auto now = std::chrono::steady_clock::now();
+				if (now - m_lastCommandTime < std::chrono::seconds(global_config.cooldownTime))
+					return;
+
+				m_lastCommandTime = now;
+			}
+			if (global_config.enabledCooldowns & CommandCooldownType::ePerUser) {
+				if (global_users.contains(user)) {
+					if (const auto now = std::chrono::steady_clock::now();
+						now - global_users[user]->lastMessage.time <
+							std::chrono::seconds(global_config.cooldownTime) &&
+						!global_users[user]->bypassCooldown)
+						return;
+				}
+			}
+			if (global_config.enabledCooldowns & CommandCooldownType::ePerCommand) {
+				if (!chatMsg.is_command()) return;
+				// Get the command from the message
+				const auto extractedCommand = chatMsg.get_command();
+				const auto cmdLastExec = CommandHandler::get_last_executed_time(
+					CommandHandler::get_command_key(extractedCommand));
+				if (const auto now = std::chrono::steady_clock::now();
+					now - cmdLastExec < std::chrono::seconds(global_config.cooldownTime))
+					return;
+			}
+
+			if (chatMsg.is_command()) {
+				if (!global_users.contains(user)) {
+					const auto twUser = std::make_shared<TwitchUser>(user, chatMsg);
+					twUser->userVoice = random_int(0, TTSHandler::get_num_voices() - 1);
+					global_users[user] = twUser;
+				} else
+					global_users[user]->lastMessage = chatMsg;
+			}
+
+			m_onMessage(chatMsg);
 		}
 	}
 

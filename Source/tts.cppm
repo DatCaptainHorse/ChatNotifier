@@ -69,10 +69,12 @@ public:
 		}
 	}
 
-	static void voiceString(const std::string &text) {
+	static auto get_num_voices() -> std::int32_t { return SherpaOnnxOfflineTtsNumSpeakers(m_tts); }
+
+	static void voiceString(const std::string &text, std::int32_t speakerID = -1) {
 		// Do in separate thread
-		m_threads.emplace_back([text]() {
-			const auto speakerID = random_int(0, 108);
+		m_threads.emplace_back([text, &speakerID]() {
+			if (speakerID == -1) speakerID = random_int(0, get_num_voices() - 1);
 			const auto audio = SherpaOnnxOfflineTtsGenerate(m_tts, text.c_str(), speakerID,
 															global_config.ttsVoiceSpeed);
 			const std::vector audiodata(audio->samples, audio->samples + audio->n);
