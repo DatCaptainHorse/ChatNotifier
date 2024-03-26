@@ -9,6 +9,7 @@ module;
 #include <string>
 #include <random>
 #include <format>
+#include <chrono>
 #include <algorithm>
 #include <type_traits>
 
@@ -149,7 +150,7 @@ constexpr auto integral_from_string(const std::string &str) -> T {
 	else if constexpr (std::same_as<T, std::uint64_t>)
 		return std::stoull(str);
 	else
-		static_assert(false, "Unsupported type for integral_from_string");
+		return std::stoi(str);
 }
 
 // Tempalte method for converting string to floating point
@@ -163,7 +164,7 @@ constexpr auto floating_from_string(const std::string &str) -> T {
 	else if constexpr (std::same_as<T, long double>)
 		return std::stold(str);
 	else
-		static_assert(false, "Unsupported type for floating_from_string");
+		return std::stof(str);
 }
 
 // Stringable concept for checking if a type is convertible to a string
@@ -190,8 +191,8 @@ constexpr auto t_from_string(const std::string &str) -> T {
 		return static_cast<T>(integral_from_string<std::underlying_type_t<T>>(str));
 	else if constexpr (std::is_floating_point_v<std::underlying_type_t<T>>)
 		return static_cast<T>(floating_from_string<std::underlying_type_t<T>>(str));
-	else
-		static_assert(false, "Unsupported type for t_from_string");
+	else // Assume integral type
+		return static_cast<T>(integral_from_string<std::underlying_type_t<T>>(str));
 }
 
 // Template method for converting a specific type to a string
@@ -212,7 +213,7 @@ constexpr auto t_to_string(const T &value) -> std::string {
 	else if constexpr (std::is_floating_point_v<std::underlying_type_t<T>>)
 		return std::to_string(static_cast<std::underlying_type_t<T>>(value));
 	else
-		static_assert(false, "Unsupported type for t_to_string");
+		return std::to_string(value);
 }
 
 // Templates to make enum classes work as bitmasks
