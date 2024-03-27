@@ -2,7 +2,7 @@ module;
 
 #include <sherpa-onnx/c-api/c-api.h>
 
-#include <deque>
+#include <ranges>
 #include <string>
 #include <vector>
 #include <thread>
@@ -15,11 +15,19 @@ import common;
 import assets;
 import audio;
 
+struct TTSData {
+	std::vector<float> audio;
+	std::int32_t sampleRate;
+	float pitch;
+	std::thread::id owner;
+};
+
 // Simple TTS module
 export class TTSHandler {
 	static inline SherpaOnnxOfflineTtsConfig m_config;
 	static inline SherpaOnnxOfflineTts *m_tts;
-	static inline std::deque<std::thread> m_threads;
+	static inline std::vector<std::thread> m_threads;
+	static inline std::vector<TTSData> m_results;
 
 public:
 	static auto initialize() -> Result {
@@ -53,39 +61,54 @@ public:
 	}
 
 	static void cleanup() {
-		for (auto it = m_threads.begin(); it != m_threads.end();) {
-			if (it->joinable()) {
-				it->join();
-				it = m_threads.erase(it);
-			}
-		}
+		// Join all threads
+		for (auto &thread : m_threads)
+			if (thread.joinable()) thread.join();
+
+		m_threads.clear();
+
+		// Clear all results
+		m_results.clear();
 
 		SherpaOnnxDestroyOfflineTts(m_tts);
 	}
 
 	static void update() {
-		// Cleanup finished threads
+		std::vector<std::thread::id> clearableThreads;
+		// Play results
+		for (auto it = m_results.begin(); it != m_results.end();) {
+			if (!it->audio.empty()) {
+				const auto &[audio, sampleRate, pitch, owner] = *it;
+				AudioPlayer::play_oneshot_memory(audio, 22000, global_config.ttsVoiceVolume, pitch);
+				clearableThreads.push_back(owner);
+				it = m_results.erase(it);
+			} else
+				++it;
+		}
+
+		// Join and remove finished threads
 		for (auto it = m_threads.begin(); it != m_threads.end();) {
-			if (it->joinable()) {
-				it->join();
+			if (std::ranges::find(clearableThreads, it->get_id()) != clearableThreads.end()) {
+				if (it->joinable()) it->join();
 				it = m_threads.erase(it);
-			}
+			} else
+				++it;
 		}
 	}
 
 	static auto get_num_voices() -> std::int32_t { return SherpaOnnxOfflineTtsNumSpeakers(m_tts); }
 
 	static void voiceString(const std::string &text, std::int32_t speakerID = -1,
-							float voiceSpeed = 1.0f) {
+							const float voiceSpeed = 1.0f, const float voicePitch = 1.0f) {
 		if (speakerID == -1 || speakerID >= get_num_voices())
 			speakerID = random_int(0, get_num_voices() - 1);
 
 		// Do in separate thread
-		m_threads.emplace_back([text, speakerID, voiceSpeed]() {
+		m_threads.emplace_back([text, speakerID, voiceSpeed, voicePitch]() {
 			const auto audio =
 				SherpaOnnxOfflineTtsGenerate(m_tts, text.c_str(), speakerID, voiceSpeed);
-			AudioPlayer::play_oneshot_memory({audio->samples, audio->samples + audio->n}, 22000,
-											 global_config.ttsVoiceVolume);
+			m_results.emplace_back(TTSData({audio->samples, audio->samples + audio->n},
+										   audio->sample_rate, voicePitch));
 			SherpaOnnxDestroyOfflineTtsGeneratedAudio(audio);
 		});
 	}

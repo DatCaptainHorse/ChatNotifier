@@ -39,6 +39,7 @@ export struct Config {
 	float audioSequenceOffset = -1.0f;	//< Offset for how long to wait between audio triggers
 	float ttsVoiceSpeed = 1.0f;			//< Speed of TTS voice
 	float ttsVoiceVolume = 1.0f;		//< Volume of TTS voice
+	float ttsVoicePitch = 1.0f;			//< Pitch of TTS voice
 
 	auto save() -> Result {
 		JSONed::JSON json;
@@ -56,6 +57,7 @@ export struct Config {
 		json["audioSequenceOffset"].set<float>(audioSequenceOffset);
 		json["ttsVoiceSpeed"].set<float>(ttsVoiceSpeed);
 		json["ttVoiceVolume"].set<float>(ttsVoiceVolume);
+		json["ttsVoicePitch"].set<float>(ttsVoicePitch);
 		json["approvedUsers"].set<std::vector<std::string>>(approvedUsers);
 
 		if (!json.save(get_config_path())) return Result(1, "Failed to save config");
@@ -80,13 +82,15 @@ export struct Config {
 		twitchAuthToken = json["twitchAuthToken"].get<std::string>().value_or(twitchAuthToken);
 		twitchAuthUser = json["twitchAuthUser"].get<std::string>().value_or(twitchAuthUser);
 		twitchChannel = json["twitchChannel"].get<std::string>().value_or(twitchChannel);
-		enabledCooldowns = json["enabledCooldowns"].get<CommandCooldownType>().value_or(enabledCooldowns);
+		enabledCooldowns =
+			json["enabledCooldowns"].get<CommandCooldownType>().value_or(enabledCooldowns);
 		cooldownTime = json["cooldownTime"].get<std::uint32_t>().value_or(cooldownTime);
 		maxAudioTriggers = json["maxAudioTriggers"].get<std::uint32_t>().value_or(maxAudioTriggers);
 		audioSequenceOffset =
 			json["audioSequenceOffset"].get<float>().value_or(audioSequenceOffset);
 		ttsVoiceSpeed = json["ttsVoiceSpeed"].get<float>().value_or(ttsVoiceSpeed);
 		ttsVoiceVolume = json["ttsVoiceVolume"].get<float>().value_or(ttsVoiceVolume);
+		ttsVoicePitch = json["ttsVoicePitch"].get<float>().value_or(ttsVoicePitch);
 		approvedUsers =
 			json["approvedUsers"].get<std::vector<std::string>>().value_or(approvedUsers);
 

@@ -264,6 +264,10 @@ public:
 			ImGui::SliderFloat("##ttsVoiceVolume", &global_config.ttsVoiceVolume, 0.0f, 1.0f,
 							   "%.2f");
 
+			// Slider for TTS voice pitch, which is a float from 0.1f to 2.0f
+			ImGui::Text("TTS voice pitch:");
+			ImGui::SliderFloat("##ttsVoicePitch", &global_config.ttsVoicePitch, 0.1f, 2.0f, "%.1f");
+
 			// Add padding before separators
 			ImGui::Dummy(ImVec2(0, 10));
 
@@ -458,7 +462,7 @@ public:
 	}
 
 	// Method for launching new notification
-	static void launch_notification(const std::string& notifStr, const TwitchChatMessage &msg) {
+	static void launch_notification(const std::string &notifStr, const TwitchChatMessage &msg) {
 		m_notifications.emplace_back(std::make_unique<Notification>(notifStr, msg));
 	}
 

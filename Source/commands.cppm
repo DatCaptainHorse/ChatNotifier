@@ -51,8 +51,9 @@ export class CommandHandler {
 public:
 	// Initializes CommandHandler, adding the default commands
 	// requires passing the method for launching notifications, circular dependency stuff..
-	static auto initialize(const std::function<void(const std::string& notifStr, const TwitchChatMessage &msg)> &launch_notification)
-		-> Result {
+	static auto
+	initialize(const std::function<void(const std::string &notifStr, const TwitchChatMessage &msg)>
+				   &launch_notification) -> Result {
 		if (m_commandsMap.empty()) {
 			m_commandsMap["text_to_speech"] =
 				Command("tts", "TTS Notification", [](const TwitchChatMessage &msg) {
@@ -63,8 +64,10 @@ public:
 
 					const float voiceSpeed =
 						msg.get_command_arg<float>("speed").value_or(global_config.ttsVoiceSpeed);
+					const float voicePitch =
+						msg.get_command_arg<float>("pitch").value_or(global_config.ttsVoicePitch);
 
-					TTSHandler::voiceString(notifMsg, speakerID, voiceSpeed);
+					TTSHandler::voiceString(notifMsg, speakerID, voiceSpeed, voicePitch);
 				});
 			m_commandsMap["custom_notification"] = Command(
 				"cc", "Custom Notification", [launch_notification](const TwitchChatMessage &msg) {
@@ -82,6 +85,8 @@ public:
 						}
 					}
 
+					const auto audioPitch = msg.get_command_arg<float>("pitch").value_or(1.0f);
+
 					// Find all easter egg sound words, pushing into vector
 					// limited to global_config.maxAudioTriggers
 					std::vector<std::filesystem::path> sounds;
@@ -94,7 +99,7 @@ public:
 						}
 					}
 					// Play easter egg sounds
-					if (!sounds.empty()) AudioPlayer::play_sequential(sounds);
+					if (!sounds.empty()) AudioPlayer::play_sequential(sounds, 1.0f, audioPitch);
 
 					launch_notification(notifMsg, msg);
 				});

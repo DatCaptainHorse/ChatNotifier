@@ -145,35 +145,36 @@ public:
 		ma_engine_set_volume(&m_engine, m_volume);
 	}
 
-	static void play_oneshot(const std::filesystem::path &file, const float volume = 1.0f) {
+	static void play_oneshot(const std::filesystem::path &file, const float volume = 1.0f,
+							 const float pitch = 1.0f) {
 		// Create new sound
 		const auto sound =
 			m_sounds.emplace_back(std::make_shared<AudioPlayerSound>(SoundType::eOneshot));
 		if (ma_sound_init_from_file(&m_engine, file.string().c_str(),
-									MA_SOUND_FLAG_ASYNC | MA_SOUND_FLAG_NO_PITCH |
-										MA_SOUND_FLAG_NO_SPATIALIZATION,
-									nullptr, nullptr, sound->sound.get()) != MA_SUCCESS) {
+									MA_SOUND_FLAG_ASYNC | MA_SOUND_FLAG_NO_SPATIALIZATION, nullptr,
+									nullptr, sound->sound.get()) != MA_SUCCESS) {
 			return;
 		}
 
 		ma_sound_set_volume(sound->sound.get(), volume);
+		ma_sound_set_pitch(sound->sound.get(), pitch);
 		ma_sound_start(sound->sound.get());
 	}
 
 	// Plays given sounds in order, waiting for last one to finish before starting next
 	static void play_sequential(const std::vector<std::filesystem::path> &files,
-								const float volume = 1.0f) {
+								const float volume = 1.0f, const float pitch = 1.0f) {
 		std::vector<std::shared_ptr<AudioPlayerSound>> sequence;
 		for (const auto &file : files) {
 			const auto sound = std::make_shared<AudioPlayerSound>(SoundType::eSequential);
 			if (ma_sound_init_from_file(&m_engine, file.string().c_str(),
-										MA_SOUND_FLAG_ASYNC | MA_SOUND_FLAG_NO_PITCH |
-											MA_SOUND_FLAG_NO_SPATIALIZATION,
+										MA_SOUND_FLAG_ASYNC | MA_SOUND_FLAG_NO_SPATIALIZATION,
 										nullptr, nullptr, sound->sound.get()) != MA_SUCCESS) {
 				return;
 			}
 
 			ma_sound_set_volume(sound->sound.get(), volume);
+			ma_sound_set_pitch(sound->sound.get(), pitch);
 			// Assign next sound in sequence
 			if (!sequence.empty()) sequence.back()->next = sound;
 
@@ -189,7 +190,7 @@ public:
 
 	// Plays from memory
 	static void play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
-									const float volume = 1.0f) {
+									const float volume = 1.0f, const float pitch = 1.0f) {
 		// Have local copy of data
 		std::vector<float> localData(data.size());
 		std::ranges::copy(data, localData.begin());
@@ -203,13 +204,13 @@ public:
 		const auto sound =
 			m_sounds.emplace_back(std::make_shared<AudioPlayerSound>(SoundType::eMemory, buffer));
 		if (ma_sound_init_from_data_source(&m_engine, buffer.get(),
-										   MA_SOUND_FLAG_ASYNC | MA_SOUND_FLAG_NO_PITCH |
-											   MA_SOUND_FLAG_NO_SPATIALIZATION,
+										   MA_SOUND_FLAG_ASYNC | MA_SOUND_FLAG_NO_SPATIALIZATION,
 										   nullptr, sound->sound.get()) != MA_SUCCESS) {
 			return;
 		}
 
 		ma_sound_set_volume(sound->sound.get(), volume);
+		ma_sound_set_pitch(sound->sound.get(), pitch);
 		ma_sound_start(sound->sound.get());
 	}
 };
