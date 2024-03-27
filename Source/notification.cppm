@@ -1,12 +1,14 @@
 module;
 
 #include <string>
+#include <iostream>
 
 #include <imgui.h>
 #include <imgui_internal.h>
 
 export module notification;
 
+import common;
 import effect;
 import config;
 
@@ -21,17 +23,36 @@ public:
 	Notification() = delete;
 	~Notification() = default;
 
-	explicit Notification(std::string text)
-		: m_fullText(std::move(text)), m_maxLifetime(global_config.notifAnimationLength) {
-		m_effectMix.setMixIntensity(global_config.notifEffectIntensity);
-		m_effectMix.setMixSpeed(global_config.notifEffectSpeed);
+	explicit Notification(const std::string &notifStr, const TwitchChatMessage &msg)
+		: m_fullText(notifStr), m_maxLifetime(global_config.notifAnimationLength) {
+		m_effectMix.setMixIntensity(
+			msg.get_command_arg<float>("intensity").value_or(global_config.notifEffectIntensity));
+		m_effectMix.setMixSpeed(
+			msg.get_command_arg<float>("speed").value_or(global_config.notifEffectSpeed));
 		m_effectMix.set_text(m_fullText);
 
-		// Default mix
-		m_effectMix.add_effect<TextEffectFade>(1.0f, 1.0f);
-		m_effectMix.add_effect<TextEffectTransition>(1.0f, 1.0f);
-		m_effectMix.add_effect<TextEffectWave>(1.0f, 1.0f);
-		m_effectMix.add_effect<TextEffectRainbow>(1.0f, 1.0f);
+		if (const auto wantedEffects = msg.get_command_arg<std::string>("effects");
+			wantedEffects.has_value()) {
+			if (const auto splitted = split_string(wantedEffects.value(), "|");
+				splitted.size() > 0) {
+				for (const auto &effect : splitted) {
+					if (effect == "fade")
+						m_effectMix.add_effect<TextEffectFade>(1.0f, 1.0f);
+					else if (effect == "transition")
+						m_effectMix.add_effect<TextEffectTransition>(1.0f, 1.0f);
+					else if (effect == "wave")
+						m_effectMix.add_effect<TextEffectWave>(1.0f, 1.0f);
+					else if (effect == "rainbow")
+						m_effectMix.add_effect<TextEffectRainbow>(1.0f, 1.0f);
+				}
+			}
+		} else {
+			// Default mix
+			m_effectMix.add_effect<TextEffectFade>(1.0f, 1.0f);
+			m_effectMix.add_effect<TextEffectTransition>(1.0f, 1.0f);
+			m_effectMix.add_effect<TextEffectWave>(1.0f, 1.0f);
+			m_effectMix.add_effect<TextEffectRainbow>(1.0f, 1.0f);
+		}
 	}
 
 	// Render method

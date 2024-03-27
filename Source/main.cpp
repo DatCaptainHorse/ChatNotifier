@@ -103,29 +103,20 @@ void twc_callback_handler(const TwitchChatMessage &msg) {
 		})) {
 		// Check for command and execute
 		for (const auto &[key, command] : CommandHandler::get_commands_map()) {
-			// Command with the "!" prefix to match the message
-			const auto fullCommand = std::format("!{}", command.callstr);
+			const auto fullCommand = command.callstr;
 			if (fullCommand.empty()) continue;
 
 			// Make sure the message is long enough to contain the command
 			if (msg.message.size() < fullCommand.size()) continue;
 
 			// Extract the command from the message
-			// so until whitespace is met after command or end of string is reached
-			auto extractedCommand = msg.message;
-			if (const auto wsPos = msg.message.find(' '); wsPos != std::string::npos)
-				extractedCommand = msg.message.substr(0, wsPos);
-
-			// Remove odd characters from the extracted command
-			std::erase_if(extractedCommand, [](const auto &ec) {
-				return ec == '\n' || ec == '\r' || ec == '\0' || ec == '\t' || std::isspace(ec);
-			});
+			auto extractedCommand = msg.get_command();
 
 			// If command is shorter than the extracted command, skip, prevents partial matches
 			if (fullCommand.size() < extractedCommand.size()) continue;
 
 			// Strict comparison of the command, to prevent partial matches
-			if (lowercase(extractedCommand).find(fullCommand) != std::string::npos) {
+			if (lowercase(extractedCommand).contains(fullCommand)) {
 				CommandHandler::execute_command(key, msg);
 				break;
 			}

@@ -24,18 +24,22 @@ constexpr std::array ttsTestMessages = {
 	"Hey, listen!",
 	"Never gonna give you up, never gonna let you down, never gonna run around and desert you",
 	"This is a test message OwO",
+	"According to all known laws of aviation, there is no way a bee should be able to fly",
+	"One. Two. Three. Awoo!",
 };
+
+// Command function using
+using CommandFunction = std::function<void(const TwitchChatMessage &)>;
 
 // Struct for command
 export struct Command {
 	bool enabled;
 	std::string callstr, description;
-	std::function<void(const TwitchChatMessage &)> func;
+	CommandFunction func;
 	std::chrono::time_point<std::chrono::steady_clock> lastExecuted;
 
 	Command() = default;
-	Command(const std::string &call, const std::string &desc,
-			const std::function<void(const TwitchChatMessage &)> &f)
+	Command(const std::string &call, const std::string &desc, const CommandFunction &f)
 		: enabled(true), callstr(call), description(desc), func(f) {}
 };
 
@@ -47,17 +51,20 @@ export class CommandHandler {
 public:
 	// Initializes CommandHandler, adding the default commands
 	// requires passing the method for launching notifications, circular dependency stuff..
-	static auto initialize(const std::function<void(const std::string &)> &launch_notification)
+	static auto initialize(const std::function<void(const std::string& notifStr, const TwitchChatMessage &msg)> &launch_notification)
 		-> Result {
 		if (m_commandsMap.empty()) {
 			m_commandsMap["text_to_speech"] =
 				Command("tts", "TTS Notification", [](const TwitchChatMessage &msg) {
 					const std::string notifMsg = msg.get_message();
-					auto speakerID = -1;
+					std::int32_t speakerID = -1;
 					if (global_users.contains(msg.user))
 						speakerID = global_users[msg.user]->userVoice;
 
-					TTSHandler::voiceString(notifMsg, speakerID);
+					const float voiceSpeed =
+						msg.get_command_arg<float>("speed").value_or(global_config.ttsVoiceSpeed);
+
+					TTSHandler::voiceString(notifMsg, speakerID, voiceSpeed);
 				});
 			m_commandsMap["custom_notification"] = Command(
 				"cc", "Custom Notification", [launch_notification](const TwitchChatMessage &msg) {
@@ -89,7 +96,7 @@ public:
 					// Play easter egg sounds
 					if (!sounds.empty()) AudioPlayer::play_sequential(sounds);
 
-					launch_notification(notifMsg);
+					launch_notification(notifMsg, msg);
 				});
 		}
 

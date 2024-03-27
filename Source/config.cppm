@@ -30,13 +30,13 @@ export struct Config {
 	float notifEffectSpeed = 2.0f;
 	float notifEffectIntensity = 2.0f;
 	float notifFontScale = 1.0f;
-	float globalAudioVolume = 0.75f;
+	float globalAudioVolume = 0.5f;
 	std::vector<std::string> approvedUsers = {};
 	std::string twitchAuthToken = "", twitchAuthUser = "", twitchChannel = "";
 	CommandCooldownType enabledCooldowns = CommandCooldownType::eGlobal;
 	std::uint32_t cooldownTime = 5;
 	std::uint32_t maxAudioTriggers = 3; //< How many audio triggers can a message cause
-	float audioSequenceOffset = -0.5f;	//< Offset for how long to wait between audio triggers
+	float audioSequenceOffset = -1.0f;	//< Offset for how long to wait between audio triggers
 	float ttsVoiceSpeed = 1.0f;			//< Speed of TTS voice
 	float ttsVoiceVolume = 1.0f;		//< Volume of TTS voice
 

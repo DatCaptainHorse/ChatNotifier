@@ -190,9 +190,9 @@ public:
 			ImGui::Text("Notification Settings");
 			ImGui::Separator();
 
-			// Slider for notification show time, integer-steps from 1 to 10
+			// Slider for notification show time, integer-steps from 1 to 20
 			ImGui::Text("Notification show time:");
-			ImGui::SliderFloat("##showTime", &global_config.notifAnimationLength, 1.0f, 10.0f,
+			ImGui::SliderFloat("##showTime", &global_config.notifAnimationLength, 1.0f, 20.0f,
 							   "%.0f");
 
 			// Slider for notification effect speed, float from 0.1 to 10.0
@@ -255,9 +255,9 @@ public:
 			ImGui::Text("TTS Settings");
 			ImGui::Separator();
 
-			// Slider for TTS voice speed, which is a float from 0.5f to 2.0f
+			// Slider for TTS voice speed, which is a float from 0.1f to 2.0f
 			ImGui::Text("TTS voice speed:");
-			ImGui::SliderFloat("##ttsVoiceSpeed", &global_config.ttsVoiceSpeed, 0.5f, 2.0f, "%.1f");
+			ImGui::SliderFloat("##ttsVoiceSpeed", &global_config.ttsVoiceSpeed, 0.1f, 2.0f, "%.1f");
 
 			// Slider for TTS voice volume, which is a float from 0.0f to 1.0f
 			ImGui::Text("TTS voice volume:");
@@ -458,8 +458,8 @@ public:
 	}
 
 	// Method for launching new notification
-	static void launch_notification(std::string text) {
-		m_notifications.emplace_back(std::make_unique<Notification>(std::move(text)));
+	static void launch_notification(const std::string& notifStr, const TwitchChatMessage &msg) {
+		m_notifications.emplace_back(std::make_unique<Notification>(notifStr, msg));
 	}
 
 private:

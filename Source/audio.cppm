@@ -109,8 +109,7 @@ public:
 				(ma_sound_at_end(sound->sound.get()) ||
 				 soundTime >= soundLength + global_config.audioSequenceOffset)) {
 				// Start playback of next sound
-				if (sound->next != nullptr)
-					ma_sound_start(sound->next->sound.get());
+				if (sound->next != nullptr) ma_sound_start(sound->next->sound.get());
 			}
 		}
 
@@ -120,16 +119,14 @@ public:
 			if (ma_sound_at_end(sound->sound.get())) {
 				ma_sound_stop(sound->sound.get());
 				ma_sound_uninit(sound->sound.get());
-				if (sound->buffer != nullptr)
-					ma_audio_buffer_uninit(sound->buffer.get());
+				if (sound->buffer != nullptr) ma_audio_buffer_uninit(sound->buffer.get());
 
 				soundsToRemove.push_back(sound);
 			}
 		}
 
 		// Remove sounds
-		for (const auto sound : soundsToRemove)
-			m_sounds.erase(std::ranges::find(m_sounds, sound));
+		for (const auto sound : soundsToRemove) m_sounds.erase(std::ranges::find(m_sounds, sound));
 	}
 
 	// Stops all sounds
@@ -137,8 +134,7 @@ public:
 		for (const auto sound : m_sounds) {
 			ma_sound_stop(sound->sound.get());
 			ma_sound_uninit(sound->sound.get());
-			if (sound->buffer != nullptr)
-				ma_audio_buffer_uninit(sound->buffer.get());
+			if (sound->buffer != nullptr) ma_audio_buffer_uninit(sound->buffer.get());
 		}
 		m_sounds.clear();
 	}
@@ -179,8 +175,7 @@ public:
 
 			ma_sound_set_volume(sound->sound.get(), volume);
 			// Assign next sound in sequence
-			if (!sequence.empty())
-				sequence.back()->next = sound;
+			if (!sequence.empty()) sequence.back()->next = sound;
 
 			sequence.push_back(sound);
 		}
@@ -195,8 +190,12 @@ public:
 	// Plays from memory
 	static void play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
 									const float volume = 1.0f) {
-		ma_audio_buffer_config bufferConfig =
-			ma_audio_buffer_config_init(ma_format_f32, 1, data.size(), data.data(), nullptr);
+		// Have local copy of data
+		std::vector<float> localData(data.size());
+		std::ranges::copy(data, localData.begin());
+
+		ma_audio_buffer_config bufferConfig = ma_audio_buffer_config_init(
+			ma_format_f32, 1, localData.size(), localData.data(), nullptr);
 		bufferConfig.sampleRate = samplerate;
 		const auto buffer = std::make_shared<ma_audio_buffer>();
 		ma_audio_buffer_init(&bufferConfig, buffer.get());

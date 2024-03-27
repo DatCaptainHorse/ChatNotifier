@@ -2,6 +2,7 @@ module;
 
 #include <map>
 #include <array>
+#include <print>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -76,6 +77,15 @@ export auto get_string_until(const std::string &str, const std::string &delim, c
 	if (endPos == std::string::npos) return "";
 
 	return str.substr(pos, endPos - pos);
+}
+
+// Method for getting string after a delimiter, with optional starting position
+export auto get_string_after(const std::string &str, const std::string &delim, const size_t pos = 0)
+	-> std::string {
+	const auto startPos = str.find(delim, pos);
+	if (startPos == std::string::npos) return "";
+
+	return str.substr(startPos + delim.size());
 }
 
 // Method for getting invidual letters of a string for multi-byte characters
@@ -281,13 +291,58 @@ export struct TwitchChatMessage {
 		: user(std::move(user)), message(std::move(message)),
 		  time(std::chrono::steady_clock::now()) {}
 
-	[[nodiscard]] auto is_command() const -> bool { return message.starts_with('!'); }
+	// Commands can be given arguments like so: "!cmd<arg1:value1,arg2:value2>" and so on
+	[[nodiscard]] auto get_command_args() const
+		-> std::vector<std::pair<std::string, std::string>> {
+		if (!is_command()) return {};
+		const auto args = get_string_between(message, "<", ">");
+		if (args.empty()) return {};
+		std::vector<std::pair<std::string, std::string>> argPairs;
+		if (args.contains(",")) {
+			for (const auto argList = split_string(args, ","); const auto &arg : argList) {
+				const auto argSplit = split_string(arg, "=");
+				if (argSplit.size() != 2) continue;
+				argPairs.emplace_back(argSplit[0], argSplit[1]);
+			}
+		} else {
+			const auto argSplit = split_string(args, "=");
+			if (argSplit.size() != 2) return {};
+			argPairs.emplace_back(argSplit[0], argSplit[1]);
+		}
+		return argPairs;
+	}
+
+	// Different method for getting a single command argument
+	template <typename T>
+	auto get_command_arg(const std::string &argName) const -> std::optional<T> {
+		const auto args = get_command_args();
+		const auto arg = std::ranges::find_if(
+			args, [&argName](const auto &pair) { return pair.first == argName; });
+		if (arg == args.end()) return std::nullopt;
+		return t_from_string<T>(arg->second);
+	}
+
+	[[nodiscard]] auto is_command() const -> bool { return message.starts_with("!"); }
+
 	[[nodiscard]] auto get_command() const -> std::string {
-		return get_string_between(message, "!", " ");
+		if (!is_command()) return "";
+		if (const auto arged = get_string_between(message, "!", "<");
+			!arged.empty() && !arged.contains(" "))
+			return get_string_between(message, "!", "<");
+		else
+			return get_string_between(message, "!", " ");
 	}
 
 	[[nodiscard]] auto get_message() const -> std::string {
-		return message.substr(message.find(' ') + 1);
+		// If command, take out the command part
+		if (is_command()) {
+			if (const auto arged = get_string_between(message, "!", "<");
+				!arged.empty() && !arged.contains(" "))
+				return get_string_after(message, ">");
+
+			return get_string_after(message, " ");
+		}
+		return message;
 	}
 };
 
@@ -297,7 +352,7 @@ export struct TwitchUser {
 	std::string name;
 	bool bypassCooldown = false;
 	TwitchChatMessage lastMessage;
-	int userVoice = -1;
+	std::int32_t userVoice = -1;
 
 	explicit TwitchUser(std::string name, TwitchChatMessage lastMessage)
 		: name(std::move(name)), lastMessage(std::move(lastMessage)) {}

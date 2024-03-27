@@ -43,6 +43,10 @@ public:
 		else
 			m_config.model.num_threads = maxThreads / 2;
 
+		m_config.model.vits.length_scale = 1.0f;
+		m_config.model.vits.noise_scale = 0.667f;
+		m_config.model.vits.noise_scale_w = 0.8f;
+
 		m_tts = SherpaOnnxCreateOfflineTts(&m_config);
 
 		return Result();
@@ -71,14 +75,17 @@ public:
 
 	static auto get_num_voices() -> std::int32_t { return SherpaOnnxOfflineTtsNumSpeakers(m_tts); }
 
-	static void voiceString(const std::string &text, std::int32_t speakerID = -1) {
+	static void voiceString(const std::string &text, std::int32_t speakerID = -1,
+							float voiceSpeed = 1.0f) {
+		if (speakerID == -1 || speakerID >= get_num_voices())
+			speakerID = random_int(0, get_num_voices() - 1);
+
 		// Do in separate thread
-		m_threads.emplace_back([text, &speakerID]() {
-			if (speakerID == -1) speakerID = random_int(0, get_num_voices() - 1);
-			const auto audio = SherpaOnnxOfflineTtsGenerate(m_tts, text.c_str(), speakerID,
-															global_config.ttsVoiceSpeed);
-			const std::vector audiodata(audio->samples, audio->samples + audio->n);
-			AudioPlayer::play_oneshot_memory(audiodata, 22000, global_config.ttsVoiceVolume);
+		m_threads.emplace_back([text, speakerID, voiceSpeed]() {
+			const auto audio =
+				SherpaOnnxOfflineTtsGenerate(m_tts, text.c_str(), speakerID, voiceSpeed);
+			AudioPlayer::play_oneshot_memory({audio->samples, audio->samples + audio->n}, 22000,
+											 global_config.ttsVoiceVolume);
 			SherpaOnnxDestroyOfflineTtsGeneratedAudio(audio);
 		});
 	}
