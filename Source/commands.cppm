@@ -67,7 +67,12 @@ public:
 					const float voicePitch =
 						msg.get_command_arg<float>("pitch").value_or(global_config.ttsVoicePitch);
 
-					TTSHandler::voiceString(notifMsg, speakerID, voiceSpeed, voicePitch);
+					const float voicePosX = msg.get_command_arg<float>("px").value_or(0.0f);
+					const float voicePosY = msg.get_command_arg<float>("py").value_or(0.0f);
+					const float voicePosZ = msg.get_command_arg<float>("pz").value_or(0.0f);
+
+					TTSHandler::voiceString(notifMsg, speakerID, voiceSpeed, voicePitch, voicePosX,
+											voicePosY, voicePosZ);
 				});
 			m_commandsMap["custom_notification"] = Command(
 				"cc", "Custom Notification", [launch_notification](const TwitchChatMessage &msg) {

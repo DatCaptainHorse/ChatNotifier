@@ -190,7 +190,9 @@ public:
 
 	// Plays from memory
 	static void play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
-									const float volume = 1.0f, const float pitch = 1.0f) {
+									const float volume = 1.0f, const float pitch = 1.0f,
+									const float x = 0.0f, const float y = 0.0f,
+									const float z = 0.0f) {
 		// Have local copy of data
 		std::vector<float> localData(data.size());
 		std::ranges::copy(data, localData.begin());
@@ -203,11 +205,15 @@ public:
 
 		const auto sound =
 			m_sounds.emplace_back(std::make_shared<AudioPlayerSound>(SoundType::eMemory, buffer));
-		if (ma_sound_init_from_data_source(&m_engine, buffer.get(),
-										   MA_SOUND_FLAG_ASYNC | MA_SOUND_FLAG_NO_SPATIALIZATION,
-										   nullptr, sound->sound.get()) != MA_SUCCESS) {
+		if (ma_sound_init_from_data_source(&m_engine, buffer.get(), MA_SOUND_FLAG_ASYNC, nullptr,
+										   sound->sound.get()) != MA_SUCCESS) {
 			return;
 		}
+
+		// 3D sound setup
+		ma_sound_set_max_distance(sound->sound.get(), 100.0f);
+		ma_sound_set_rolloff(sound->sound.get(), 0.6f);
+		ma_sound_set_position(sound->sound.get(), x, y, z);
 
 		ma_sound_set_volume(sound->sound.get(), volume);
 		ma_sound_set_pitch(sound->sound.get(), pitch);
