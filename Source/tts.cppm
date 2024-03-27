@@ -88,12 +88,14 @@ public:
 		}
 
 		// Join and remove finished threads
-		for (auto it = m_threads.begin(); it != m_threads.end();) {
-			if (std::ranges::find(clearableThreads, it->get_id()) != clearableThreads.end()) {
-				if (it->joinable()) it->join();
-				it = m_threads.erase(it);
-			} else
-				++it;
+		if (!clearableThreads.empty()) {
+			for (auto it = m_threads.begin(); it != m_threads.end();) {
+				if (std::ranges::find(clearableThreads, it->get_id()) != clearableThreads.end() &&
+					it->joinable())
+					it->join();
+				else
+					++it;
+			}
 		}
 	}
 
