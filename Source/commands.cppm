@@ -62,17 +62,22 @@ public:
 					if (global_users.contains(msg.user))
 						speakerID = global_users[msg.user]->userVoice;
 
-					const float voiceSpeed =
-						msg.get_command_arg<float>("speed").value_or(global_config.ttsVoiceSpeed);
-					const float voicePitch =
-						msg.get_command_arg<float>("pitch").value_or(global_config.ttsVoicePitch);
+					auto voiceSpeed = msg.get_command_arg<float>("speed").value_or(
+						global_config.ttsVoiceSpeed.value);
+					voiceSpeed = std::clamp(voiceSpeed, global_config.ttsVoiceSpeed.min,
+											global_config.ttsVoiceSpeed.max);
 
-					const float voicePosX = msg.get_command_arg<float>("px").value_or(0.0f);
-					const float voicePosY = msg.get_command_arg<float>("py").value_or(0.0f);
-					const float voicePosZ = msg.get_command_arg<float>("pz").value_or(0.0f);
+					auto voicePitch = msg.get_command_arg<float>("pitch").value_or(
+						global_config.ttsVoicePitch.value);
+					voicePitch = std::clamp(voicePitch, global_config.ttsVoicePitch.min,
+											global_config.ttsVoicePitch.max);
 
-					TTSHandler::voiceString(notifMsg, speakerID, voiceSpeed, voicePitch, voicePosX,
-											voicePosY, voicePosZ);
+					const auto voicePos = msg.get_command_arg<Position3D>("pos");
+					const auto voiceEffects = msg.get_command_arg<std::vector<std::string>>("sfx");
+
+					TTSHandler::voiceString(
+						notifMsg, speakerID, voiceSpeed,
+						{global_config.ttsVoiceVolume.value, voicePitch, voicePos, voiceEffects});
 				});
 			m_commandsMap["custom_notification"] = Command(
 				"cc", "Custom Notification", [launch_notification](const TwitchChatMessage &msg) {
@@ -90,7 +95,11 @@ public:
 						}
 					}
 
-					const auto audioPitch = msg.get_command_arg<float>("pitch").value_or(1.0f);
+					auto audioPitch = msg.get_command_arg<float>("pitch").value_or(1.0f);
+					audioPitch = std::clamp(audioPitch, 0.1f, 2.0f);
+
+					const auto audioPos = msg.get_command_arg<Position3D>("pos");
+					const auto audioEffects = msg.get_command_arg<std::vector<std::string>>("sfx");
 
 					// Find all easter egg sound words, pushing into vector
 					// limited to global_config.maxAudioTriggers
@@ -99,12 +108,14 @@ public:
 					for (const auto &word : words) {
 						if (const auto found = std::ranges::find(eggSounds, word);
 							found != eggSounds.end() &&
-							sounds.size() < global_config.maxAudioTriggers) {
+							sounds.size() < global_config.maxAudioTriggers.value) {
 							sounds.push_back(AssetsHandler::get_egg_sound_path(*found));
 						}
 					}
 					// Play easter egg sounds
-					if (!sounds.empty()) AudioPlayer::play_sequential(sounds, 1.0f, audioPitch);
+					if (!sounds.empty())
+						AudioPlayer::play_sequential(sounds,
+													 {1.0f, audioPitch, audioPos, audioEffects});
 
 					launch_notification(notifMsg, msg);
 				});

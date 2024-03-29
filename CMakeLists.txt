@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.29)
 project(ChatNotifier)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -48,7 +48,7 @@ cmake_dependent_option(USE_SANITIZERS "Use sanitizers if supported by target" OF
 # If "mold" linker is available, use it
 find_program(MOLD_LINKER mold)
 if (MOLD_LINKER)
-  set(CMAKE_LINKER_TYPE ${MOLD_LINKER})
+  set(CMAKE_LINKER_TYPE MOLD)
   message(STATUS "Using mold linker")
 endif ()
 

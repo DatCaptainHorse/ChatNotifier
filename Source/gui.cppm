@@ -192,24 +192,28 @@ public:
 
 			// Slider for notification show time, integer-steps from 1 to 20
 			ImGui::Text("Notification show time:");
-			ImGui::SliderFloat("##showTime", &global_config.notifAnimationLength, 1.0f, 20.0f,
-							   "%.0f");
+			ImGui::SliderFloat("##showTime", &global_config.notifAnimationLength.value,
+							   global_config.notifAnimationLength.min,
+							   global_config.notifAnimationLength.max, "%.0f");
 
 			// Slider for notification effect speed, float from 0.1 to 10.0
 			ImGui::Text("Notification effect speed:");
-			ImGui::SliderFloat("##effectSpeed", &global_config.notifEffectSpeed, 0.1f, 10.0f,
-							   "%.1f");
+			ImGui::SliderFloat("##effectSpeed", &global_config.notifEffectSpeed.value,
+							   global_config.notifEffectSpeed.min,
+							   global_config.notifEffectSpeed.max, "%.1f");
 
 			// Slider for notification effect intensity, float from 0.1 to 10.0
 			ImGui::Text("Notification effect intensity:");
-			ImGui::SliderFloat("##effectIntensity", &global_config.notifEffectIntensity, 0.1f,
-							   10.0f, "%.1f");
+			ImGui::SliderFloat("##effectIntensity", &global_config.notifEffectIntensity.value,
+							   global_config.notifEffectIntensity.min,
+							   global_config.notifEffectIntensity.max, "%.1f");
 
 			// Slider for notification font scale, float from 0.5 to 2.0
 			ImGui::Text("Notification font scale:");
-			if (ImGui::SliderFloat("##fontScale", &global_config.notifFontScale, 0.5f, 2.0f,
-								   "%.1f"))
-				m_notifFont->Scale = global_config.notifFontScale;
+			if (ImGui::SliderFloat("##fontScale", &global_config.notifFontScale.value,
+								   global_config.notifFontScale.min,
+								   global_config.notifFontScale.max, "%.1f"))
+				m_notifFont->Scale = global_config.notifFontScale.value;
 
 			// Button to refresh assets
 			ImGui::Dummy(ImVec2(0, 10));
@@ -227,19 +231,23 @@ public:
 
 			// Slider for global audio volume, which is a float from 0.0f to 1.0f
 			ImGui::Text("Global audio volume:");
-			if (ImGui::SliderFloat("##globalVol", &global_config.globalAudioVolume, 0.0f, 1.0f,
-								   "%.2f"))
-				AudioPlayer::set_global_volume(global_config.globalAudioVolume);
+			if (ImGui::SliderFloat("##globalVol", &global_config.globalAudioVolume.value,
+								   global_config.globalAudioVolume.min,
+								   global_config.globalAudioVolume.max, "%.2f"))
+				AudioPlayer::set_global_volume(global_config.globalAudioVolume.value);
 
 			// Slider for audio sequence offset, which is a float from -5.0f to 0.0f
 			ImGui::Text("Audio sequence offset:");
-			ImGui::SliderFloat("##audioSeqOffset", &global_config.audioSequenceOffset, -5.0f, 0.0f,
-							   "%.1f");
+			ImGui::SliderFloat("##audioSeqOffset", &global_config.audioSequenceOffset.value,
+							   global_config.audioSequenceOffset.min,
+							   global_config.audioSequenceOffset.max, "%.1f");
 
 			// Slider for max audio triggers, which is an integer from 0 to 10
 			ImGui::Text("Max audio triggers:");
 			ImGui::SliderInt("##maxAudioTriggers",
-							 reinterpret_cast<int *>(&global_config.maxAudioTriggers), 0, 10);
+							 reinterpret_cast<int *>(&global_config.maxAudioTriggers.value),
+							 global_config.maxAudioTriggers.min,
+							 global_config.maxAudioTriggers.max);
 
 			// Button to stop all sounds
 			ImGui::Dummy(ImVec2(0, 10));
@@ -257,16 +265,21 @@ public:
 
 			// Slider for TTS voice speed, which is a float from 0.1f to 2.0f
 			ImGui::Text("TTS voice speed:");
-			ImGui::SliderFloat("##ttsVoiceSpeed", &global_config.ttsVoiceSpeed, 0.1f, 2.0f, "%.1f");
+			ImGui::SliderFloat("##ttsVoiceSpeed", &global_config.ttsVoiceSpeed.value,
+							   global_config.ttsVoiceSpeed.min, global_config.ttsVoiceSpeed.max,
+							   "%.1f");
 
 			// Slider for TTS voice volume, which is a float from 0.0f to 1.0f
 			ImGui::Text("TTS voice volume:");
-			ImGui::SliderFloat("##ttsVoiceVolume", &global_config.ttsVoiceVolume, 0.0f, 1.0f,
+			ImGui::SliderFloat("##ttsVoiceVolume", &global_config.ttsVoiceVolume.value,
+							   global_config.ttsVoiceVolume.min, global_config.ttsVoiceVolume.max,
 							   "%.2f");
 
 			// Slider for TTS voice pitch, which is a float from 0.1f to 2.0f
 			ImGui::Text("TTS voice pitch:");
-			ImGui::SliderFloat("##ttsVoicePitch", &global_config.ttsVoicePitch, 0.1f, 2.0f, "%.1f");
+			ImGui::SliderFloat("##ttsVoicePitch", &global_config.ttsVoicePitch.value,
+							   global_config.ttsVoicePitch.min, global_config.ttsVoicePitch.max,
+							   "%.1f");
 
 			// Add padding before separators
 			ImGui::Dummy(ImVec2(0, 10));
@@ -295,7 +308,7 @@ public:
 			{
 				ImGui::Text("Cooldown time:");
 				ImGui::InputScalar("##cooldownTime", ImGuiDataType_U32,
-								   &global_config.cooldownTime);
+								   &global_config.cooldownTime.value);
 			}
 			ImGui::EndDisabled();
 

@@ -24,27 +24,32 @@ public:
 	~Notification() = default;
 
 	explicit Notification(const std::string &notifStr, const TwitchChatMessage &msg)
-		: m_fullText(notifStr), m_maxLifetime(global_config.notifAnimationLength) {
-		m_effectMix.setMixIntensity(
-			msg.get_command_arg<float>("intensity").value_or(global_config.notifEffectIntensity));
-		m_effectMix.setMixSpeed(
-			msg.get_command_arg<float>("speed").value_or(global_config.notifEffectSpeed));
+		: m_fullText(notifStr), m_maxLifetime(global_config.notifAnimationLength.value) {
+		auto intensity = msg.get_command_arg<float>("intensity")
+							 .value_or(global_config.notifEffectIntensity.value);
+		intensity = std::clamp(intensity, global_config.notifEffectIntensity.min,
+							   global_config.notifEffectIntensity.max);
+		m_effectMix.setMixIntensity(intensity);
+
+		auto speed =
+			msg.get_command_arg<float>("speed").value_or(global_config.notifEffectSpeed.value);
+		speed = std::clamp(speed, global_config.notifEffectSpeed.min,
+						   global_config.notifEffectSpeed.max);
+		m_effectMix.setMixSpeed(speed);
 		m_effectMix.set_text(m_fullText);
 
-		if (const auto wantedEffects = msg.get_command_arg<std::string>("effects");
-			wantedEffects.has_value()) {
-			if (const auto splitted = split_string(wantedEffects.value(), "|");
-				splitted.size() > 0) {
-				for (const auto &effect : splitted) {
-					if (effect == "fade")
-						m_effectMix.add_effect<TextEffectFade>(1.0f, 1.0f);
-					else if (effect == "transition")
-						m_effectMix.add_effect<TextEffectTransition>(1.0f, 1.0f);
-					else if (effect == "wave")
-						m_effectMix.add_effect<TextEffectWave>(1.0f, 1.0f);
-					else if (effect == "rainbow")
-						m_effectMix.add_effect<TextEffectRainbow>(1.0f, 1.0f);
-				}
+		if (const auto wantedEffects = msg.get_command_arg<std::vector<std::string>>("vfx");
+			wantedEffects) {
+			for (const auto &effect : wantedEffects.value()) {
+				// Add effects
+				if (effect == "fade")
+					m_effectMix.add_effect<TextEffectFade>(1.0f, 1.0f);
+				else if (effect == "transition")
+					m_effectMix.add_effect<TextEffectTransition>(1.0f, 1.0f);
+				else if (effect == "wave")
+					m_effectMix.add_effect<TextEffectWave>(1.0f, 1.0f);
+				else if (effect == "rainbow")
+					m_effectMix.add_effect<TextEffectRainbow>(1.0f, 1.0f);
 			}
 		} else {
 			// Default mix

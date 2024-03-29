@@ -40,19 +40,32 @@ set(OP_DISABLE_HTTP ON CACHE BOOL "" FORCE)
 set(OP_DISABLE_EXAMPLES ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(opusfile)
 
-# Fetch miniaudio
-message(STATUS "Fetching miniaudio")
+# Fetch libnyquist
+message(STATUS "Fetching libnyquist")
 FetchContent_Declare(
-  miniaudio
-  GIT_REPOSITORY "https://github.com/mackron/miniaudio.git"
-  GIT_TAG "0.11.21"
+  libnyquist
+  GIT_REPOSITORY "https://github.com/ddiakopoulos/libnyquist.git"
+  GIT_COMMIT "767efd97cdd7a281d193296586e708490eb6e54f"
   OVERRIDE_FIND_PACKAGE
 )
-# Miniaudio has no CMakeLists, just a single header (miniaudio.h)
-# though we want to use the extras/miniaudio_split/miniaudio.h/.c files to fix some issues..
-FetchContent_MakeAvailable(miniaudio)
-add_library(miniaudio STATIC ${miniaudio_SOURCE_DIR}/extras/miniaudio_split/miniaudio.c)
-target_include_directories(miniaudio PUBLIC ${miniaudio_SOURCE_DIR}/extras/miniaudio_split)
+# Disable unnecessary features
+set(LIBNYQUIST_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(libnyquist)
+
+# Fetch openal-soft
+message(STATUS "Fetching openal-soft")
+FetchContent_Declare(
+  openal-soft
+  GIT_REPOSITORY "https://github.com/kcat/openal-soft.git"
+  GIT_COMMIT "5b6e0dfeab6f38899889c9856278a5d5cd9e3971"
+  OVERRIDE_FIND_PACKAGE
+)
+# We don't care about the examples
+set(ALSOFT_UTILS OFF CACHE BOOL "" FORCE)
+set(ALSOFT_NO_CONFIG_UTIL ON CACHE BOOL "" FORCE)
+set(ALSOFT_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(ALSOFT_EAX OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(openal-soft)
 
 # Fetch imgui
 # Needs special patch to have transparent framebuffers

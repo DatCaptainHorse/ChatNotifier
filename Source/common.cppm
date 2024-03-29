@@ -16,6 +16,21 @@ module;
 
 export module common;
 
+// 2D and 3D position structs
+export struct Position2D {
+	float x = 0.0f, y = 0.0f;
+
+	Position2D() = default;
+	Position2D(float x, float y) : x(x), y(y) {}
+};
+
+export struct Position3D {
+	float x = 0.0f, y = 0.0f, z = 0.0f;
+
+	Position3D() = default;
+	Position3D(float x, float y, float z) : x(x), y(y), z(z) {}
+};
+
 // Method for returning random integer between min, max
 export auto random_int(const int min, const int max) -> int {
 	std::random_device rd;
@@ -291,35 +306,60 @@ export struct TwitchChatMessage {
 		: user(std::move(user)), message(std::move(message)),
 		  time(std::chrono::steady_clock::now()) {}
 
-	// Commands can be given arguments like so: "!cmd<arg1:value1,arg2:value2>" and so on
+	// Commands can be given arguments like so
+	// "!cmd <arg1=value1,arg2=value2> message <arg3=value3|value4|value5> another message" etc.
+	// @return map of arg/values groups (each <> pair is a group)
+	// to another map of arg to it's values
 	[[nodiscard]] auto get_command_args() const
-		-> std::vector<std::pair<std::string, std::string>> {
+		-> std::map<std::uint32_t, std::map<std::string, std::vector<std::string>>> {
 		if (!is_command()) return {};
-		const auto args = get_string_between(message, "<", ">");
-		if (args.empty()) return {};
-		std::vector<std::pair<std::string, std::string>> argPairs;
-		if (args.contains(",")) {
-			for (const auto argList = split_string(args, ","); const auto &arg : argList) {
-				const auto argSplit = split_string(arg, "=");
-				if (argSplit.size() != 2) continue;
-				argPairs.emplace_back(argSplit[0], argSplit[1]);
+		// Get each argument group
+		auto result = std::map<std::uint32_t, std::map<std::string, std::vector<std::string>>>{};
+		const auto args = split_string(get_string_between(message, "<", ">"), ">");
+		for (std::uint32_t i = 0; i < args.size(); ++i) {
+			for (const auto argList = split_string(args[i], ","); const auto &arg : argList) {
+				const auto splitted = split_string(arg, "=");
+				if (splitted.size() != 2) continue;
+				const auto argName = splitted[0];
+				const auto argVal = splitted[1];
+				result[i][argName] = split_string(argVal, "|");
 			}
-		} else {
-			const auto argSplit = split_string(args, "=");
-			if (argSplit.size() != 2) return {};
-			argPairs.emplace_back(argSplit[0], argSplit[1]);
 		}
-		return argPairs;
+		return result;
 	}
 
-	// Different method for getting a single command argument
+	// A nicer way of getting command arguments
+	// @return optional value of the argument within specified group
 	template <typename T>
-	auto get_command_arg(const std::string &argName) const -> std::optional<T> {
-		const auto args = get_command_args();
-		const auto arg = std::ranges::find_if(
-			args, [&argName](const auto &pair) { return pair.first == argName; });
-		if (arg == args.end()) return std::nullopt;
-		return t_from_string<T>(arg->second);
+	auto get_command_arg(const std::string &argName, const std::uint32_t group = 0) const
+		-> std::optional<T> {
+		if (!is_command()) return std::nullopt;
+		auto argGroups = get_command_args();
+		if (!argGroups.contains(group)) return std::nullopt;
+		if (!argGroups[group].contains(argName)) return std::nullopt;
+		if constexpr (std::same_as<T, std::string>)
+			return argGroups[group][argName][0];
+		else if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>)
+			return t_from_string<T>(argGroups[group][argName][0]);
+		// Vector handling and Position 2D/3D handling
+		else if constexpr (std::same_as<T, std::vector<std::string>>)
+			return argGroups[group][argName];
+		else if constexpr (std::same_as<T, Position2D>) {
+			if (argGroups[group][argName].size() < 2) return std::nullopt;
+			return Position2D{t_from_string<float>(argGroups[group][argName][0]),
+							  t_from_string<float>(argGroups[group][argName][1])};
+		} else if constexpr (std::same_as<T, Position3D>) {
+			if (argGroups[group][argName].size() < 2) return std::nullopt;
+			// Allow for 2D positions to be used as 3D
+			if (argGroups[group][argName].size() == 2)
+				return Position3D{t_from_string<float>(argGroups[group][argName][0]),
+								  t_from_string<float>(argGroups[group][argName][1]), 0.0f};
+
+			return Position3D{t_from_string<float>(argGroups[group][argName][0]),
+							  t_from_string<float>(argGroups[group][argName][1]),
+							  t_from_string<float>(argGroups[group][argName][2])};
+		}
+		return std::nullopt;
 	}
 
 	[[nodiscard]] auto is_command() const -> bool { return message.starts_with("!"); }

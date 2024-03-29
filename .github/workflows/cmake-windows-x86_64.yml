@@ -24,6 +24,8 @@ jobs:
         vs-prerelease: true
         msbuild-architecture: x64
 
+    - uses: lukka/get-cmake@latest
+
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 

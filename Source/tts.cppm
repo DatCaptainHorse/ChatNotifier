@@ -6,6 +6,7 @@ module;
 #include <string>
 #include <vector>
 #include <thread>
+#include <optional>
 #include <filesystem>
 
 export module tts;
@@ -18,8 +19,7 @@ import audio;
 struct TTSData {
 	std::vector<float> audio;
 	std::int32_t sampleRate;
-	float pitch;
-	float x, y, z;
+	SoundOptions opts;
 	std::thread::id owner;
 };
 
@@ -79,8 +79,7 @@ public:
 		// Play results
 		for (auto it = m_results.begin(); it != m_results.end();) {
 			if (!it->audio.empty()) {
-				AudioPlayer::play_oneshot_memory(it->audio, 22000, global_config.ttsVoiceVolume,
-												 it->pitch, it->x, it->y, it->z);
+				AudioPlayer::play_oneshot_memory(it->audio, it->sampleRate, it->opts);
 				clearableThreads.push_back(it->owner);
 				it = m_results.erase(it);
 			} else
@@ -102,17 +101,16 @@ public:
 	static auto get_num_voices() -> std::int32_t { return SherpaOnnxOfflineTtsNumSpeakers(m_tts); }
 
 	static void voiceString(const std::string &text, std::int32_t speakerID = -1,
-							const float voiceSpeed = 1.0f, const float voicePitch = 1.0f,
-							const float x = 0.0f, const float y = 0.0f, const float z = 0.0f) {
+							const float voiceSpeed = 1.0f, const SoundOptions &opts = {}) {
 		if (speakerID == -1 || speakerID >= get_num_voices())
 			speakerID = random_int(0, get_num_voices() - 1);
 
 		// Do in separate thread
-		m_threads.emplace_back([text, speakerID, voiceSpeed, voicePitch, x, y, z]() {
+		m_threads.emplace_back([text, speakerID, voiceSpeed, opts]() {
 			const auto audio =
 				SherpaOnnxOfflineTtsGenerate(m_tts, text.c_str(), speakerID, voiceSpeed);
-			m_results.emplace_back(TTSData({audio->samples, audio->samples + audio->n},
-										   audio->sample_rate, voicePitch, x, y, z));
+			m_results.emplace_back(
+				TTSData({audio->samples, audio->samples + audio->n}, audio->sample_rate, opts));
 			SherpaOnnxDestroyOfflineTtsGeneratedAudio(audio);
 		});
 	}

@@ -51,10 +51,6 @@ auto main(int argc, char **argv) -> int {
 		return res.code;
 	}
 
-	// Play tutturuu (if it exists) to test audio
-	if (AssetsHandler::get_egg_sound_exists("tutturuu"))
-		AudioPlayer::play_oneshot(AssetsHandler::get_egg_sound_path("tutturuu").string());
-
 	// GUI and CommandHandler initialization
 	if (const auto res = NotifierGUI::initialize(); !res) {
 		print_error(res);
@@ -65,6 +61,10 @@ auto main(int argc, char **argv) -> int {
 		print_error(res);
 		return res.code;
 	}
+
+	// Play tutturuu (if it exists) to test audio
+	if (AssetsHandler::get_egg_sound_exists("tutturuu"))
+		AudioPlayer::play_oneshot(AssetsHandler::get_egg_sound_path("tutturuu").string());
 
 	// Run the main loop
 	while (!NotifierGUI::should_close()) {

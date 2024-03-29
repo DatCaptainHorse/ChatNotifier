@@ -18,7 +18,6 @@ target_sources(ChatNotifier PRIVATE FILE_SET CXX_MODULES FILES
   common.cppm
   assets.cppm
   commands.cppm
-  opus_decoder.cppm
   audio.cppm
   twitch.cppm
   effect.cppm
@@ -41,7 +40,8 @@ target_include_directories(ChatNotifier PRIVATE
 
 target_link_libraries(ChatNotifier PRIVATE
 #  glaze::glaze
-  miniaudio
+  libnyquist::libnyquist
+  OpenAL::OpenAL
   glfw
   hv_static
   sherpacapi
