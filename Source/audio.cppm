@@ -79,7 +79,8 @@ export auto check_al_errors(const std::source_location location = std::source_lo
 			errorStr = "UNKNOWN";
 			break;
 		}
-		std::println("OpenAL Error: {} at {}:{}", errorStr, location.file_name(), location.line());
+		std::println("OpenAL Error: {} at {}:{}", errorStr, location.file_name(),
+					 std::to_string(location.line()));
 		return true;
 	}
 	return false;
@@ -273,8 +274,7 @@ public:
 
 	// Stops all sounds
 	static void stop_sounds() {
-		for (const auto sound : m_sounds)
-			clear_sound_oal(sound);
+		for (const auto sound : m_sounds) clear_sound_oal(sound);
 
 		check_al_errors();
 		m_sounds.clear();
