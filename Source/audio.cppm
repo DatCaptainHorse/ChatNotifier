@@ -9,6 +9,7 @@ module;
 #include <AL/efx-presets.h>
 
 #include <map>
+#include <print>
 #include <array>
 #include <chrono>
 #include <vector>
@@ -79,8 +80,7 @@ export auto check_al_errors(const std::source_location location = std::source_lo
 			errorStr = "UNKNOWN";
 			break;
 		}
-		std::println("OpenAL Error: {} at {}:{}", errorStr, location.file_name(),
-					 std::to_string(location.line()));
+		std::println("OpenAL Error: {} at {}:{}", errorStr, location.file_name(), location.line());
 		return true;
 	}
 	return false;
