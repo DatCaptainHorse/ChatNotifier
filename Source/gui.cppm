@@ -17,9 +17,10 @@ module;
 #include <numeric>
 #include <vector>
 #include <format>
-#include <array>
 #include <memory>
 #include <ranges>
+#include <array>
+#include <mutex>
 
 export module gui;
 
@@ -41,6 +42,7 @@ export class NotifierGUI {
 
 	// Vector of live-notifications
 	static inline std::vector<std::unique_ptr<Notification>> m_notifications;
+	static inline std::mutex m_notifMutex;
 
 	static inline auto m_colorOK = ImVec4(0.0f, 0.8f, 0.0f, 1.0f);
 	static inline auto m_colorError = ImVec4(0.8f, 0.0f, 0.0f, 1.0f);
@@ -446,6 +448,9 @@ public:
 
 		// NOTIFICATIONS //
 		{
+			// Lock mutex for notifications
+			std::scoped_lock lock(m_notifMutex);
+
 			// Remove notifications that have lived their lifetime
 			std::erase_if(m_notifications, [](const auto &notif) { return notif->is_dead(); });
 
@@ -476,6 +481,8 @@ public:
 
 	// Method for launching new notification
 	static void launch_notification(const std::string &notifStr, const TwitchChatMessage &msg) {
+		// Lock mutex for notifications
+		std::scoped_lock lock(m_notifMutex);
 		m_notifications.emplace_back(std::make_unique<Notification>(notifStr, msg));
 	}
 

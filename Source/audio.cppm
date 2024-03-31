@@ -405,14 +405,16 @@ public:
 		alSourcePlay(sequence.front()->SID);
 	}
 
-	// Plays from memory
-	static void play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
-									const SoundOptions &opts) {
+	// Plays from memory, returns sound length in milliseconds
+	static auto play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
+									const SoundOptions &opts)
+		-> std::chrono::milliseconds {
 		// Take copy of data for our own use
 		const auto lengthInSeconds =
-			static_cast<double>(data.size()) / static_cast<double>(samplerate);
+			static_cast<float>(data.size()) / static_cast<float>(samplerate);
 		const auto sound = load_sound_oal(data, samplerate, 1, lengthInSeconds, opts);
 		m_sounds.push_back(sound);
 		alSourcePlay(sound->SID);
+		return std::chrono::milliseconds(static_cast<std::uint32_t>(lengthInSeconds * 1000));
 	}
 };

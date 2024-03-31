@@ -114,41 +114,19 @@ set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_FOR_MT ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(libhv)
 
-# Fetch glaze
-#message(STATUS "Fetching glaze")
-#FetchContent_Declare(
-#  glaze
-#  GIT_REPOSITORY "https://github.com/stephenberry/glaze.git"
-#  GIT_TAG "v2.3.1"
-#  GIT_SHALLOW TRUE
-#  OVERRIDE_FIND_PACKAGE
-#)
-#FetchContent_MakeAvailable(glaze)
-
-# Fetch spdlog
-message(STATUS "Fetching spdlog")
-FetchContent_Declare(
-  spdlog
-  GIT_REPOSITORY "https://github.com/gabime/spdlog.git"
-  GIT_TAG "v1.13.0"
-  GIT_SHALLOW TRUE
-  OVERRIDE_FIND_PACKAGE
-)
-FetchContent_MakeAvailable(spdlog)
-
 # Fetch sherpa-onnx from their releases
 message(STATUS "Fetching sherpa-onnx")
 if (NOT WIN32)
   FetchContent_Declare(
     sherpa-onnx
-    URL "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.9.12/sherpa-onnx-v1.9.12-linux-x64.tar.bz2"
-    URL_HASH MD5=d30dae18bb959972a43c90a52651a346
+    URL "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.9.15/sherpa-onnx-v1.9.15-linux-x64-shared.tar.bz2"
+    URL_HASH MD5=f6c4fb6d2df53bd1254d73191c23609e
   )
 else ()
   FetchContent_Declare(
     sherpa-onnx
-    URL "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.9.12/sherpa-onnx-v1.9.12-win-x64.tar.bz2"
-    URL_HASH MD5=e27d5cb855fbe5612e99d7f41e81a0e8
+    URL "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.9.15/sherpa-onnx-v1.9.15-win-x64-static.tar.bz2"
+    URL_HASH MD5=9daefc42d88cca618a46a81db4d9f942
   )
 endif ()
 FetchContent_MakeAvailable(sherpa-onnx)

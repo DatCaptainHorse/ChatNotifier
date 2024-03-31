@@ -4,13 +4,12 @@ module;
 #include <array>
 #include <print>
 #include <tuple>
-#include <utility>
 #include <vector>
 #include <ranges>
 #include <string>
 #include <random>
-#include <format>
 #include <chrono>
+#include <utility>
 #include <algorithm>
 #include <type_traits>
 
@@ -89,8 +88,7 @@ export auto get_string_between(const std::string &str, const std::string &start,
 export auto get_string_until(const std::string &str, const std::string &delim, const size_t pos = 0)
 	-> std::string {
 	const auto endPos = str.find(delim, pos);
-	if (endPos == std::string::npos) return "";
-
+	if (endPos == std::string::npos) return str;
 	return str.substr(pos, endPos - pos);
 }
 
@@ -99,8 +97,22 @@ export auto get_string_after(const std::string &str, const std::string &delim, c
 	-> std::string {
 	const auto startPos = str.find(delim, pos);
 	if (startPos == std::string::npos) return "";
-
 	return str.substr(startPos + delim.size());
+}
+
+// Method for getting every instance of a string between two delimiters
+export auto get_strings_between(const std::string &str, const std::string &start,
+								const std::string &end) -> std::vector<std::string> {
+	std::vector<std::string> strings;
+	auto startPos = str.find(start);
+	while (startPos != std::string::npos) {
+		const auto endPos = str.find(end, startPos + start.size());
+		if (endPos == std::string::npos) break;
+
+		strings.push_back(str.substr(startPos + start.size(), endPos - startPos - start.size()));
+		startPos = str.find(start, endPos);
+	}
+	return strings;
 }
 
 // Method for getting invidual letters of a string for multi-byte characters
@@ -298,13 +310,22 @@ constexpr auto operator*(E &e) -> std::underlying_type_t<E> & {
 // Struct for Twitch message data
 // TODO: Move to general module
 export struct TwitchChatMessage {
-	std::string user;
-	std::string message;
+	std::string user, message, command;
 	std::chrono::time_point<std::chrono::steady_clock> time;
+	std::map<std::string, std::vector<std::string>> args;
 
 	TwitchChatMessage(std::string user, std::string message)
 		: user(std::move(user)), message(std::move(message)),
-		  time(std::chrono::steady_clock::now()) {}
+		  time(std::chrono::steady_clock::now()) {
+		args = get_command_args()[0];
+		command = get_command();
+	}
+
+	TwitchChatMessage(std::string user, std::string message, std::string command,
+					  std::chrono::time_point<std::chrono::steady_clock> time,
+					  std::map<std::string, std::vector<std::string>> groupArgs)
+		: user(std::move(user)), message(std::move(message)), command(std::move(command)),
+		  time(time), args(std::move(groupArgs)) {}
 
 	// Commands can be given arguments like so
 	// "!cmd <arg1=value1,arg2=value2> message <arg3=value3|value4|value5> another message" etc.
@@ -312,17 +333,17 @@ export struct TwitchChatMessage {
 	// to another map of arg to it's values
 	[[nodiscard]] auto get_command_args() const
 		-> std::map<std::uint32_t, std::map<std::string, std::vector<std::string>>> {
-		if (!is_command()) return {};
 		// Get each argument group
 		auto result = std::map<std::uint32_t, std::map<std::string, std::vector<std::string>>>{};
-		const auto args = split_string(get_string_between(message, "<", ">"), ">");
-		for (std::uint32_t i = 0; i < args.size(); ++i) {
-			for (const auto argList = split_string(args[i], ","); const auto &arg : argList) {
+		const auto argGroups = get_strings_between(message, "<", ">");
+		for (std::uint32_t i = 0; i < argGroups.size(); ++i) {
+			for (const auto argList = split_string(argGroups[i], ","); const auto &arg : argList) {
 				const auto splitted = split_string(arg, "=");
 				if (splitted.size() != 2) continue;
-				const auto argName = splitted[0];
-				const auto argVal = splitted[1];
-				result[i][argName] = split_string(argVal, "|");
+				if (const auto vals = split_string(splitted[1], "|"); !vals.empty())
+					result[i][splitted[0]] = vals;
+				else
+					result[i][splitted[0]].emplace_back(splitted[1]);
 			}
 		}
 		return result;
@@ -331,58 +352,94 @@ export struct TwitchChatMessage {
 	// A nicer way of getting command arguments
 	// @return optional value of the argument within specified group
 	template <typename T>
-	auto get_command_arg(const std::string &argName, const std::uint32_t group = 0) const
-		-> std::optional<T> {
+	auto get_command_arg(const std::string &argName) const -> std::optional<T> {
 		if (!is_command()) return std::nullopt;
-		auto argGroups = get_command_args();
-		if (!argGroups.contains(group)) return std::nullopt;
-		if (!argGroups[group].contains(argName)) return std::nullopt;
+		if (!args.contains(argName)) return std::nullopt;
 		if constexpr (std::same_as<T, std::string>)
-			return argGroups[group][argName][0];
+			return args.at(argName)[0];
 		else if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>)
-			return t_from_string<T>(argGroups[group][argName][0]);
+			return t_from_string<T>(args.at(argName)[0]);
 		// Vector handling and Position 2D/3D handling
 		else if constexpr (std::same_as<T, std::vector<std::string>>)
-			return argGroups[group][argName];
+			return args.at(argName);
 		else if constexpr (std::same_as<T, Position2D>) {
-			if (argGroups[group][argName].size() < 2) return std::nullopt;
-			return Position2D{t_from_string<float>(argGroups[group][argName][0]),
-							  t_from_string<float>(argGroups[group][argName][1])};
+			if (args.at(argName).size() < 2) return std::nullopt;
+			return Position2D{t_from_string<float>(args.at(argName)[0]),
+							  t_from_string<float>(args.at(argName)[1])};
 		} else if constexpr (std::same_as<T, Position3D>) {
-			if (argGroups[group][argName].size() < 2) return std::nullopt;
+			if (args.at(argName).size() < 2) return std::nullopt;
 			// Allow for 2D positions to be used as 3D
-			if (argGroups[group][argName].size() == 2)
-				return Position3D{t_from_string<float>(argGroups[group][argName][0]),
-								  t_from_string<float>(argGroups[group][argName][1]), 0.0f};
+			if (args.at(argName).size() == 2)
+				return Position3D{t_from_string<float>(args.at(argName)[0]),
+								  t_from_string<float>(args.at(argName)[1]), 0.0f};
 
-			return Position3D{t_from_string<float>(argGroups[group][argName][0]),
-							  t_from_string<float>(argGroups[group][argName][1]),
-							  t_from_string<float>(argGroups[group][argName][2])};
+			return Position3D{t_from_string<float>(args.at(argName)[0]),
+							  t_from_string<float>(args.at(argName)[1]),
+							  t_from_string<float>(args.at(argName)[2])};
 		}
 		return std::nullopt;
 	}
 
-	[[nodiscard]] auto is_command() const -> bool { return message.starts_with("!"); }
+	// Splits this message into multiple submessages
+	[[nodiscard]] auto split_into_submessages() const -> std::vector<TwitchChatMessage> {
+		if (!is_command()) return {*this};
+		if (const auto argGroups = get_strings_between(message, "<", ">"); argGroups.empty())
+			return {*this};
+		else {
+			auto command = get_command();
+			auto groups = std::vector<TwitchChatMessage>{};
+			for (const auto &argGroup : argGroups) {
+				auto groupArgs = std::map<std::string, std::vector<std::string>>{};
+				auto groupMsg = get_string_after(message, argGroup + ">");
+				groupMsg = get_string_until(groupMsg, "<");
+				groupMsg = trim_string(groupMsg);
+				for (const auto &arg : split_string(argGroup, ",")) {
+					const auto argSplit = split_string(arg, "=");
+					if (argSplit.size() != 2) continue;
+					groupArgs[argSplit[0]] = split_string(argSplit[1], "|");
+				}
+				groups.emplace_back(user, groupMsg, command, time, groupArgs);
+			}
+			return groups;
+		}
+	}
+
+	[[nodiscard]] auto is_command() const -> bool {
+		return message.starts_with("!") || !command.empty();
+	}
 
 	[[nodiscard]] auto get_command() const -> std::string {
 		if (!is_command()) return "";
-		if (const auto arged = get_string_between(message, "!", "<");
-			!arged.empty() && !arged.contains(" "))
-			return get_string_between(message, "!", "<");
-		else
-			return get_string_between(message, "!", " ");
+		if (command.empty()) {
+			if (message.starts_with("!")) {
+				auto command = get_string_after(message, "!");
+				command = get_string_until(command, " ");
+				command = get_string_until(command, "<");
+				return trim_string(command);
+			} else
+				return "";
+		} else
+			return command;
 	}
 
 	[[nodiscard]] auto get_message() const -> std::string {
-		// If command, take out the command part
-		if (is_command()) {
-			if (const auto arged = get_string_between(message, "!", "<");
-				!arged.empty() && !arged.contains(" "))
-				return get_string_after(message, ">");
-
-			return get_string_after(message, " ");
+		if (!is_command()) return message;
+		if (const auto argGroups = get_strings_between(message, "<", ">"); argGroups.empty()) {
+			if (message.starts_with("!") && !command.empty())
+				return trim_string(get_string_after(message, command));
+			else
+				return message;
+		} else {
+			// Erase all argument groups from the message, joining remaining parts by space
+			std::vector<std::string> messages;
+			for (const auto &argGroup : argGroups) {
+				const auto groupMsg = get_string_after(message, argGroup + ">");
+				messages.emplace_back(trim_string(get_string_until(groupMsg, "<")));
+			}
+			return std::accumulate(
+				messages.begin(), messages.end(), std::string{},
+				[](const std::string &a, const std::string &b) { return a + " " + b; });
 		}
-		return message;
 	}
 };
 
