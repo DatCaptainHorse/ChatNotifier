@@ -1,5 +1,5 @@
 # Create nanobind, odd requirement but okay
-nanobind_build_library(nanobind STATIC)
+nanobind_build_library(nanobind abi3-static)
 
 add_library(chatnotifier STATIC
   gl3w/GL/gl3w.c
