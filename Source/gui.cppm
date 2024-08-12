@@ -31,6 +31,7 @@ import audio;
 import notification;
 import twitch;
 import commands;
+import scripting;
 
 // Class which manages the GUI + notifications
 export class NotifierGUI {
@@ -258,30 +259,16 @@ public:
 			// Add padding before separators
 			ImGui::Dummy(ImVec2(0, 10));
 
-			// TTS settings
+			// Scripting settings
 			ImGui::Separator();
 			ImGui::SetCursorPosX(ImGui::GetWindowWidth() / 2 -
-								 ImGui::CalcTextSize("TTS Settings").x / 2);
-			ImGui::Text("TTS Settings");
+								 ImGui::CalcTextSize("Scripting Settings").x / 2);
+			ImGui::Text("Scripting Settings");
 			ImGui::Separator();
 
-			// Slider for TTS voice speed, which is a float from 0.1f to 2.0f
-			ImGui::Text("TTS voice speed:");
-			ImGui::SliderFloat("##ttsVoiceSpeed", &global_config.ttsVoiceSpeed.value,
-							   global_config.ttsVoiceSpeed.min, global_config.ttsVoiceSpeed.max,
-							   "%.1f");
-
-			// Slider for TTS voice volume, which is a float from 0.0f to 1.0f
-			ImGui::Text("TTS voice volume:");
-			ImGui::SliderFloat("##ttsVoiceVolume", &global_config.ttsVoiceVolume.value,
-							   global_config.ttsVoiceVolume.min, global_config.ttsVoiceVolume.max,
-							   "%.2f");
-
-			// Slider for TTS voice pitch, which is a float from 0.1f to 2.0f
-			ImGui::Text("TTS voice pitch:");
-			ImGui::SliderFloat("##ttsVoicePitch", &global_config.ttsVoicePitch.value,
-							   global_config.ttsVoicePitch.min, global_config.ttsVoicePitch.max,
-							   "%.1f");
+			// Button to reload/refresh scripts
+			ImGui::Dummy(ImVec2(0, 10));
+			if (ImGui::Button("Refresh Scripts", ImVec2(-1, 30))) ScriptingHandler::refresh_scripts();
 
 			// Add padding before separators
 			ImGui::Dummy(ImVec2(0, 10));
@@ -296,13 +283,16 @@ public:
 
 			// Multiselect for enabledCooldowns bitmask (eNone, eGlobal, ePerUser, ePerCommand)
 			ImGui::Text("Enabled cooldowns:");
-			ImGui::CheckboxFlags("Global", &*global_config.enabledCooldowns,
+			ImGui::CheckboxFlags("Global",
+								 reinterpret_cast<unsigned int *>(&global_config.enabledCooldowns),
 								 static_cast<unsigned int>(CommandCooldownType::eGlobal));
 			ImGui::SameLine();
-			ImGui::CheckboxFlags("Per User", &*global_config.enabledCooldowns,
+			ImGui::CheckboxFlags("Per User",
+								 reinterpret_cast<unsigned int *>(&global_config.enabledCooldowns),
 								 static_cast<unsigned int>(CommandCooldownType::ePerUser));
 			ImGui::SameLine();
-			ImGui::CheckboxFlags("Per Command", &*global_config.enabledCooldowns,
+			ImGui::CheckboxFlags("Per Command",
+								 reinterpret_cast<unsigned int *>(&global_config.enabledCooldowns),
 								 static_cast<unsigned int>(CommandCooldownType::ePerCommand));
 
 			// Input box for cooldown time

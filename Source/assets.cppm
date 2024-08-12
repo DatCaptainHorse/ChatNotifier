@@ -9,11 +9,10 @@ module;
 export module assets;
 
 import common;
+import filesystem;
 
 // Class which handles assets
 export class AssetsHandler {
-	// Our executable/binary path
-	static inline std::filesystem::path exec_path;
 	// Map of font files linked to their paths
 	static inline std::map<std::string, std::filesystem::path> font_files;
 	// Map of ASCII art files linked to their paths
@@ -23,8 +22,7 @@ export class AssetsHandler {
 
 public:
 	// Method that initializes assets, finds them and populates resources
-	static auto initialize(const std::filesystem::path &argv_path) -> Result {
-		exec_path = argv_path.parent_path();
+	static auto initialize() -> Result {
 		populate_font_files();
 		populate_ascii_art_files();
 		populate_egg_sounds();
@@ -36,7 +34,6 @@ public:
 		font_files.clear();
 		ascii_art_files.clear();
 		egg_sounds.clear();
-		exec_path.clear();
 	}
 
 	// Finds new assets and populates resources
@@ -46,10 +43,8 @@ public:
 		populate_egg_sounds();
 	}
 
-	// Returns executable path
-	static auto get_exec_path() -> std::filesystem::path { return exec_path; }
 	// Returns path to assets folder
-	static auto get_assets_path() -> std::filesystem::path { return get_exec_path() / "Assets/"; }
+	static auto get_assets_path() -> std::filesystem::path { return Filesystem::get_root_path() / "Assets/"; }
 	// Returns path to font assets folder
 	static auto get_font_assets_path() -> std::filesystem::path { return get_assets_path() / "Fonts/"; }
 	// Returns path to TTS model folder

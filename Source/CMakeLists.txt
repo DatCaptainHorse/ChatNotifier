@@ -1,6 +1,7 @@
-add_executable(ChatNotifier
-  main.cpp
+# Create nanobind, odd requirement but okay
+nanobind_build_library(nanobind STATIC)
 
+add_library(chatnotifier STATIC
   gl3w/GL/gl3w.c
 
   ${IMGUI_DIR}/imgui.cpp
@@ -14,7 +15,7 @@ add_executable(ChatNotifier
 )
 
 # C++20 module files
-target_sources(ChatNotifier PRIVATE FILE_SET CXX_MODULES FILES
+target_sources(chatnotifier PUBLIC FILE_SET CXX_MODULES FILES
   common.cppm
   assets.cppm
   commands.cppm
@@ -23,12 +24,13 @@ target_sources(ChatNotifier PRIVATE FILE_SET CXX_MODULES FILES
   effect.cppm
   notification.cppm
   gui.cppm
-  jsoned.cppm
   config.cppm
-  tts.cppm
+  runner.cppm
+  filesystem.cppm
+  scripting.cppm
 )
 
-target_include_directories(ChatNotifier PRIVATE
+target_include_directories(chatnotifier PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/gl3w
   ${IMGUI_DIR}
@@ -38,13 +40,15 @@ target_include_directories(ChatNotifier PRIVATE
   ${opusfile_INCLUDE_DIRS}
 )
 
-target_link_libraries(ChatNotifier PRIVATE
-#  glaze::glaze
+target_link_libraries(chatnotifier PRIVATE
+  glaze::glaze
   libnyquist::libnyquist
   OpenAL::OpenAL
   glfw
   hv_static
-  sherpacapi
+
+  Python::Python
+  nanobind
 
   $<$<BOOL:${NON_NIX_BUILD}>:ogg>
   $<$<BOOL:${NON_NIX_BUILD}>:opus>
@@ -56,29 +60,45 @@ target_link_libraries(ChatNotifier PRIVATE
 )
 
 if (WIN32)
-  target_link_libraries(ChatNotifier PRIVATE
+  target_link_libraries(chatnotifier PRIVATE
     ws2_32
   )
 endif ()
+
+# Enable warnings as errors for the target, unless WIN32 is set
+set_target_properties(chatnotifier PROPERTIES
+  $<$<NOT:$<BOOL:${WIN32}>>:COMPILE_WARNING_AS_ERROR ON>
+)
+
+# If WIN32, set _CRT_SECURE_NO_WARNINGS
+target_compile_definitions(chatnotifier PRIVATE
+  $<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS>
+)
+
+# Main executable
+add_executable(ChatNotifier main.cpp)
+target_link_libraries(ChatNotifier PRIVATE chatnotifier)
 
 add_custom_command(TARGET ChatNotifier POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   ${CMAKE_SOURCE_DIR}/Assets
   $<TARGET_FILE_DIR:ChatNotifier>/Assets
 )
+add_custom_command(TARGET ChatNotifier POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+  ${CMAKE_SOURCE_DIR}/Scripts
+  $<TARGET_FILE_DIR:ChatNotifier>/Scripts
+)
+add_custom_command(TARGET ChatNotifier POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+  ${CMAKE_SOURCE_DIR}/ScriptDeps
+  $<TARGET_FILE_DIR:ChatNotifier>/ScriptDeps
+)
 
 install(TARGETS ChatNotifier)
 
 if (CMAKE_INSTALL_BINDIR)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets DESTINATION ${CMAKE_INSTALL_BINDIR})
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/Scripts DESTINATION ${CMAKE_INSTALL_BINDIR})
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/ScriptDeps DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif ()
-
-# Enable warnings as errors for the target, unless WIN32 is set
-set_target_properties(ChatNotifier PROPERTIES
-  $<$<NOT:$<BOOL:${WIN32}>>:COMPILE_WARNING_AS_ERROR ON>
-)
-
-# If WIN32, set _CRT_SECURE_NO_WARNINGS
-target_compile_definitions(ChatNotifier PRIVATE
-  $<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS>
-)

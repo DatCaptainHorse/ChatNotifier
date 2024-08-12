@@ -1,4 +1,3 @@
-#include <ranges>
 #include <thread>
 #include <chrono>
 #include <format>
@@ -13,7 +12,8 @@ import audio;
 import gui;
 import twitch;
 import commands;
-import tts;
+import filesystem;
+import scripting;
 
 // Method for printing Result errors
 void print_error(const Result &res) {
@@ -24,6 +24,15 @@ void twc_callback_handler(const TwitchChatMessage &msg);
 
 // Main method
 auto main(int argc, char **argv) -> int {
+	// Make sure UTF-8 is used
+	std::locale::global(std::locale("en_US.UTF-8"));
+
+	// Initialize filesystem to get the root path first //
+	if (const auto res = Filesystem::initialize(argc, argv); !res) {
+		print_error(res);
+		return res.code;
+	}
+
 	// LOAD CONFIG //
 	if (const auto res = global_config.load(); !res) {
 		print_error(res);
@@ -31,7 +40,12 @@ auto main(int argc, char **argv) -> int {
 	}
 
 	// INITIALIZE //
-	if (const auto res = AssetsHandler::initialize(argv[0]); !res) {
+	if (const auto res = ScriptingHandler::initialize(); !res) {
+		print_error(res);
+		return res.code;
+	}
+
+	if (const auto res = AssetsHandler::initialize(); !res) {
 		print_error(res);
 		return res.code;
 	}
@@ -46,11 +60,6 @@ auto main(int argc, char **argv) -> int {
 		return res.code;
 	}
 
-	if (const auto res = TTSHandler::initialize(); !res) {
-		print_error(res);
-		return res.code;
-	}
-
 	// GUI and CommandHandler initialization
 	if (const auto res = NotifierGUI::initialize(); !res) {
 		print_error(res);
@@ -61,6 +70,29 @@ auto main(int argc, char **argv) -> int {
 		print_error(res);
 		return res.code;
 	}
+
+	// Create module
+	if (const auto res = ScriptingHandler::create_module(); !res) {
+		print_error(res);
+		return res.code;
+	}
+
+	// Add scripts
+	ScriptingHandler::refresh_scripts([] {
+		for (const auto script : ScriptingHandler::get_scripts()) {
+			if (!script->is_valid()) continue;
+			ScriptingHandler::has_script_method(
+				script, "on_message", [script](const bool hasMethod) {
+					if (!hasMethod) return;
+					CommandHandler::add_command(
+						script->get_name(),
+						Command(script->get_call_string(), script->get_call_string(),
+								[script](const TwitchChatMessage &msg) {
+									ScriptingHandler::execute_script_msg(script, msg);
+								}));
+				});
+		}
+	});
 
 	// Play tutturuu (if it exists) to test audio
 	if (AssetsHandler::get_egg_sound_exists("tutturuu"))
@@ -85,7 +117,7 @@ auto main(int argc, char **argv) -> int {
 	// CLEANUP //
 	NotifierGUI::cleanup();
 	CommandHandler::cleanup();
-	TTSHandler::cleanup();
+	ScriptingHandler::cleanup();
 	TwitchChatConnector::cleanup();
 	AudioPlayer::cleanup();
 	AssetsHandler::cleanup();

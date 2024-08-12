@@ -253,58 +253,37 @@ constexpr auto t_to_string(const T &value) -> std::string {
 		return std::to_string(value);
 }
 
-// Templates to make enum classes work as bitmasks
-// <3 https://voithos.io/articles/enum-class-bitmasks/ <3
-export template <typename E>
-struct FEnableBitmaskOperators {
-	static constexpr bool enable = false;
-};
-export template <typename E>
-concept EnableBitmaskOperators = FEnableBitmaskOperators<E>::enable;
+// Concepts to make enum classes work as bitmasks
+export template <typename T>
+requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operators(e); })
+constexpr auto operator|(const T lhs, const T rhs) -> T {
+	return static_cast<T>(std::to_underlying(lhs) | std::to_underlying(rhs));
+}
+export template <typename T>
+requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operators(e); })
+constexpr auto operator&(const T lhs, const T rhs) -> bool {
+	return static_cast<bool>(std::to_underlying(lhs) & std::to_underlying(rhs));
+}
 
-export template <typename E>
-requires EnableBitmaskOperators<E>
-constexpr auto operator|(E l, E r) -> E {
-	return static_cast<E>(static_cast<std::underlying_type_t<E>>(l) |
-						  static_cast<std::underlying_type_t<E>>(r));
+// Non-member variants
+export template <typename T>
+requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operators(e); })
+constexpr auto operator|=(T &lhs, const T rhs) -> T {
+	lhs = static_cast<T>(std::to_underlying(lhs) | std::to_underlying(rhs));
+	return lhs;
 }
-export template <typename E>
-requires EnableBitmaskOperators<E>
-constexpr auto operator&(E l, E r) -> bool {
-	return (static_cast<std::underlying_type_t<E>>(l) &
-			static_cast<std::underlying_type_t<E>>(r)) != 0;
+export template <typename T>
+requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operators(e); })
+constexpr auto operator&=(T &lhs, const T rhs) -> bool {
+	lhs = static_cast<bool>(std::to_underlying(lhs) & std::to_underlying(rhs));
+	return lhs;
 }
-export template <typename E>
-requires EnableBitmaskOperators<E>
-constexpr auto operator^(E l, E r) -> E {
-	return static_cast<E>(static_cast<std::underlying_type_t<E>>(l) ^
-						  static_cast<std::underlying_type_t<E>>(r));
-}
-export template <typename E>
-requires EnableBitmaskOperators<E>
-constexpr auto operator~(E e) -> E {
-	return static_cast<E>(~static_cast<std::underlying_type_t<E>>(e));
-}
-export template <typename E>
-requires EnableBitmaskOperators<E>
-auto operator|=(E &l, E r) -> E & {
-	return l = l | r;
-}
-export template <typename E>
-requires EnableBitmaskOperators<E>
-auto operator&=(E &l, E r) -> E & {
-	return l = l & r;
-}
-export template <typename E>
-requires EnableBitmaskOperators<E>
-auto operator^=(E &l, E r) -> E & {
-	return l = l ^ r;
-}
-// operator* which gets the underlying value of the enum
-export template <typename E>
-requires EnableBitmaskOperators<E>
-constexpr auto operator*(E &e) -> std::underlying_type_t<E> & {
-	return reinterpret_cast<std::underlying_type_t<E> &>(e);
+
+// operator* for getting the underlying type of an enum class
+export template <typename T>
+requires(std::is_enum_v<T> and requires(T e) { enable_bitmask_operators(e); })
+constexpr auto operator*(const T e) -> std::underlying_type_t<T> {
+	return std::to_underlying(e);
 }
 
 // Struct for Twitch message data
@@ -392,7 +371,6 @@ export struct TwitchChatMessage {
 				auto groupArgs = std::map<std::string, std::vector<std::string>>{};
 				auto groupMsg = get_string_after(message, argGroup + ">");
 				groupMsg = get_string_until(groupMsg, "<");
-				groupMsg = trim_string(groupMsg);
 				for (const auto &arg : split_string(argGroup, ",")) {
 					const auto argSplit = split_string(arg, "=");
 					if (argSplit.size() != 2) continue;
@@ -434,7 +412,7 @@ export struct TwitchChatMessage {
 			std::vector<std::string> messages;
 			for (const auto &argGroup : argGroups) {
 				const auto groupMsg = get_string_after(message, argGroup + ">");
-				messages.emplace_back(trim_string(get_string_until(groupMsg, "<")));
+				messages.emplace_back(get_string_until(groupMsg, "<"));
 			}
 			return std::accumulate(
 				messages.begin(), messages.end(), std::string{},

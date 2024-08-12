@@ -21,7 +21,7 @@ message(STATUS "Fetching libopus")
 FetchContent_Declare(
   opus
   GIT_REPOSITORY "https://github.com/xiph/opus.git"
-  GIT_TAG "v1.5.1"
+  GIT_TAG "v1.5.2"
   OVERRIDE_FIND_PACKAGE
 )
 FetchContent_MakeAvailable(opus)
@@ -57,7 +57,7 @@ message(STATUS "Fetching openal-soft")
 FetchContent_Declare(
   openal-soft
   GIT_REPOSITORY "https://github.com/kcat/openal-soft.git"
-  GIT_COMMIT "5b6e0dfeab6f38899889c9856278a5d5cd9e3971"
+  GIT_COMMIT "1318bea2e0f0af9430335708e65ae2ff920d98c6"
   OVERRIDE_FIND_PACKAGE
 )
 # We don't care about the examples
@@ -114,50 +114,22 @@ set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_FOR_MT ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(libhv)
 
-# Fetch sherpa-onnx from their releases
-message(STATUS "Fetching sherpa-onnx")
-if (NOT WIN32)
-  FetchContent_Declare(
-    sherpa-onnx
-    URL "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.9.15/sherpa-onnx-v1.9.15-linux-x64-shared.tar.bz2"
-    URL_HASH MD5=f6c4fb6d2df53bd1254d73191c23609e
-  )
-else ()
-  FetchContent_Declare(
-    sherpa-onnx
-    URL "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.9.15/sherpa-onnx-v1.9.15-win-x64-static.tar.bz2"
-    URL_HASH MD5=9daefc42d88cca618a46a81db4d9f942
-  )
-endif ()
-FetchContent_MakeAvailable(sherpa-onnx)
-# Libs are under "lib" and headers under "include"
-add_library(sherpacapi INTERFACE)
-target_include_directories(sherpacapi INTERFACE ${sherpa-onnx_SOURCE_DIR}/include)
-target_link_directories(sherpacapi INTERFACE ${sherpa-onnx_SOURCE_DIR}/lib)
-if (WIN32)
-  target_link_libraries(sherpacapi INTERFACE
-    ${sherpa-onnx_SOURCE_DIR}/lib/ucd.lib
-    ${sherpa-onnx_SOURCE_DIR}/lib/espeak-ng.lib
-    ${sherpa-onnx_SOURCE_DIR}/lib/onnxruntime.lib
-    ${sherpa-onnx_SOURCE_DIR}/lib/piper_phonemize.lib
-    ${sherpa-onnx_SOURCE_DIR}/lib/sherpa-onnx-fst.lib
-    ${sherpa-onnx_SOURCE_DIR}/lib/sherpa-onnx-core.lib
-    ${sherpa-onnx_SOURCE_DIR}/lib/sherpa-onnx-c-api.lib
-    ${sherpa-onnx_SOURCE_DIR}/lib/kaldi-decoder-core.lib
-    ${sherpa-onnx_SOURCE_DIR}/lib/kaldi-native-fbank-core.lib
-    ${sherpa-onnx_SOURCE_DIR}/lib/sherpa-onnx-kaldifst-core.lib
-  )
-else ()
-  target_link_libraries(sherpacapi INTERFACE
-    ${sherpa-onnx_SOURCE_DIR}/lib/libucd.so
-    ${sherpa-onnx_SOURCE_DIR}/lib/libespeak-ng.so
-    ${sherpa-onnx_SOURCE_DIR}/lib/libonnxruntime.so
-    ${sherpa-onnx_SOURCE_DIR}/lib/libpiper_phonemize.so
-    ${sherpa-onnx_SOURCE_DIR}/lib/libsherpa-onnx-fst.so
-    ${sherpa-onnx_SOURCE_DIR}/lib/libsherpa-onnx-core.so
-    ${sherpa-onnx_SOURCE_DIR}/lib/libsherpa-onnx-c-api.so
-    ${sherpa-onnx_SOURCE_DIR}/lib/libkaldi-decoder-core.so
-    ${sherpa-onnx_SOURCE_DIR}/lib/libkaldi-native-fbank-core.so
-    ${sherpa-onnx_SOURCE_DIR}/lib/libsherpa-onnx-kaldifst-core.so
-  )
-endif ()
+# Fetch glaze
+message(STATUS "Fetching glaze")
+FetchContent_Declare(
+  glaze
+  GIT_REPOSITORY "https://github.com/stephenberry/glaze.git"
+  GIT_TAG "main"
+  OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(glaze)
+
+# Fetch nanobind
+message(STATUS "Fetching nanobind")
+FetchContent_Declare(
+  nanobind
+  GIT_REPOSITORY "https://github.com/wjakob/nanobind.git"
+  GIT_TAG "v2.1.0"
+  OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(nanobind)

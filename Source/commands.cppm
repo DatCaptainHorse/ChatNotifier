@@ -16,20 +16,6 @@ import config;
 import common;
 import assets;
 import audio;
-import tts;
-
-// Testing messages for TTS command
-constexpr std::array ttsTestMessages = {
-	"Hello, world!",
-	"Do you like waffles?",
-	"All your base are belong to us",
-	"Look at my horse, my horse is amazing",
-	"Hey, listen!",
-	"Never gonna give you up, never gonna let you down, never gonna run around and desert you",
-	"This is a test message OwO",
-	"According to all known laws of aviation, there is no way a bee should be able to fly",
-	"One. Two. Three. Awoo!",
-};
 
 // Command function using
 using CommandFunction = std::function<void(const TwitchChatMessage &)>;
@@ -50,8 +36,6 @@ export struct Command {
 // Class for commands handling
 export class CommandHandler {
 	static inline std::map<std::string, Command> m_commandsMap;
-	// Live threads running commands
-	static inline std::vector<std::thread> m_commandThreads;
 
 public:
 	// Initializes CommandHandler, adding the default commands
@@ -59,51 +43,10 @@ public:
 	static auto initialize(const std::function<void(const std::string &, const TwitchChatMessage &)>
 							   &launch_notification) -> Result {
 		if (m_commandsMap.empty()) {
-			m_commandsMap["text_to_speech"] =
-				Command("tts", "TTS Notification", [](const TwitchChatMessage &mainMsg) {
-					const auto splitMsgs = mainMsg.split_into_submessages();
-					std::vector<std::pair<TTSData, SoundOptions>> soundsToPlay;
-					for (const auto &msg : splitMsgs) {
-						const std::string notifMsg = msg.get_message();
-						std::int32_t speakerID = -1;
-						if (global_users.contains(msg.user))
-							speakerID = global_users[msg.user]->userVoice;
-
-						auto voiceSpeed = msg.get_command_arg<float>("speed").value_or(
-							global_config.ttsVoiceSpeed.value);
-						voiceSpeed = std::clamp(voiceSpeed, global_config.ttsVoiceSpeed.min,
-												global_config.ttsVoiceSpeed.max);
-
-						auto voicePitch = msg.get_command_arg<float>("pitch").value_or(
-							global_config.ttsVoicePitch.value);
-						voicePitch = std::clamp(voicePitch, global_config.ttsVoicePitch.min,
-												global_config.ttsVoicePitch.max);
-
-						const auto voicePos = msg.get_command_arg<Position3D>("pos");
-						const auto voiceEffects =
-							msg.get_command_arg<std::vector<std::string>>("sfx");
-
-						const auto ttsData =
-							TTSHandler::voiceString(notifMsg, speakerID, voiceSpeed);
-
-						soundsToPlay.emplace_back(std::make_pair(
-							ttsData, SoundOptions{global_config.ttsVoiceVolume.value, voicePitch,
-												  voicePos, voiceEffects}));
-					}
-
-					for (const auto &[ttsData, soundOptions] : soundsToPlay) {
-						const auto doneTime = AudioPlayer::play_oneshot_memory(
-							ttsData.audio, ttsData.sampleRate, soundOptions);
-						// Wait until the sound is done playing
-						// TODO: Implement play_sequential_memory
-						std::this_thread::sleep_for(doneTime);
-					}
-				});
 			m_commandsMap["custom_notification"] = Command(
 				"cc", "Custom Notification",
 				[launch_notification](const TwitchChatMessage &mainMsg) {
-					const auto splitMsgs = mainMsg.split_into_submessages();
-					for (const auto &msg : splitMsgs) {
+					for (auto splitMsgs = mainMsg.split_into_submessages(); auto &msg : splitMsgs) {
 						std::string notifMsg = msg.get_message();
 						// Split to words (space-separated)
 						const auto words = split_string(notifMsg, " ");
@@ -122,6 +65,9 @@ public:
 						auto audioPitch = msg.get_command_arg<float>("pitch").value_or(1.0f);
 						audioPitch = std::clamp(audioPitch, 0.1f, 2.0f);
 
+						auto audioOffset = msg.get_command_arg<float>("offset").value_or(
+							global_config.audioSequenceOffset.value);
+
 						const auto audioPos = msg.get_command_arg<Position3D>("pos");
 						const auto audioEffects =
 							msg.get_command_arg<std::vector<std::string>>("sfx");
@@ -129,18 +75,19 @@ public:
 						// Find all easter egg sound words, pushing into vector
 						// limited to global_config.maxAudioTriggers
 						std::vector<std::filesystem::path> sounds;
+						std::vector<SoundOptions> soundOptions;
 						const auto eggSounds = AssetsHandler::get_egg_sound_keys();
 						for (const auto &word : words) {
 							if (const auto found = std::ranges::find(eggSounds, word);
 								found != eggSounds.end() &&
 								sounds.size() < global_config.maxAudioTriggers.value) {
-								sounds.push_back(AssetsHandler::get_egg_sound_path(*found));
+								sounds.emplace_back(AssetsHandler::get_egg_sound_path(*found));
+								soundOptions.emplace_back(1.0f, audioPitch, audioOffset, audioPos,
+														  audioEffects);
 							}
 						}
 						// Play easter egg sounds
-						if (!sounds.empty())
-							AudioPlayer::play_sequential(
-								sounds, {1.0f, audioPitch, audioPos, audioEffects});
+						if (!sounds.empty()) AudioPlayer::play_sequential(sounds, soundOptions);
 
 						launch_notification(notifMsg, msg);
 					}
@@ -153,9 +100,6 @@ public:
 	// Cleans up resources used by CommandHandler
 	static void cleanup() {
 		m_commandsMap.clear();
-		for (auto &thread : m_commandThreads) {
-			if (thread.joinable()) thread.join();
-		}
 	}
 
 	// Tests a command with random message from testMessages
@@ -165,20 +109,17 @@ public:
 		// Make sure the command is enabled
 		if (!m_commandsMap[command].enabled) return;
 
-		std::string testMsg;
-		if (command == "text_to_speech")
-			testMsg = ttsTestMessages[random_int(0, ttsTestMessages.size() - 1)];
-		else {
-			// Choose either ascii or easter egg sound
-			if (const auto choice = random_int(0, 1); choice == 0) {
-				const auto asciiarts = AssetsHandler::get_ascii_art_keys();
-				testMsg = AssetsHandler::get_ascii_art_text(
-					asciiarts[random_int(0, asciiarts.size() - 1)]);
-			} else {
-				const auto eggSounds = AssetsHandler::get_egg_sound_keys();
-				testMsg = eggSounds[random_int(0, eggSounds.size() - 1)];
-			}
-		}
+		// Choose from random list of strings
+		constexpr std::array testMessages = {
+			"Hello, this is a test",
+			"Test message 1 2 3",
+			"Testing command",
+			"Test message",
+			"Awoo, this is a test",
+			"Test message, awoo",
+		};
+		// Choose a random message from the list
+		const auto testMsg = testMessages[random_int(0, testMessages.size() - 1)];
 
 		// Execute the command with the test message
 		execute_command(command, TwitchChatMessage("testUser", testMsg));
@@ -223,17 +164,12 @@ public:
 		// Set new last executed time
 		m_commandsMap[key].lastExecuted = std::chrono::steady_clock::now();
 
-		// Cleanup old threads here before adding new one, join if joinable
-		std::erase_if(m_commandThreads, [](std::thread &thread) {
-			if (thread.joinable()) {
-				thread.join();
-				return true;
-			}
-			return false;
-		});
-
 		// Launch each subcommand in new thread
-		m_commandThreads.emplace_back([key, msg] { m_commandsMap[key].func(msg); });
+		m_commandsMap[key].func(msg);
+	}
+
+	static void add_command(const std::string &key, const Command &cmd) {
+		m_commandsMap[key] = cmd;
 	}
 
 	// Method for returning time when command was last executed

@@ -13,13 +13,15 @@ export module twitch;
 import config;
 import common;
 import commands;
-import tts;
+import scripting;
 
-// We use bitmask operators for CommandCooldownType here
-template <>
-struct FEnableBitmaskOperators<CommandCooldownType> {
-	static constexpr bool enable = true;
-};
+constexpr auto twitch_client_id = "ugoh79sz2as94l6dqadpkzilpohdng";
+constexpr auto twitch_response_type = "token";
+constexpr auto twitch_redirect_uri = "http://localhost:3000";
+constexpr auto twitch_scope = "chat:read";
+
+// Enable usage of bitmask operators for CommandCooldownType
+consteval void enable_bitmask_operators(CommandCooldownType) {}
 
 // Enum class of connection status
 export enum class ConnectionStatus { eDisconnected, eConnecting, eConnected };
@@ -33,6 +35,8 @@ export class TwitchChatConnector {
 	static inline hv::WebSocketClient m_client;
 
 	static inline TwitchChatMessageCallback m_onMessage;
+
+	static inline std::string m_oauthToken;
 
 	// Global cooldown time
 	static inline std::chrono::time_point<std::chrono::steady_clock> m_lastCommandTime;
@@ -132,7 +136,7 @@ private: // Handlers
 			if (!chatMsg.is_command()) {
 				if (!global_users.contains(user)) {
 					const auto twUser = std::make_shared<TwitchUser>(user, chatMsg);
-					twUser->userVoice = random_int(0, TTSHandler::get_num_voices() - 1);
+					// twUser->userVoice = random_int(0, TTSHandler::get_num_voices() - 1);
 					global_users[user] = twUser;
 				} else
 					global_users[user]->lastMessage = chatMsg;
@@ -173,7 +177,7 @@ private: // Handlers
 			if (chatMsg.is_command()) {
 				if (!global_users.contains(user)) {
 					const auto twUser = std::make_shared<TwitchUser>(user, chatMsg);
-					twUser->userVoice = random_int(0, TTSHandler::get_num_voices() - 1);
+					// twUser->userVoice = random_int(0, TTSHandler::get_num_voices() - 1);
 					global_users[user] = twUser;
 				} else
 					global_users[user]->lastMessage = chatMsg;

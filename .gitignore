@@ -26,3 +26,6 @@ Assets/*
 !Assets/TriggerASCII/
 # allow tutturuu
 !Assets/TriggerSounds/tutturuu.opus
+
+# Ignore ScriptDeps folder
+ScriptDeps/

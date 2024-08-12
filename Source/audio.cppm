@@ -16,8 +16,6 @@ module;
 #include <memory>
 #include <string>
 #include <ranges>
-#include <format>
-#include <iostream>
 #include <optional>
 #include <filesystem>
 #include <source_location>
@@ -26,33 +24,41 @@ export module audio;
 
 import config;
 import common;
+import scripting;
+
+// Struct of passable (memory) sound data
+export struct SoundData {
+	std::vector<float> data;
+	std::uint32_t samplerate, channels;
+	float lengthInSeconds;
+
+	SoundData(const std::vector<float> &data, const std::uint32_t &samplerate,
+			  const std::uint32_t &channels)
+		: data(data), samplerate(samplerate), channels(channels) {
+		lengthInSeconds = static_cast<float>(data.size()) / static_cast<float>(samplerate);
+	}
+};
 
 // Struct of passable sound options
 export struct SoundOptions {
 	std::optional<float> volume = std::nullopt;
 	std::optional<float> pitch = std::nullopt;
+	std::optional<float> offset = std::nullopt;
 	std::optional<Position3D> pos = std::nullopt;
 	std::optional<std::vector<std::string>> effects = std::nullopt;
 };
 
-enum class SoundType {
-	eOneshot,
-	eSequential,
-	eMemory,
-};
-
 struct AudioPlayerSound {
 	SoundOptions options;
-	SoundType type = SoundType::eOneshot;
 	ALuint buffer = 0, SID = 0;
-	float length = 0.0f;
+	float length = 0.0f, lengthOffset = 0.0f;
 	std::vector<ALuint> effectSlots;
 	std::chrono::time_point<std::chrono::steady_clock> endedTime;
 	std::shared_ptr<AudioPlayerSound> next = nullptr;
 
-	explicit AudioPlayerSound(const SoundOptions &opts, const SoundType &type, const ALuint &buffer,
-							  const ALuint &SID, const float &length)
-		: options(opts), type(type), buffer(buffer), SID(SID), length(length) {}
+	explicit AudioPlayerSound(const SoundOptions &opts, const ALuint &buffer, const ALuint &SID,
+							  const float &length)
+		: options(opts), buffer(buffer), SID(SID), length(length) {}
 };
 
 // Method for checking and printing out OpenAL errors
@@ -85,6 +91,10 @@ export auto check_al_errors(const std::source_location location = std::source_lo
 	}
 	return false;
 }
+
+/* Scripting module extension forward declarations */
+void mod_play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
+						 const std::uint32_t &channels);
 
 // Super-duper simple audio player
 export class AudioPlayer {
@@ -208,7 +218,10 @@ public:
 		// Set global volume to 0.75f by default
 		set_global_volume(0.75f);
 
-		return {};
+		/* Scripting module methods */
+		ScriptingHandler::add_command("play_oneshot_memory", mod_play_oneshot_memory);
+
+		return Result();
 	}
 
 	static void cleanup() {
@@ -228,11 +241,10 @@ public:
 			auto soundState = AL_INITIAL;
 			alGetSourcei(sound->SID, AL_SOURCE_STATE, &soundState);
 
-			if (sound->type == SoundType::eSequential &&
-				(soundState != AL_PLAYING ||
-				 soundTime >= sound->length + global_config.audioSequenceOffset.value)) {
+			if (sound->next != nullptr &&
+				(soundState != AL_PLAYING || soundTime >= sound->length + sound->lengthOffset)) {
 				// Start playback of next sound
-				if (sound->next != nullptr) alSourcePlay(sound->next->SID);
+				alSourcePlay(sound->next->SID);
 			}
 		}
 		check_al_errors();
@@ -242,8 +254,10 @@ public:
 		for (const auto sound : m_sounds) {
 			auto soundState = AL_INITIAL;
 			alGetSourcei(sound->SID, AL_SOURCE_STATE, &soundState);
+			auto soundTime = 0.0f;
+			alGetSourcef(sound->SID, AL_SEC_OFFSET, &soundTime);
 			check_al_errors();
-			if (soundState != AL_PLAYING) {
+			if (soundState != AL_PLAYING && soundTime >= sound->length) {
 				if (sound->endedTime.time_since_epoch().count() == 0)
 					sound->endedTime = std::chrono::steady_clock::now();
 				else if (std::chrono::steady_clock::now() - sound->endedTime >=
@@ -286,16 +300,16 @@ public:
 		alListenerf(AL_GAIN, m_volume);
 	}
 
-	static auto load_sound_oal(const std::vector<float> &data, const std::uint32_t &samplerate,
-							   const std::uint32_t &channels, const double &lengthInSeconds,
-							   const SoundOptions &opts) -> std::shared_ptr<AudioPlayerSound> {
-		const auto format = channels == 1 ? AL_FORMAT_MONO_FLOAT32 : AL_FORMAT_STEREO_FLOAT32;
-		const auto dataSize = static_cast<ALsizei>(data.size() * sizeof(float));
+	static auto load_sound_oal(const SoundData &soundData, const SoundOptions &opts)
+		-> std::shared_ptr<AudioPlayerSound> {
+		const auto format =
+			soundData.channels == 1 ? AL_FORMAT_MONO_FLOAT32 : AL_FORMAT_STEREO_FLOAT32;
+		const auto dataSize = static_cast<ALsizei>(soundData.data.size() * sizeof(float));
 
 		// OpenAL sound creation
 		ALuint buffer;
 		alGenBuffers(1, &buffer);
-		alBufferData(buffer, format, data.data(), dataSize, samplerate);
+		alBufferData(buffer, format, soundData.data.data(), dataSize, soundData.samplerate);
 		if (check_al_errors()) {
 			alDeleteBuffers(1, &buffer);
 			return nullptr;
@@ -312,8 +326,8 @@ public:
 		}
 
 		// Create new sound
-		const auto sound = std::make_shared<AudioPlayerSound>(opts, SoundType::eOneshot, buffer,
-															  SID, lengthInSeconds);
+		const auto sound =
+			std::make_shared<AudioPlayerSound>(opts, buffer, SID, soundData.lengthInSeconds);
 
 		// Create effects if given
 		if (opts.effects) {
@@ -373,28 +387,29 @@ public:
 		nqr::AudioData audioData;
 		m_nyquist.Load(&audioData, file.string().c_str());
 		if (audioData.samples.empty()) return;
-		const auto sound = load_sound_oal(audioData.samples, audioData.sampleRate,
-										  audioData.channelCount, audioData.lengthSeconds, opts);
+		const auto sound =
+			load_sound_oal({audioData.samples, static_cast<std::uint32_t>(audioData.sampleRate),
+							static_cast<std::uint32_t>(audioData.channelCount)},
+						   opts);
 		m_sounds.push_back(sound);
 		alSourcePlay(sound->SID);
 	}
 
 	// Plays given sounds in order, waiting for last one to finish before starting next
 	static void play_sequential(const std::vector<std::filesystem::path> &files,
-								const SoundOptions &opts) {
+								const std::vector<SoundOptions> &opts) {
 		std::vector<std::shared_ptr<AudioPlayerSound>> sequence;
-		for (const auto &file : files) {
+		for (const auto &[file, opt] : std::views::zip(files, opts)) {
 			nqr::AudioData audioData;
 			m_nyquist.Load(&audioData, file.string().c_str());
 			if (audioData.samples.empty()) continue;
-
 			const auto sound =
-				load_sound_oal(audioData.samples, audioData.sampleRate, audioData.channelCount,
-							   audioData.lengthSeconds, opts);
+				load_sound_oal({audioData.samples, static_cast<std::uint32_t>(audioData.sampleRate),
+								static_cast<std::uint32_t>(audioData.channelCount)},
+							   opt);
 
 			// Assign next sound in sequence
 			if (!sequence.empty()) sequence.back()->next = sound;
-
 			sequence.push_back(sound);
 		}
 
@@ -406,15 +421,34 @@ public:
 	}
 
 	// Plays from memory, returns sound length in milliseconds
-	static auto play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
-									const SoundOptions &opts)
-		-> std::chrono::milliseconds {
-		// Take copy of data for our own use
-		const auto lengthInSeconds =
-			static_cast<float>(data.size()) / static_cast<float>(samplerate);
-		const auto sound = load_sound_oal(data, samplerate, 1, lengthInSeconds, opts);
+	static void play_oneshot_memory(const SoundData &soundData, const SoundOptions &opts) {
+		const auto sound = load_sound_oal(soundData, opts);
 		m_sounds.push_back(sound);
 		alSourcePlay(sound->SID);
-		return std::chrono::milliseconds(static_cast<std::uint32_t>(lengthInSeconds * 1000));
+	}
+
+	// Plays given sounds in order from memory, waiting for last one to finish before starting next
+	static void play_sequential_memory(const std::vector<SoundData> &soundDatas,
+									   const std::vector<SoundOptions> &opts) {
+		std::vector<std::shared_ptr<AudioPlayerSound>> sequence;
+		for (const auto &[soundData, opt] : std::views::zip(soundDatas, opts)) {
+			const auto sound = load_sound_oal(soundData, opt);
+
+			// Assign next sound in sequence
+			if (!sequence.empty()) sequence.back()->next = sound;
+			sequence.push_back(sound);
+		}
+
+		// Add to sounds
+		m_sounds.insert(m_sounds.end(), sequence.begin(), sequence.end());
+
+		// Begin playback of first sound
+		alSourcePlay(sequence.front()->SID);
 	}
 };
+
+/* Scripting module extensions */
+void mod_play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
+						 const std::uint32_t &channels) {
+	AudioPlayer::play_oneshot_memory({data, samplerate, channels}, {});
+}
