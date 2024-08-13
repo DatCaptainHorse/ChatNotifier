@@ -67,9 +67,6 @@ find_package(Python 3.12 COMPONENTS Interpreter Development REQUIRED)
 find_package(nanobind CONFIG REQUIRED)
 find_package(libhv REQUIRED)
 
-# Debug print Python_LIBRARIES
-message(STATUS "Python_LIBRARIES: ${Python_LIBRARIES}")
-
 if (NON_NIX_BUILD)
   find_package(ogg REQUIRED)
   find_package(opus REQUIRED)

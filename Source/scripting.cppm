@@ -18,8 +18,8 @@ import runner;
 import filesystem;
 
 // Helper for decrementing Python reference count, checking that GIL is held
-constexpr static void
-decref_pyobject(PyObject *obj, const std::source_location &loc = std::source_location::current()) {
+void decref_pyobject(PyObject *obj,
+					 const std::source_location &loc = std::source_location::current()) {
 	if (!obj) return;
 	if (!PyGILState_Check()) {
 		std::println("decref_pyobject called without holding the GIL at {}::{}", loc.file_name(),
@@ -30,7 +30,7 @@ decref_pyobject(PyObject *obj, const std::source_location &loc = std::source_loc
 }
 
 // Method for printing out any occurred Python errors
-static void print_python_error(const std::source_location &loc = std::source_location::current()) {
+void print_python_error(const std::source_location &loc = std::source_location::current()) {
 	if (PyErr_Occurred()) {
 		PyObject *ptype, *pvalue, *ptraceback;
 		PyErr_Fetch(&ptype, &pvalue, &ptraceback);
