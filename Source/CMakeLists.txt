@@ -1,7 +1,9 @@
 # Create nanobind, odd requirement but okay
 nanobind_build_library(nanobind abi3-static)
 
-add_library(chatnotifier STATIC
+# Main executable
+add_executable(ChatNotifier
+  main.cpp
   gl3w/GL/gl3w.c
 
   ${IMGUI_DIR}/imgui.cpp
@@ -15,7 +17,7 @@ add_library(chatnotifier STATIC
 )
 
 # C++20 module files
-target_sources(chatnotifier PUBLIC FILE_SET CXX_MODULES FILES
+target_sources(ChatNotifier PUBLIC FILE_SET CXX_MODULES FILES
   common.cppm
   assets.cppm
   commands.cppm
@@ -30,7 +32,7 @@ target_sources(chatnotifier PUBLIC FILE_SET CXX_MODULES FILES
   scripting.cppm
 )
 
-target_include_directories(chatnotifier PRIVATE
+target_include_directories(ChatNotifier PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/gl3w
   ${IMGUI_DIR}
@@ -40,7 +42,7 @@ target_include_directories(chatnotifier PRIVATE
   ${opusfile_INCLUDE_DIRS}
 )
 
-target_link_libraries(chatnotifier PRIVATE
+target_link_libraries(ChatNotifier PRIVATE
   glaze::glaze
   libnyquist::libnyquist
   OpenAL::OpenAL
@@ -60,24 +62,20 @@ target_link_libraries(chatnotifier PRIVATE
 )
 
 if (WIN32)
-  target_link_libraries(chatnotifier PRIVATE
+  target_link_libraries(ChatNotifier PRIVATE
     ws2_32
   )
 endif ()
 
 # Enable warnings as errors for the target, unless WIN32 is set
-set_target_properties(chatnotifier PROPERTIES
+set_target_properties(ChatNotifier PROPERTIES
   $<$<NOT:$<BOOL:${WIN32}>>:COMPILE_WARNING_AS_ERROR ON>
 )
 
 # If WIN32, set _CRT_SECURE_NO_WARNINGS
-target_compile_definitions(chatnotifier PRIVATE
+target_compile_definitions(ChatNotifier PRIVATE
   $<$<BOOL:${WIN32}>:_CRT_SECURE_NO_WARNINGS>
 )
-
-# Main executable
-add_executable(ChatNotifier main.cpp)
-target_link_libraries(ChatNotifier PRIVATE chatnotifier)
 
 add_custom_command(TARGET ChatNotifier POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
