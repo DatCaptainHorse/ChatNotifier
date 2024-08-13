@@ -26,8 +26,7 @@ jobs:
 
     - name: Install Python
       run: |
-        choco install python312 --params "/InstallDir:C:\Python312" -y
-        refreshenv
+        choco install python312 -y
 
     - uses: lukka/get-cmake@latest
 
