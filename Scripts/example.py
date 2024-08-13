@@ -7,5 +7,4 @@ def on_load():
         chatnotifier.play_oneshot_file(str(sound_path))
 
 def on_message(msg):
-    chatnotifier.hello()
     print("Hello from Python: {}".format(msg))

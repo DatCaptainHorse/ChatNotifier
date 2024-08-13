@@ -45,8 +45,6 @@ void print_python_error(const std::source_location &loc = std::source_location::
 	PyErr_Clear();
 }
 
-static void hello() { std::println("Hello from ChatNotifier module!"); }
-
 export class ScriptingHandler;
 
 // Class for python module
@@ -54,7 +52,6 @@ export class ChatNotifierPyModule {
 	static inline std::unique_ptr<nanobind::module_> m;
 
 	static inline PyModuleDef nanobind_module_def_chatnotifierscripting;
-	static inline void nanobind_init_chatnotifier() { m->def("hello", &hello); }
 
 	friend class ScriptingHandler;
 
@@ -69,7 +66,6 @@ export class ChatNotifierPyModule {
 
 	static auto finalize() -> PyObject * {
 		try {
-			nanobind_init_chatnotifier();
 			return m.release()->release().ptr();
 		} catch (const std::exception &e) {
 			PyErr_SetString(PyExc_ImportError, e.what());
