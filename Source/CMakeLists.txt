@@ -50,8 +50,6 @@ target_link_libraries(ChatNotifier PRIVATE
   hv_static
 
   Python::Python
-  # WIN32 needs to link against Python's library in direct way
-  $<$<BOOL:${WIN32}>:${Python_LIBRARIES}>
   nanobind
 
   $<$<BOOL:${NON_NIX_BUILD}>:ogg>
