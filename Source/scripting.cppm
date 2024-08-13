@@ -278,8 +278,6 @@ public:
 			module = ChatNotifierPyModule::finalize();
 			if (!module) return Result(1, "Failed to create module");
 
-			Py_INCREF(module);
-
 			// Release the GIL
 			PyGILState_Release(gstate);
 
