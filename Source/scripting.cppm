@@ -31,14 +31,14 @@ decref_pyobject(PyObject *obj, const std::source_location &loc = std::source_loc
 }
 
 // Method for printing out any occurred Python errors
-static void print_python_error() {
+static void print_python_error(const std::source_location &loc = std::source_location::current()) {
 	if (PyErr_Occurred()) {
 		PyObject *ptype, *pvalue, *ptraceback;
 		PyErr_Fetch(&ptype, &pvalue, &ptraceback);
 		if (pvalue) {
 			PyObject *str = PyObject_Str(pvalue);
 			const char *str_value = PyUnicode_AsUTF8(str);
-			std::println("Python error: {}", str_value);
+			std::println("Python error at {}::{}: {}", loc.file_name(), loc.line(), str_value);
 			decref_pyobject(str);
 		}
 		PyErr_Restore(ptype, pvalue, ptraceback);
@@ -145,20 +145,17 @@ private:
 			return;
 		}
 
-		auto nbargs = nanobind::make_tuple(args...);
-
 		// Run the script
-		const auto result = PyObject_CallObject(pymethod, nbargs.ptr());
+		const auto result = PyObject_CallObject(
+			pymethod, sizeof...(Args) > 0 ? nanobind::make_tuple(args...).ptr() : nullptr);
 		if (!result) {
 			print_python_error();
 			decref_pyobject(pymethod);
-			nbargs.reset();
 			return;
 		}
 
 		decref_pyobject(result);
 		decref_pyobject(pymethod);
-		nbargs.reset();
 	}
 };
 
@@ -188,12 +185,15 @@ public:
 				PyConfig_SetString(&config, &config.home,
 								   Py_DecodeLocale(python_embed.string().c_str(), nullptr));
 
-			// Set module search paths
+			// Set module search paths, add any subdirectories of get_scripts_path() as well
 			PyWideStringList_Insert(&config.module_search_paths, 0,
 									Py_DecodeLocale(get_scripts_path().string().c_str(), nullptr));
-			PyWideStringList_Insert(
-				&config.module_search_paths, 1,
-				Py_DecodeLocale(get_script_deps_path().string().c_str(), nullptr));
+			for (const auto &entry : std::filesystem::directory_iterator(get_scripts_path())) {
+				if (entry.is_directory())
+					PyWideStringList_Append(
+						&config.module_search_paths,
+						Py_DecodeLocale(entry.path().string().c_str(), nullptr));
+			}
 
 			Py_InitializeFromConfig(&config);
 
@@ -206,10 +206,14 @@ public:
 				return res;
 			}
 
-			// Add scripts and script deps paths
-			const auto scriptPath =
-				std::format(R"(import sys;sys.path.append("{}");sys.path.append("{}"))",
-							get_scripts_path().string(), get_script_deps_path().string());
+			// Add scripts paths and subdirectories to sys.path
+			std::string scriptPath = "import sys\n";
+			scriptPath += std::format("sys.path.append('{}')\n", get_scripts_path().string());
+			for (const auto &entry : std::filesystem::directory_iterator(get_scripts_path())) {
+				if (entry.is_directory())
+					scriptPath += std::format("sys.path.append('{}')\n", entry.path().string());
+			}
+
 			PyRun_SimpleStringFlags(scriptPath.c_str(), nullptr);
 
 			print_python_error();
@@ -396,9 +400,5 @@ public:
 
 	static auto get_scripts_path() -> std::filesystem::path {
 		return Filesystem::get_root_path() / "Scripts";
-	}
-
-	static auto get_script_deps_path() -> std::filesystem::path {
-		return Filesystem::get_root_path() / "ScriptDeps";
 	}
 };

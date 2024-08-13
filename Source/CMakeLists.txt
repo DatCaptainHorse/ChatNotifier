@@ -89,16 +89,10 @@ add_custom_command(TARGET ChatNotifier POST_BUILD
   ${CMAKE_SOURCE_DIR}/Scripts
   $<TARGET_FILE_DIR:ChatNotifier>/Scripts
 )
-add_custom_command(TARGET ChatNotifier POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-  ${CMAKE_SOURCE_DIR}/ScriptDeps
-  $<TARGET_FILE_DIR:ChatNotifier>/ScriptDeps
-)
 
 install(TARGETS ChatNotifier)
 
 if (CMAKE_INSTALL_BINDIR)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets DESTINATION ${CMAKE_INSTALL_BINDIR})
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/Scripts DESTINATION ${CMAKE_INSTALL_BINDIR})
-  install(DIRECTORY ${CMAKE_SOURCE_DIR}/ScriptDeps DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif ()

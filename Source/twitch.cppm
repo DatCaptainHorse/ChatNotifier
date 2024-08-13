@@ -4,8 +4,13 @@ module;
 #include <string>
 #include <chrono>
 #include <memory>
+#include <semaphore>
 #include <functional>
 
+#include <glaze/glaze.hpp>
+
+#include <hv/requests.h>
+#include <hv/HttpServer.h>
 #include <hv/WebSocketClient.h>
 
 export module twitch;
@@ -13,12 +18,25 @@ export module twitch;
 import config;
 import common;
 import commands;
-import scripting;
+
+#ifndef TWITCH_CLIENT_SECRET
+#define TWITCH_CLIENT_SECRET "undefined"
+#warning "TWITCH_CLIENT_SECRET not defined"
+#endif
+
+// Struct for Twitch oauth token response JSON
+struct twitch_token_response {
+	std::string access_token;
+	int expires_in;
+	std::string refresh_token;
+	std::vector<std::string> scope;
+	std::string token_type;
+};
 
 constexpr auto twitch_client_id = "ugoh79sz2as94l6dqadpkzilpohdng";
-constexpr auto twitch_response_type = "token";
-constexpr auto twitch_redirect_uri = "http://localhost:3000";
-constexpr auto twitch_scope = "chat:read";
+constexpr auto twitch_redirect_uri = "http://localhost:42069/authchatnotifier";
+// Pre-URL encoded chat:read scope
+constexpr auto twitch_scope = "chat%3Aread";
 
 // Enable usage of bitmask operators for CommandCooldownType
 consteval void enable_bitmask_operators(CommandCooldownType) {}
@@ -36,7 +54,7 @@ export class TwitchChatConnector {
 
 	static inline TwitchChatMessageCallback m_onMessage;
 
-	static inline std::string m_oauthToken;
+	static inline std::string m_oauthCode, m_oauthToken;
 
 	// Global cooldown time
 	static inline std::chrono::time_point<std::chrono::steady_clock> m_lastCommandTime;
@@ -61,6 +79,15 @@ public:
 
 		// Set to connecting
 		m_connStatus = ConnectionStatus::eConnecting;
+
+		// Check if we have a global_config.refreshToken to use
+		if (!global_config.refreshToken.empty()) {
+			if (!oauth_refresh()) {
+				// Attempt full
+				if (const auto res = oauth_full(); !res) return res;
+			}
+		} else if (const auto res = oauth_full(); !res)
+			return res;
 
 		// Set handlers
 		m_client.onopen = handle_open;
@@ -93,29 +120,29 @@ public:
 
 private: // Handlers
 	static void handle_open() {
-		m_client.send(std::format("PASS oauth:{}\r\n", global_config.twitchAuthToken));
-		m_client.send(std::format("NICK {}\r\n", global_config.twitchAuthUser));
+		m_client.send(std::format("PASS oauth:{}\r\n", m_oauthToken));
+		// as channel is the same as the username of owner usually, we can use it
+		m_client.send(std::format("NICK {}\r\n", global_config.twitchChannel));
 		m_connStatus = ConnectionStatus::eConnected;
 	}
 
-	static void handle_message(const std::string &msg) {
+	static auto handle_message(const std::string &msg) -> Result {
 		// If ":tmi.twitch.tv NOTICE * :Login authentication failed" is found, report error
 		if (msg.find(":tmi.twitch.tv NOTICE * :Login authentication failed") != std::string::npos) {
-			std::cerr << "Error: Login authentication failed" << std::endl;
 			disconnect();
-			return;
+			return Result(3, "Login authentication failed");
 		}
 
 		// If "PING :tmi.twitch.tv", respond with "PONG :tmi.twitch.tv"
 		if (msg.find("PING :tmi.twitch.tv") != std::string::npos) {
 			m_client.send("PONG :tmi.twitch.tv\r\n");
-			return;
+			return Result();
 		}
 
 		// If ":tmi.twitch.tv 001" is received, join the channel
 		if (msg.find(":tmi.twitch.tv 001") != std::string::npos) {
 			m_client.send(std::format("JOIN #{}\r\n", global_config.twitchChannel));
-			return;
+			return Result();
 		}
 
 		// Validate message, then get user and message, passing them to the callback
@@ -141,7 +168,7 @@ private: // Handlers
 				} else
 					global_users[user]->lastMessage = chatMsg;
 
-				return;
+				return Result();
 			}
 
 			// Check cooldowns (global_config.enabledCooldowns, global_config.cooldownTime)
@@ -150,7 +177,7 @@ private: // Handlers
 				const auto now = std::chrono::steady_clock::now();
 				if (now - m_lastCommandTime <
 					std::chrono::seconds(global_config.cooldownTime.value))
-					return;
+					return Result();
 
 				m_lastCommandTime = now;
 			}
@@ -160,18 +187,18 @@ private: // Handlers
 						now - global_users[user]->lastMessage.time <
 							std::chrono::seconds(global_config.cooldownTime.value) &&
 						!global_users[user]->bypassCooldown)
-						return;
+						return Result();
 				}
 			}
 			if (global_config.enabledCooldowns & CommandCooldownType::ePerCommand) {
-				if (!chatMsg.is_command()) return;
+				if (!chatMsg.is_command()) return Result();
 				// Get the command from the message
 				const auto extractedCommand = chatMsg.get_command();
 				const auto cmdLastExec = CommandHandler::get_last_executed_time(
 					CommandHandler::get_command_key(extractedCommand));
 				if (const auto now = std::chrono::steady_clock::now();
 					now - cmdLastExec < std::chrono::seconds(global_config.cooldownTime.value))
-					return;
+					return Result();
 			}
 
 			if (chatMsg.is_command()) {
@@ -185,7 +212,92 @@ private: // Handlers
 
 			m_onMessage(chatMsg);
 		}
+
+		return Result();
 	}
 
 	static void handle_close() { m_connStatus = ConnectionStatus::eDisconnected; }
+
+	static auto oauth_refresh() -> Result {
+		// Just post to https://id.twitch.tv/oauth2/token with refresh_token
+		const auto tokenUrl =
+			std::format("https://id.twitch.tv/oauth2/token?client_id={}&client_secret={}&"
+						"refresh_token={}&grant_type=refresh_token",
+						twitch_client_id, TWITCH_CLIENT_SECRET, global_config.refreshToken);
+
+		if (const auto resp = requests::post(tokenUrl.c_str()); !resp)
+			return Result(2, "Failed to get OAuth token");
+		else {
+			if (const auto json_struct = glz::read_json<twitch_token_response>(resp->Body());
+				!json_struct)
+				return Result(3, "Failed to parse OAuth token response");
+			else {
+				m_oauthToken = json_struct->access_token;
+				global_config.refreshToken = json_struct->refresh_token;
+			}
+		}
+		return Result();
+	}
+
+	static auto oauth_full() -> Result {
+		// Setup server for OAuth code
+		hv::HttpService router;
+		std::binary_semaphore sem(0);
+		router.GET("/authchatnotifier", [&sem](HttpRequest *req, HttpResponse *resp) {
+			if (req->query_params.contains("code")) {
+				m_oauthCode = req->query_params["code"];
+				sem.release();
+				return 200;
+			} else {
+				sem.release();
+				return 400;
+			}
+		});
+
+		hv::HttpServer server(&router);
+		server.setHost("localhost");
+		server.setPort(42069);
+		server.start();
+
+		// Open browser to get OAuth token
+		const auto url =
+			std::format("https://id.twitch.tv/oauth2/"
+						"authorize?response_type=code&client_id={}&redirect_uri={}&scope={}",
+						twitch_client_id, twitch_redirect_uri, twitch_scope);
+
+		// Open browser, based on OS ifdef's
+#if defined(_WIN32)
+		system(std::format("start \"{}\"", url).c_str());
+#elif defined(__APPLE__)
+		system(std::format("open \"{}\"", url).c_str());
+#elif defined(__linux__)
+		system(std::format("xdg-open \"{}\"", url).c_str());
+#endif
+
+		// Wait for semaphore to be released
+		sem.acquire();
+		server.stop();
+
+		// Check if we have a code
+		if (m_oauthCode.empty()) return Result(2, "Failed to get OAuth code");
+
+		// Get OAuth token from https://id.twitch.tv/oauth2/token
+		const auto tokenUrl =
+			std::format("https://id.twitch.tv/oauth2/token?client_id={}&client_secret={}&code={}&"
+						"grant_type=authorization_code&redirect_uri={}",
+						twitch_client_id, TWITCH_CLIENT_SECRET, m_oauthCode, twitch_redirect_uri);
+
+		if (const auto resp = requests::post(tokenUrl.c_str()); !resp)
+			return Result(3, "Failed to get OAuth token");
+		else {
+			if (const auto json_struct = glz::read_json<twitch_token_response>(resp->Body());
+				!json_struct)
+				return Result(4, "Failed to parse OAuth token response");
+			else {
+				m_oauthToken = json_struct->access_token;
+				global_config.refreshToken = json_struct->refresh_token;
+			}
+		}
+		return Result();
+	}
 };

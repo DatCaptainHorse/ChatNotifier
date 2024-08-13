@@ -408,14 +408,6 @@ public:
 			ImGui::Dummy(ImVec2(0, 10));
 
 			// Input boxes for connection
-			ImGui::Text("Twitch Auth Token:");
-			ImGui::InputText("##authToken", &global_config.twitchAuthToken,
-							 ImGuiInputTextFlags_Password);
-
-			ImGui::Text("Twitch Auth User:");
-			ImGui::InputText("##authUser", &global_config.twitchAuthUser,
-							 ImGuiInputTextFlags_Password);
-
 			ImGui::Text("Twitch Channel:");
 			ImGui::InputText("##channel", &global_config.twitchChannel);
 
@@ -429,9 +421,7 @@ public:
 				connStatus == ConnectionStatus::eConnected ? "Disconnect" : "Connect";
 			const auto textColor = get_connection_status_color(connStatus, connResult);
 
-			const auto fieldsFilled = !global_config.twitchAuthToken.empty() &&
-									  !global_config.twitchAuthUser.empty() &&
-									  !global_config.twitchChannel.empty();
+			const auto fieldsFilled = !global_config.twitchChannel.empty();
 			ImGui::BeginDisabled(connStatus == ConnectionStatus::eConnecting || !fieldsFilled);
 
 			if (ImGui::Button(buttonText, ImVec2(-1, 30))) {

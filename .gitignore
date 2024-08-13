@@ -27,5 +27,5 @@ Assets/*
 # allow tutturuu
 !Assets/TriggerSounds/tutturuu.opus
 
-# Ignore ScriptDeps folder
-ScriptDeps/
+# Ignore Scripts/Deps folder
+Scripts/Deps/*

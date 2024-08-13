@@ -8,6 +8,11 @@ set(CMAKE_CXX_SCAN_FOR_MODULES ON) # We use C++20, might as well use modules
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules")
 
+# Preprocessor define TWITCH_CLIENT_SECRET from env
+if (DEFINED ENV{TWITCH_CLIENT_SECRET})
+  add_compile_definitions(TWITCH_CLIENT_SECRET="$ENV{TWITCH_CLIENT_SECRET}")
+endif ()
+
 # If win32, force MSVC_RUNTIME_LIBRARY to static
 if (WIN32)
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")

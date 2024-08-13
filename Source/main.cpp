@@ -36,7 +36,7 @@ auto main(int argc, char **argv) -> int {
 	// LOAD CONFIG //
 	if (const auto res = global_config.load(); !res) {
 		print_error(res);
-		return res.code;
+		// Continue despite error, as might be outdated config
 	}
 
 	// INITIALIZE //

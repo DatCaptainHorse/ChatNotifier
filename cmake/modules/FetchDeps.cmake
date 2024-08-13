@@ -111,7 +111,11 @@ FetchContent_Declare(
 # BUILD_SHARED, BUILD_EXAMPLES to OFF, we don't need them
 set(BUILD_SHARED OFF CACHE BOOL "" FORCE)
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+# We do want to build for MT and with OpenSSL if not under Windows
 set(BUILD_FOR_MT ON CACHE BOOL "" FORCE)
+if (NOT WIN32)
+  set(WITH_OPENSSL ON CACHE BOOL "" FORCE)
+endif ()
 FetchContent_MakeAvailable(libhv)
 
 # Fetch glaze

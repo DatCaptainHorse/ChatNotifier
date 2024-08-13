@@ -35,7 +35,7 @@ export struct Config {
 	ConfigOption<float> notifFontScale{1.0f, 0.5f, 2.0f};
 	ConfigOption<float> globalAudioVolume{0.5f, 0.0f, 1.0f};
 	std::vector<std::string> approvedUsers = {};
-	std::string twitchAuthToken = "", twitchAuthUser = "", twitchChannel = "";
+	std::string twitchChannel = "", refreshToken = "";
 	CommandCooldownType enabledCooldowns = CommandCooldownType::eGlobal;
 	ConfigOption<std::uint32_t> cooldownTime{5, 1, 60};
 	ConfigOption<std::uint32_t> maxAudioTriggers{
