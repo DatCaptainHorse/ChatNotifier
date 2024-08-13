@@ -1,5 +1,6 @@
 module;
 
+// No matter what IDE says, don't remove headers, thanks MSVC
 #include <map>
 #include <array>
 #include <print>
@@ -10,6 +11,7 @@ module;
 #include <random>
 #include <chrono>
 #include <utility>
+#include <numeric>
 #include <algorithm>
 #include <type_traits>
 
