@@ -45,7 +45,7 @@ static void print_python_error(const std::source_location &loc = std::source_loc
 	PyErr_Clear();
 }
 
-static constexpr auto hello() { std::println("Hello from ChatNotifier module!"); }
+static void hello() { std::println("Hello from ChatNotifier module!"); }
 
 export class ScriptingHandler;
 

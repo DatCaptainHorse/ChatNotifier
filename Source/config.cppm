@@ -4,7 +4,7 @@ module;
 #include <vector>
 #include <filesystem>
 
-#include <glaze/glaze.hpp>
+//#include <glaze/glaze.hpp>
 
 export module config;
 
@@ -47,10 +47,10 @@ export struct Config {
 	ConfigOption<float> ttsVoicePitch{1.0f, 0.1, 2.0f};	 //< Pitch of TTS voice
 
 	auto save() -> Result {
-		if (glz::write_file_json(this, get_config_path().string(),
+		/*if (glz::write_file_json(this, get_config_path().string(),
 								 std::string{}))
 			return Result(1, "Failed to save config");
-
+*/
 		return Result();
 	}
 
@@ -58,10 +58,10 @@ export struct Config {
 		// Check if file exists first
 		if (!std::filesystem::exists(get_config_path())) return Result();
 
-		if (glz::read_file_json(*this, get_config_path().string(),
+		/*if (glz::read_file_json(*this, get_config_path().string(),
 								std::string{}))
 			return Result(1, "Failed to load config");
-
+*/
 		return Result();
 	}
 
