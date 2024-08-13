@@ -1,5 +1,5 @@
 # Create nanobind, odd requirement but okay
-nanobind_build_library(nanobind abi3-static)
+nanobind_build_library(nanobind "-static")
 
 # Main executable
 add_executable(ChatNotifier
