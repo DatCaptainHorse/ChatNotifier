@@ -26,7 +26,9 @@ jobs:
 
     - name: Install Python
       run: |
-        choco install python312 -y
+        Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.12.4/python-3.12.4-amd64.exe" -OutFile "python-3.12.4-amd64.exe"
+        Start-Process -Wait -FilePath "python-3.12.4-amd64.exe" -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1"
+        Remove-Item -Path "python-3.12.4-amd64.exe"
 
     - uses: lukka/get-cmake@latest
 
