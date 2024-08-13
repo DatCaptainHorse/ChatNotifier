@@ -49,9 +49,9 @@ target_link_libraries(ChatNotifier PRIVATE
   glfw
   hv_static
 
-  #Python::Python for non-win32 builds, Python3::Python for win32 builds
-  $<$<NOT:$<BOOL:${WIN32}>>:Python::Python>
-  $<$<BOOL:${WIN32}>:Python3::Python>
+  Python::Python
+  # WIN32 needs to link against Python's library in direct way
+  $<$<BOOL:${WIN32}>:${Python_LIBRARIES}>
   nanobind
 
   $<$<BOOL:${NON_NIX_BUILD}>:ogg>
