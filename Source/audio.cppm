@@ -26,6 +26,11 @@ import config;
 import common;
 import scripting;
 
+/* Scripting module extension forward declarations */
+void mod_play_oneshot_file(const std::string &filepath);
+void mod_play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
+							 const std::uint32_t &channels);
+
 // Struct of passable (memory) sound data
 export struct SoundData {
 	std::vector<float> data;
@@ -91,11 +96,6 @@ export auto check_al_errors(const std::source_location location = std::source_lo
 	}
 	return false;
 }
-
-/* Scripting module extension forward declarations */
-void mod_play_oneshot_file(const std::string &filepath);
-void mod_play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
-							 const std::uint32_t &channels);
 
 // Super-duper simple audio player
 export class AudioPlayer {
