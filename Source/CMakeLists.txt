@@ -43,14 +43,14 @@ target_include_directories(ChatNotifier PRIVATE
 )
 
 target_link_libraries(ChatNotifier PRIVATE
+  Python::Python
+  nanobind
+
   glaze::glaze
   libnyquist::libnyquist
   OpenAL::OpenAL
   glfw
   hv_static
-
-  Python::Python
-  nanobind
 
   $<$<BOOL:${NON_NIX_BUILD}>:ogg>
   $<$<BOOL:${NON_NIX_BUILD}>:opus>
