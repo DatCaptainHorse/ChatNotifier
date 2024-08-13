@@ -1,11 +1,19 @@
 from piper import PiperVoice
 import numpy as np
+import pathlib
 
 
 def on_message(msg):
-    print(f"Using model: Assets/TTSVoices/fi_FI-harri-medium.onnx")
-    voice = PiperVoice.load(model_path="Assets/TTSVoices/fi_FI-harri-medium.onnx",
-                            config_path="Assets/TTSVoices/fi_fi_FI_harri_medium_fi_FI-harri-medium.onnx.json",
+    model_path = pathlib.Path(chatnotifier.get_tts_assets_path()) / "fi_FI-harri-medium.onnx"
+    config_path = pathlib.Path(
+        chatnotifier.get_tts_assets_path()) / "fi_fi_FI_harri_medium_fi_FI-harri-medium.onnx.json"
+    if not model_path.exists() or not config_path.exists():
+        print(f"Model not found: {model_path}")
+        return
+
+    print(f"Using model: {model_path}")
+    voice = PiperVoice.load(model_path=str(model_path),
+                            config_path=str(config_path),
                             use_cuda=False)
 
     print("Synthesizing audio")

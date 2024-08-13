@@ -9,7 +9,6 @@ module;
 export module config;
 
 import common;
-import assets;
 import filesystem;
 
 // Enum for cooldown types

@@ -57,7 +57,7 @@ message(STATUS "Fetching openal-soft")
 FetchContent_Declare(
   openal-soft
   GIT_REPOSITORY "https://github.com/kcat/openal-soft.git"
-  GIT_COMMIT "1318bea2e0f0af9430335708e65ae2ff920d98c6"
+  GIT_COMMIT "a3aa29e22331ca693e6530e94ec8bf1278949e6a"
   OVERRIDE_FIND_PACKAGE
 )
 # We don't care about the examples

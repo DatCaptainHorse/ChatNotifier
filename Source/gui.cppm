@@ -268,7 +268,23 @@ public:
 
 			// Button to reload/refresh scripts
 			ImGui::Dummy(ImVec2(0, 10));
-			if (ImGui::Button("Refresh Scripts", ImVec2(-1, 30))) ScriptingHandler::refresh_scripts();
+			if (ImGui::Button("Refresh Scripts", ImVec2(-1, 30))) {
+				ScriptingHandler::refresh_scripts([] {
+					for (const auto script : ScriptingHandler::get_scripts()) {
+						if (!script->is_valid()) continue;
+						ScriptingHandler::has_script_method(
+							script, "on_message", [script](const bool hasMethod) {
+								if (!hasMethod) return;
+								CommandHandler::add_command(
+									script->get_name(),
+									Command(script->get_call_string(), script->get_call_string(),
+											[script](const TwitchChatMessage &msg) {
+												ScriptingHandler::execute_script_msg(script, msg);
+											}));
+							});
+					}
+				});
+			}
 
 			// Add padding before separators
 			ImGui::Dummy(ImVec2(0, 10));

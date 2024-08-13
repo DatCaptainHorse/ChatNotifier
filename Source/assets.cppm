@@ -9,7 +9,15 @@ module;
 export module assets;
 
 import common;
+import scripting;
 import filesystem;
+
+// Forward declarations of scripting module methods
+auto mod_get_assets_path() -> std::string;
+auto mod_get_font_assets_path() -> std::string;
+auto mod_get_tts_assets_path() -> std::string;
+auto mod_get_ascii_assets_path() -> std::string;
+auto mod_get_sound_assets_path() -> std::string;
 
 // Class which handles assets
 export class AssetsHandler {
@@ -26,6 +34,14 @@ public:
 		populate_font_files();
 		populate_ascii_art_files();
 		populate_egg_sounds();
+
+		// Register scripting module methods
+		ScriptingHandler::add_function("get_assets_path", mod_get_assets_path);
+		ScriptingHandler::add_function("get_font_assets_path", mod_get_font_assets_path);
+		ScriptingHandler::add_function("get_tts_assets_path", mod_get_tts_assets_path);
+		ScriptingHandler::add_function("get_ascii_assets_path", mod_get_ascii_assets_path);
+		ScriptingHandler::add_function("get_sound_assets_path", mod_get_sound_assets_path);
+
 		return Result();
 	}
 
@@ -44,11 +60,17 @@ public:
 	}
 
 	// Returns path to assets folder
-	static auto get_assets_path() -> std::filesystem::path { return Filesystem::get_root_path() / "Assets/"; }
+	static auto get_assets_path() -> std::filesystem::path {
+		return Filesystem::get_root_path() / "Assets/";
+	}
 	// Returns path to font assets folder
-	static auto get_font_assets_path() -> std::filesystem::path { return get_assets_path() / "Fonts/"; }
-	// Returns path to TTS model folder
-	static auto get_tts_model_path() -> std::filesystem::path { return get_assets_path() / "TTS/"; }
+	static auto get_font_assets_path() -> std::filesystem::path {
+		return get_assets_path() / "Fonts/";
+	}
+	// Returns path to TTS voice assets folder
+	static auto get_tts_assets_path() -> std::filesystem::path {
+		return get_assets_path() / "TTSVoices/";
+	}
 	// Returns path to trigger ASCII art folder
 	static auto get_trigger_ascii_path() -> std::filesystem::path {
 		return get_assets_path() / "TriggerASCII/";
@@ -69,8 +91,7 @@ public:
 	// Returns available font keys as a vector
 	static auto get_font_keys() -> std::vector<std::string> {
 		std::vector<std::string> keys;
-		for (const auto &key : font_files | std::views::keys)
-			keys.push_back(key);
+		for (const auto &key : font_files | std::views::keys) keys.push_back(key);
 
 		return keys;
 	}
@@ -89,8 +110,7 @@ public:
 			if (std::ifstream file(path); file.is_open()) {
 				std::string ascii_art;
 				std::string line;
-				while (std::getline(file, line))
-					ascii_art += line + '\n';
+				while (std::getline(file, line)) ascii_art += line + '\n';
 
 				return ascii_art;
 			}
@@ -100,8 +120,7 @@ public:
 	// Returns available ascii art keys as a vector
 	static auto get_ascii_art_keys() -> std::vector<std::string> {
 		std::vector<std::string> keys;
-		for (const auto &key : ascii_art_files | std::views::keys)
-			keys.push_back(key);
+		for (const auto &key : ascii_art_files | std::views::keys) keys.push_back(key);
 
 		return keys;
 	}
@@ -117,8 +136,7 @@ public:
 	// Returns available easter-egg sound keys as a vector
 	static auto get_egg_sound_keys() -> std::vector<std::string> {
 		std::vector<std::string> keys;
-		for (const auto &key : egg_sounds | std::views::keys)
-			keys.push_back(key);
+		for (const auto &key : egg_sounds | std::views::keys) keys.push_back(key);
 
 		return keys;
 	}
@@ -163,3 +181,18 @@ private:
 		}
 	}
 };
+
+/* Scripting module implementations */
+auto mod_get_assets_path() -> std::string { return AssetsHandler::get_assets_path().string(); }
+auto mod_get_font_assets_path() -> std::string {
+	return AssetsHandler::get_font_assets_path().string();
+}
+auto mod_get_tts_assets_path() -> std::string {
+	return AssetsHandler::get_tts_assets_path().string();
+}
+auto mod_get_ascii_assets_path() -> std::string {
+	return AssetsHandler::get_trigger_ascii_path().string();
+}
+auto mod_get_sound_assets_path() -> std::string {
+	return AssetsHandler::get_trigger_sounds_path().string();
+}

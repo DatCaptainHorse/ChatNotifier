@@ -93,8 +93,9 @@ export auto check_al_errors(const std::source_location location = std::source_lo
 }
 
 /* Scripting module extension forward declarations */
+void mod_play_oneshot_file(const std::string &filepath);
 void mod_play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
-						 const std::uint32_t &channels);
+							 const std::uint32_t &channels);
 
 // Super-duper simple audio player
 export class AudioPlayer {
@@ -219,7 +220,8 @@ public:
 		set_global_volume(0.75f);
 
 		/* Scripting module methods */
-		ScriptingHandler::add_command("play_oneshot_memory", mod_play_oneshot_memory);
+		ScriptingHandler::add_function("play_oneshot_file", mod_play_oneshot_file);
+		ScriptingHandler::add_function("play_oneshot_memory", mod_play_oneshot_memory);
 
 		return Result();
 	}
@@ -448,7 +450,10 @@ public:
 };
 
 /* Scripting module extensions */
+void mod_play_oneshot_file(const std::string &filepath) {
+	AudioPlayer::play_oneshot(std::filesystem::path(filepath));
+}
 void mod_play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
-						 const std::uint32_t &channels) {
+							 const std::uint32_t &channels) {
 	AudioPlayer::play_oneshot_memory({data, samplerate, channels}, {});
 }

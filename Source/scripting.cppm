@@ -5,6 +5,7 @@ module;
 #include <string>
 #include <functional>
 #include <filesystem>
+#include <source_location>
 
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
@@ -16,6 +17,34 @@ import config;
 import common;
 import runner;
 import filesystem;
+
+// Helper for decrementing Python reference count, checking that GIL is held
+constexpr static void
+decref_pyobject(PyObject *obj, const std::source_location &loc = std::source_location::current()) {
+	if (!obj) return;
+	if (!PyGILState_Check()) {
+		std::println("decref_pyobject called without holding the GIL at {}::{}", loc.file_name(),
+					 loc.line());
+		return;
+	}
+	Py_DECREF(obj);
+}
+
+// Method for printing out any occurred Python errors
+static void print_python_error() {
+	if (PyErr_Occurred()) {
+		PyObject *ptype, *pvalue, *ptraceback;
+		PyErr_Fetch(&ptype, &pvalue, &ptraceback);
+		if (pvalue) {
+			PyObject *str = PyObject_Str(pvalue);
+			const char *str_value = PyUnicode_AsUTF8(str);
+			std::println("Python error: {}", str_value);
+			decref_pyobject(str);
+		}
+		PyErr_Restore(ptype, pvalue, ptraceback);
+	}
+	PyErr_Clear();
+}
 
 static constexpr auto hello() { std::println("Hello from ChatNotifier module!"); }
 
@@ -59,6 +88,12 @@ export class ChatNotifierPyModule {
 	static void add_command(const std::string &name, void (*func)(Args...)) {
 		m->def(name.c_str(), func);
 	}
+
+	// With return
+	template <typename Ret, typename... Args>
+	static void add_command(const std::string &name, Ret (*func)(Args...)) {
+		m->def(name.c_str(), func);
+	}
 };
 
 export class Script {
@@ -72,50 +107,20 @@ public:
 			return;
 		}
 
-		// Acquire the GIL
-		const auto gstate = PyGILState_Ensure();
-
 		// Import the script
 		scriptmodule = PyImport_ImportModule(path.stem().string().c_str());
 		if (!scriptmodule) {
-			// Get error
-			if (PyErr_Occurred()) {
-				PyObject *ptype, *pvalue, *ptraceback;
-				PyErr_Fetch(&ptype, &pvalue, &ptraceback);
-				if (pvalue) {
-					PyObject *str = PyObject_Str(pvalue);
-					const char *str_value = PyUnicode_AsUTF8(str);
-					std::println("Error in script '{}': {}", path.filename().string(), str_value);
-					Py_DECREF(str);
-				}
-				PyErr_Restore(ptype, pvalue, ptraceback);
-			}
-			// Clear error
-			PyErr_Clear();
-
-			// Release the GIL
-			PyGILState_Release(gstate);
+			print_python_error();
 			return;
 		}
 
-		PyModule_AddObject(scriptmodule, "chatnotifier", module);
-		const auto main_dict = PyModule_GetDict(scriptmodule);
-		PyDict_SetItemString(main_dict, "chatnotifier", module);
-		Py_DECREF(main_dict);
-
-		// Release the GIL
-		PyGILState_Release(gstate);
+		if (!PyModule_AddObjectRef(scriptmodule, "chatnotifier", module)) {
+			print_python_error();
+			return;
+		}
 	}
 
-	~Script() {
-		// Acquire the GIL
-		const auto gstate = PyGILState_Ensure();
-
-		if (scriptmodule) Py_DECREF(scriptmodule);
-
-		// Release the GIL
-		PyGILState_Release(gstate);
-	}
+	~Script() { decref_pyobject(scriptmodule); }
 
 	[[nodiscard]] auto is_valid() const -> bool { return scriptmodule != nullptr; }
 	[[nodiscard]] auto get_name() const -> std::string { return path.filename().string(); }
@@ -126,52 +131,34 @@ private:
 
 	[[nodiscard]] auto has_method(const std::string &method) const -> bool {
 		if (!scriptmodule) return false;
-
-		// Acquire the GIL
-		const auto gstate = PyGILState_Ensure();
-
-		const auto has_method = PyObject_HasAttrString(scriptmodule, method.c_str());
-
-		// Release the GIL
-		PyGILState_Release(gstate);
-
-		return has_method;
+		return PyObject_HasAttrString(scriptmodule, method.c_str());
 	}
 
 	template <typename... Args>
 	auto run_method(const std::string &method, Args... args) const -> void {
 		if (!scriptmodule) return;
 
-		// Acquire the GIL
-		const auto gstate = PyGILState_Ensure();
+		// Get the method
+		const auto pymethod = PyObject_GetAttrString(scriptmodule, method.c_str());
+		if (!pymethod) {
+			print_python_error();
+			return;
+		}
 
-		// Construct arguments
-		auto nb_args = nanobind::make_tuple(args...);
-		const auto pyargs = Py_BuildValue("O", nb_args.release().ptr());
+		auto nbargs = nanobind::make_tuple(args...);
 
 		// Run the script
-		const auto result = PyObject_CallMethod(scriptmodule, method.c_str(), "O", pyargs);
+		const auto result = PyObject_CallObject(pymethod, nbargs.ptr());
 		if (!result) {
-			// Get error
-			if (PyErr_Occurred()) {
-				PyObject *ptype, *pvalue, *ptraceback;
-				PyErr_Fetch(&ptype, &pvalue, &ptraceback);
-				if (pvalue) {
-					PyObject *str = PyObject_Str(pvalue);
-					const char *str_value = PyUnicode_AsUTF8(str);
-					std::println("Error in script '{}': {}", path.filename().string(), str_value);
-					Py_DECREF(str);
-				}
-				PyErr_Restore(ptype, pvalue, ptraceback);
-			}
-			// Clear error
-			PyErr_Clear();
+			print_python_error();
+			decref_pyobject(pymethod);
+			nbargs.reset();
+			return;
 		}
-		// if (pyargs) Py_DECREF(pyargs);
-		if (result) Py_DECREF(result);
 
-		// Release the GIL
-		PyGILState_Release(gstate);
+		decref_pyobject(result);
+		decref_pyobject(pymethod);
+		nbargs.reset();
 	}
 };
 
@@ -195,18 +182,18 @@ public:
 			config.install_signal_handlers = 0;
 			PyConfig_InitIsolatedConfig(&config);
 
+			// If "python-embed" directory is found, set that as home
+			if (const auto python_embed = Filesystem::get_root_path() / "python-embed";
+				std::filesystem::exists(python_embed))
+				PyConfig_SetString(&config, &config.home,
+								   Py_DecodeLocale(python_embed.string().c_str(), nullptr));
+
 			// Set module search paths
 			PyWideStringList_Insert(&config.module_search_paths, 0,
 									Py_DecodeLocale(get_scripts_path().string().c_str(), nullptr));
 			PyWideStringList_Insert(
 				&config.module_search_paths, 1,
 				Py_DecodeLocale(get_script_deps_path().string().c_str(), nullptr));
-			PyWideStringList_Insert(
-				&config.module_search_paths, 2,
-				Py_DecodeLocale(get_scripts_sys_path().string().c_str(), nullptr));
-			PyWideStringList_Insert(
-				&config.module_search_paths, 3,
-				Py_DecodeLocale(get_scripts_deps_sys_path().string().c_str(), nullptr));
 
 			Py_InitializeFromConfig(&config);
 
@@ -220,12 +207,12 @@ public:
 			}
 
 			// Add scripts and script deps paths
-			const auto scriptPath = std::format(
-				R"(import sys;sys.path.append("{}");sys.path.append("{}");sys.path.append("{}");sys.path.append("{}"))",
-				get_scripts_path().string(), get_script_deps_path().string(),
-				get_scripts_sys_path().string(), get_scripts_deps_sys_path().string());
+			const auto scriptPath =
+				std::format(R"(import sys;sys.path.append("{}");sys.path.append("{}"))",
+							get_scripts_path().string(), get_script_deps_path().string());
 			PyRun_SimpleStringFlags(scriptPath.c_str(), nullptr);
-			PyErr_Clear(); // Clear any errors
+
+			print_python_error();
 
 			// Release the GIL
 			PyGILState_Release(gstate);
@@ -237,7 +224,7 @@ public:
 	}
 
 	template <typename... Args>
-	static void add_command(const std::string &name, std::function<void(Args...)> func) {
+	static void add_function(const std::string &name, std::function<void(Args...)> func) {
 		// Run in the Python thread
 		python_runner.add_job_sync([name, func] {
 			// Acquire the GIL
@@ -251,7 +238,21 @@ public:
 	}
 
 	template <typename... Args>
-	static void add_command(const std::string &name, void (*func)(Args...)) {
+	static void add_function(const std::string &name, void (*func)(Args...)) {
+		// Run in the Python thread
+		python_runner.add_job_sync([name, func] {
+			// Acquire the GIL
+			const auto gstate = PyGILState_Ensure();
+
+			ChatNotifierPyModule::add_command(name, func);
+
+			// Release the GIL
+			PyGILState_Release(gstate);
+		});
+	}
+
+	template <typename Ret, typename... Args>
+	static void add_function(const std::string &name, Ret (*func)(Args...)) {
 		// Run in the Python thread
 		python_runner.add_job_sync([name, func] {
 			// Acquire the GIL
@@ -270,9 +271,14 @@ public:
 			// Acquire the GIL
 			const auto gstate = PyGILState_Ensure();
 
-			if (module) Py_DECREF(module);
+			decref_pyobject(module);
 			module = ChatNotifierPyModule::finalize();
 			if (!module) return Result(1, "Failed to create module");
+
+			Py_INCREF(module);
+
+			// Release the GIL
+			PyGILState_Release(gstate);
 
 			return Result();
 		});
@@ -283,7 +289,7 @@ public:
 		// Run in the Python thread
 		python_runner.add_job_sync([] {
 			scripts.clear();
-			if (module) Py_DECREF(module);
+			decref_pyobject(module);
 			Py_Finalize();
 		});
 	}
@@ -293,8 +299,13 @@ public:
 		python_runner.add_job([script, msg] {
 			if (!script) return;
 			// Get script from map and run the method, if it exists
-			if (scripts.contains(script->get_name()))
+			if (scripts.contains(script->get_name())) {
+				// Acquire the GIL
+				const auto gstate = PyGILState_Ensure();
 				scripts[script->get_name()]->run_method("on_message", msg.get_message());
+				// Release the GIL
+				PyGILState_Release(gstate);
+			}
 		});
 	}
 
@@ -307,8 +318,15 @@ public:
 				return;
 			}
 			// Get script from map and check if the method exists
-			onResult(scripts.contains(script->get_name()) &&
-					 scripts[script->get_name()]->has_method(method));
+			if (scripts.contains(script->get_name())) {
+				// Acquire the GIL
+				const auto gstate = PyGILState_Ensure();
+				const auto result = scripts[script->get_name()]->has_method(method);
+				// Release the GIL
+				PyGILState_Release(gstate);
+				onResult(result);
+			} else
+				onResult(false);
 		});
 	}
 
@@ -319,8 +337,13 @@ public:
 		python_runner.add_job([script, method, args...] {
 			if (!script) return;
 			// Get script from map and run the method, if it exists
-			if (scripts.contains(script->get_name()))
+			if (scripts.contains(script->get_name())) {
+				// Acquire the GIL
+				const auto gstate = PyGILState_Ensure();
 				scripts[script->get_name()]->run_method(method, args...);
+				// Release the GIL
+				PyGILState_Release(gstate);
+			}
 		});
 	}
 
@@ -331,6 +354,7 @@ public:
 				// Acquire the GIL
 				const auto gstate = PyGILState_Ensure();
 
+				// Clear the scripts
 				scripts.clear();
 
 				const auto script_path = get_scripts_path();
@@ -343,13 +367,21 @@ public:
 				}
 
 				for (const auto &entry : std::filesystem::directory_iterator(script_path)) {
-					if (entry.is_regular_file() && entry.path().extension() == ".py")
+					if (entry.is_regular_file() && entry.path().extension() == ".py") {
+						std::println("Loading script: {}", entry.path().filename().string());
 						scripts[entry.path().filename().string()] =
 							std::make_unique<Script>(entry.path(), module);
+					}
 				}
 
 				// Release the GIL
 				PyGILState_Release(gstate);
+
+				// For each script, check and call "on_load" method
+				for (const auto &[_, script] : scripts) {
+					if (script->has_method("on_load"))
+						execute_script_method(script.get(), "on_load");
+				}
 
 				return Result();
 			},
@@ -366,15 +398,7 @@ public:
 		return Filesystem::get_root_path() / "Scripts";
 	}
 
-	static auto get_scripts_sys_path() -> std::filesystem::path {
-		return get_scripts_path() / "SYSTEM";
-	}
-
 	static auto get_script_deps_path() -> std::filesystem::path {
 		return Filesystem::get_root_path() / "ScriptDeps";
-	}
-
-	static auto get_scripts_deps_sys_path() -> std::filesystem::path {
-		return get_script_deps_path() / "SYSTEM";
 	}
 };
