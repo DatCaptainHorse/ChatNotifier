@@ -123,7 +123,7 @@ message(STATUS "Fetching glaze")
 FetchContent_Declare(
   glaze
   GIT_REPOSITORY "https://github.com/stephenberry/glaze.git"
-  GIT_TAG "main"
+  GIT_TAG "v3.2.5"
   OVERRIDE_FIND_PACKAGE
 )
 FetchContent_MakeAvailable(glaze)

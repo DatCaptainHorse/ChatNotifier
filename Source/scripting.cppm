@@ -13,7 +13,6 @@ module;
 
 export module scripting;
 
-import config;
 import common;
 import runner;
 import filesystem;
