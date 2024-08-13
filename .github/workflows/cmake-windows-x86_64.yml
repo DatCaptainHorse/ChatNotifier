@@ -18,15 +18,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.12-dev'
-
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
       with:
         vs-prerelease: false
         msbuild-architecture: x64
+
+    - name: Install Python
+      run: |
+        choco install python312 --params "/InstallDir:C:\Python312" -y
+        refreshenv
 
     - uses: lukka/get-cmake@latest
 
