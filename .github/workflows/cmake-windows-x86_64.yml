@@ -34,12 +34,6 @@ jobs:
         $env:PYTHON_INCLUDE_DIR = "C:\Python312\include"
         $env:PYTHON_LIBRARY = "C:\Python312\libs\python312.lib"
 
-    - name: Set up Clang
-      uses: egor-tensin/setup-clang@v1
-      with:
-        version: 18
-        platform: x64
-
     - uses: lukka/get-cmake@latest
 
     - name: Configure CMake
