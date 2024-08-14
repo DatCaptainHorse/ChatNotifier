@@ -41,6 +41,8 @@ FetchContent_Declare(
   GIT_TAG "1.4.3"
   FIND_PACKAGE_ARGS
 )
+# We don't need manpages..
+set(INSTALL_MANPAGES OFF CACHE BOOL "" FORCE)
 
 # Fetch libsndfile with patch
 message(STATUS "Fetching libsndfile")
