@@ -56,8 +56,6 @@ FetchContent_Declare(
 set(BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(ENABLE_CPACK OFF CACHE BOOL "" FORCE)
-# We want static runtime
-set(ENABLE_STATIC_RUNTIME ON CACHE BOOL "" FORCE)
 
 # Fetch openal-soft
 message(STATUS "Fetching openal-soft")
