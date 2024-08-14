@@ -24,7 +24,7 @@ export module audio;
 
 import config;
 import common;
-import scripting;
+//import scripting;
 
 /* Scripting module extension forward declarations */
 void mod_play_oneshot_file(const std::string &filepath);
@@ -219,8 +219,8 @@ public:
 		set_global_volume(0.75f);
 
 		/* Scripting module methods */
-		ScriptingHandler::add_function("play_oneshot_file", mod_play_oneshot_file);
-		ScriptingHandler::add_function("play_oneshot_memory", mod_play_oneshot_memory);
+		//ScriptingHandler::add_function("play_oneshot_file", mod_play_oneshot_file);
+		//ScriptingHandler::add_function("play_oneshot_memory", mod_play_oneshot_memory);
 
 		return Result();
 	}

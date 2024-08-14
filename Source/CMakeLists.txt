@@ -52,13 +52,8 @@ target_link_libraries(ChatNotifier PUBLIC
 )
 
 if (WIN32)
-  target_link_directories(ChatNotifier PRIVATE
-    ${Python_LIBRARY_DIRS}
-  )
-
   target_link_libraries(ChatNotifier PRIVATE
     ws2_32
-    ${Python_LIBRARIES}
   )
 endif ()
 
