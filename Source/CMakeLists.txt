@@ -43,11 +43,12 @@ target_include_directories(ChatNotifier PRIVATE
 )
 
 target_link_libraries(ChatNotifier PUBLIC
-  glaze::glaze
+  #glaze::glaze
   libnyquist::libnyquist
   OpenAL::OpenAL
   glfw
   hv_static
+  json_struct::json_struct
 
   Python::Python
   nanobind

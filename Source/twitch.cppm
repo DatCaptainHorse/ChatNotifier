@@ -7,7 +7,7 @@ module;
 #include <semaphore>
 #include <functional>
 
-#include <glaze/glaze.hpp>
+#include <json_struct/json_struct.h>
 
 #include <hv/requests.h>
 #include <hv/HttpServer.h>
@@ -31,6 +31,8 @@ struct twitch_token_response {
 	std::string refresh_token;
 	std::vector<std::string> scope;
 	std::string token_type;
+
+	JS_OBJ(access_token, expires_in, refresh_token, scope, token_type);
 };
 
 constexpr auto twitch_client_id = "ugoh79sz2as94l6dqadpkzilpohdng";
@@ -228,13 +230,13 @@ private: // Handlers
 		if (const auto resp = requests::post(tokenUrl.c_str()); !resp)
 			return Result(2, "Failed to get OAuth token");
 		else {
-			if (const auto json_struct = glz::read_json<twitch_token_response>(resp->Body());
-				!json_struct)
+			JS::ParseContext context(resp->Body());
+			twitch_token_response json_struct;
+			if (context.parseTo(json_struct) != JS::Error::NoError)
 				return Result(3, "Failed to parse OAuth token response");
-			else {
-				m_oauthToken = json_struct->access_token;
-				global_config.refreshToken = json_struct->refresh_token;
-			}
+
+			m_oauthToken = json_struct.access_token;
+			global_config.refreshToken = json_struct.refresh_token;
 		}
 		return Result();
 	}
@@ -290,13 +292,13 @@ private: // Handlers
 		if (const auto resp = requests::post(tokenUrl.c_str()); !resp)
 			return Result(3, "Failed to get OAuth token");
 		else {
-			if (const auto json_struct = glz::read_json<twitch_token_response>(resp->Body());
-				!json_struct)
+			JS::ParseContext context(resp->Body());
+			twitch_token_response json_struct;
+			if (context.parseTo(json_struct) != JS::Error::NoError)
 				return Result(4, "Failed to parse OAuth token response");
-			else {
-				m_oauthToken = json_struct->access_token;
-				global_config.refreshToken = json_struct->refresh_token;
-			}
+
+			m_oauthToken = json_struct.access_token;
+			global_config.refreshToken = json_struct.refresh_token;
 		}
 		return Result();
 	}

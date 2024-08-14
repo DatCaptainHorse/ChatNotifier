@@ -119,14 +119,24 @@ endif ()
 FetchContent_MakeAvailable(libhv)
 
 # Fetch glaze
-message(STATUS "Fetching glaze")
+#message(STATUS "Fetching glaze")
+#FetchContent_Declare(
+#  glaze
+#  GIT_REPOSITORY "https://github.com/stephenberry/glaze.git"
+#  GIT_TAG "v3.2.5"
+#  OVERRIDE_FIND_PACKAGE
+#)
+#FetchContent_MakeAvailable(glaze)
+
+# Fetch json_struct
+message(STATUS "Fetching json_struct")
 FetchContent_Declare(
-  glaze
-  GIT_REPOSITORY "https://github.com/stephenberry/glaze.git"
-  GIT_TAG "v3.2.5"
+  json_struct
+  GIT_REPOSITORY "https://github.com/jorgen/json_struct.git"
+  GIT_TAG "master"
   OVERRIDE_FIND_PACKAGE
 )
-FetchContent_MakeAvailable(glaze)
+FetchContent_MakeAvailable(json_struct)
 
 # Fetch nanobind
 message(STATUS "Fetching nanobind")
