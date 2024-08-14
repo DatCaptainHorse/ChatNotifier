@@ -13,8 +13,8 @@ if (DEFINED ENV{TWITCH_CLIENT_SECRET})
   add_compile_definitions(TWITCH_CLIENT_SECRET="$ENV{TWITCH_CLIENT_SECRET}")
 endif ()
 
-# If win32, force MSVC_RUNTIME_LIBRARY to static
-if (WIN32)
+# If win32 and not clang, force MSVC_RUNTIME_LIBRARY to static
+if (WIN32 AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   # Also allow multiple definitions
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /FORCE:MULTIPLE")
