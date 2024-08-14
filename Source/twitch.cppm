@@ -7,8 +7,7 @@ module;
 #include <semaphore>
 #include <functional>
 
-#include <json_struct/json_struct.h>
-
+#include <hv/json.hpp>
 #include <hv/requests.h>
 #include <hv/HttpServer.h>
 #include <hv/WebSocketClient.h>
@@ -24,24 +23,13 @@ import commands;
 #warning "TWITCH_CLIENT_SECRET not defined"
 #endif
 
-// Struct for Twitch oauth token response JSON
-struct twitch_token_response {
-	std::string access_token;
-	int expires_in;
-	std::string refresh_token;
-	std::vector<std::string> scope;
-	std::string token_type;
-
-	JS_OBJ(access_token, expires_in, refresh_token, scope, token_type);
-};
-
 constexpr auto twitch_client_id = "ugoh79sz2as94l6dqadpkzilpohdng";
 constexpr auto twitch_redirect_uri = "http://localhost:42069/authchatnotifier";
 // Pre-URL encoded chat:read scope
 constexpr auto twitch_scope = "chat%3Aread";
 
 // Enable usage of bitmask operators for CommandCooldownType
-//consteval void enable_bitmask_operators(CommandCooldownType) {}
+// consteval void enable_bitmask_operators(CommandCooldownType) {}
 
 // Enum class of connection status
 export enum class ConnectionStatus { eDisconnected, eConnecting, eConnected };
@@ -230,13 +218,9 @@ private: // Handlers
 		if (const auto resp = requests::post(tokenUrl.c_str()); !resp)
 			return Result(2, "Failed to get OAuth token");
 		else {
-			JS::ParseContext context(resp->Body());
-			twitch_token_response json_struct;
-			if (context.parseTo(json_struct) != JS::Error::NoError)
-				return Result(3, "Failed to parse OAuth token response");
-
-			m_oauthToken = json_struct.access_token;
-			global_config.refreshToken = json_struct.refresh_token;
+			auto json = nlohmann::json::parse(resp->Body());
+			m_oauthToken = json["access_token"].get<std::string>();
+			global_config.refreshToken = json["refresh_token"].get<std::string>();
 		}
 		return Result();
 	}
@@ -292,13 +276,9 @@ private: // Handlers
 		if (const auto resp = requests::post(tokenUrl.c_str()); !resp)
 			return Result(3, "Failed to get OAuth token");
 		else {
-			JS::ParseContext context(resp->Body());
-			twitch_token_response json_struct;
-			if (context.parseTo(json_struct) != JS::Error::NoError)
-				return Result(4, "Failed to parse OAuth token response");
-
-			m_oauthToken = json_struct.access_token;
-			global_config.refreshToken = json_struct.refresh_token;
+			auto json = nlohmann::json::parse(resp->Body());
+			m_oauthToken = json["access_token"].get<std::string>();
+			global_config.refreshToken = json["refresh_token"].get<std::string>();
 		}
 		return Result();
 	}

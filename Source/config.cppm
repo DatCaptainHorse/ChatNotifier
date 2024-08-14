@@ -7,7 +7,7 @@ module;
 
 // #include <glaze/glaze.hpp>
 
-#include <json_struct/json_struct.h>
+#include <hv/json.hpp>
 
 export module config;
 
@@ -28,30 +28,6 @@ struct ConfigOption {
 	T value;
 	T min;
 	T max;
-};
-
-// Config struct for JSON
-struct ConfigJSON {
-	float notifAnimationLength;
-	float notifEffectSpeed;
-	float notifEffectIntensity;
-	float notifFontScale;
-	float globalAudioVolume;
-	std::vector<std::string> approvedUsers;
-	std::string twitchChannel;
-	std::string refreshToken;
-	std::uint8_t enabledCooldowns;
-	std::uint32_t cooldownTime;
-	std::uint32_t maxAudioTriggers;
-	float audioSequenceOffset;
-	float ttsVoiceSpeed;
-	float ttsVoiceVolume;
-	float ttsVoicePitch;
-
-	JS_OBJ(notifAnimationLength, notifEffectSpeed, notifEffectIntensity, notifFontScale,
-		   globalAudioVolume, approvedUsers, twitchChannel, refreshToken, enabledCooldowns,
-		   cooldownTime, maxAudioTriggers, audioSequenceOffset, ttsVoiceSpeed, ttsVoiceVolume,
-		   ttsVoicePitch);
 };
 
 // Struct for keeping configs across launches
@@ -78,25 +54,26 @@ export struct Config {
 								 std::string{}))
 			return Result(1, "Failed to save config");
 */
-		json.notifAnimationLength = notifAnimationLength.value;
-		json.notifEffectSpeed = notifEffectSpeed.value;
-		json.notifEffectIntensity = notifEffectIntensity.value;
-		json.notifFontScale = notifFontScale.value;
-		json.globalAudioVolume = globalAudioVolume.value;
-		json.approvedUsers = approvedUsers;
-		json.twitchChannel = twitchChannel;
-		json.refreshToken = refreshToken;
-		json.enabledCooldowns = static_cast<std::uint8_t>(enabledCooldowns);
-		json.cooldownTime = cooldownTime.value;
-		json.maxAudioTriggers = maxAudioTriggers.value;
-		json.audioSequenceOffset = audioSequenceOffset.value;
-		json.ttsVoiceSpeed = ttsVoiceSpeed.value;
-		json.ttsVoiceVolume = ttsVoiceVolume.value;
-		json.ttsVoicePitch = ttsVoicePitch.value;
+		nlohmann::json json;
 
-		const auto pretty_json = JS::serializeStruct(json);
-		auto file = std::ofstream(get_config_path());
-		file << pretty_json;
+		json["notifAnimationLength"] = notifAnimationLength.value;
+		json["notifEffectSpeed"] = notifEffectSpeed.value;
+		json["notifEffectIntensity"] = notifEffectIntensity.value;
+		json["notifFontScale"] = notifFontScale.value;
+		json["globalAudioVolume"] = globalAudioVolume.value;
+		json["approvedUsers"] = approvedUsers;
+		json["twitchChannel"] = twitchChannel;
+		json["refreshToken"] = refreshToken;
+		json["enabledCooldowns"] = static_cast<std::uint8_t>(enabledCooldowns);
+		json["cooldownTime"] = cooldownTime.value;
+		json["maxAudioTriggers"] = maxAudioTriggers.value;
+		json["audioSequenceOffset"] = audioSequenceOffset.value;
+		json["ttsVoiceSpeed"] = ttsVoiceSpeed.value;
+		json["ttsVoiceVolume"] = ttsVoiceVolume.value;
+		json["ttsVoicePitch"] = ttsVoicePitch.value;
+
+		std::ofstream file(get_config_path());
+		file << json.dump(4);
 		file.close();
 
 		return Result();
@@ -113,34 +90,31 @@ export struct Config {
 		// Read the file
 		auto file = std::ifstream(get_config_path());
 		const std::string file_contents((std::istreambuf_iterator<char>(file)),
-								  std::istreambuf_iterator<char>());
+										std::istreambuf_iterator<char>());
 
-		if (JS::ParseContext context(file_contents); context.parseTo(json) != JS::Error::NoError) {
-			return Result(1, "Failed to parse config");
-		}
+		auto json = nlohmann::json::parse(file_contents);
 
-		notifAnimationLength.value = json.notifAnimationLength;
-		notifEffectSpeed.value = json.notifEffectSpeed;
-		notifEffectIntensity.value = json.notifEffectIntensity;
-		notifFontScale.value = json.notifFontScale;
-		globalAudioVolume.value = json.globalAudioVolume;
-		approvedUsers = json.approvedUsers;
-		twitchChannel = json.twitchChannel;
-		refreshToken = json.refreshToken;
-		enabledCooldowns = static_cast<CommandCooldownType>(json.enabledCooldowns);
-		cooldownTime.value = json.cooldownTime;
-		maxAudioTriggers.value = json.maxAudioTriggers;
-		audioSequenceOffset.value = json.audioSequenceOffset;
-		ttsVoiceSpeed.value = json.ttsVoiceSpeed;
-		ttsVoiceVolume.value = json.ttsVoiceVolume;
-		ttsVoicePitch.value = json.ttsVoicePitch;
+		notifAnimationLength.value = json["notifAnimationLength"].get<float>();
+		notifEffectSpeed.value = json["notifEffectSpeed"].get<float>();
+		notifEffectIntensity.value = json["notifEffectIntensity"].get<float>();
+		notifFontScale.value = json["notifFontScale"].get<float>();
+		globalAudioVolume.value = json["globalAudioVolume"].get<float>();
+		approvedUsers = json["approvedUsers"].get<std::vector<std::string>>();
+		twitchChannel = json["twitchChannel"].get<std::string>();
+		refreshToken = json["refreshToken"].get<std::string>();
+		enabledCooldowns =
+			static_cast<CommandCooldownType>(json["enabledCooldowns"].get<std::uint8_t>());
+		cooldownTime.value = json["cooldownTime"].get<std::uint32_t>();
+		maxAudioTriggers.value = json["maxAudioTriggers"].get<std::uint32_t>();
+		audioSequenceOffset.value = json["audioSequenceOffset"].get<float>();
+		ttsVoiceSpeed.value = json["ttsVoiceSpeed"].get<float>();
+		ttsVoiceVolume.value = json["ttsVoiceVolume"].get<float>();
+		ttsVoicePitch.value = json["ttsVoicePitch"].get<float>();
 
 		return Result();
 	}
 
 private:
-	static inline ConfigJSON json;
-
 	static auto get_config_path() -> std::filesystem::path {
 		return Filesystem::get_root_path() / "config.json";
 	}

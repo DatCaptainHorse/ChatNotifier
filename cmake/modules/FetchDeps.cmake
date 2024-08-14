@@ -128,16 +128,6 @@ FetchContent_MakeAvailable(libhv)
 #)
 #FetchContent_MakeAvailable(glaze)
 
-# Fetch json_struct
-message(STATUS "Fetching json_struct")
-FetchContent_Declare(
-  json_struct
-  GIT_REPOSITORY "https://github.com/jorgen/json_struct.git"
-  GIT_TAG "master"
-  OVERRIDE_FIND_PACKAGE
-)
-FetchContent_MakeAvailable(json_struct)
-
 # Fetch nanobind
 message(STATUS "Fetching nanobind")
 FetchContent_Declare(

@@ -48,7 +48,6 @@ target_link_libraries(ChatNotifier PUBLIC
   OpenAL::OpenAL
   glfw
   hv_static
-  json_struct::json_struct
 
   Python::Python
   nanobind
