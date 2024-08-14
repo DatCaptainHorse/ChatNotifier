@@ -41,7 +41,7 @@ constexpr auto twitch_redirect_uri = "http://localhost:42069/authchatnotifier";
 constexpr auto twitch_scope = "chat%3Aread";
 
 // Enable usage of bitmask operators for CommandCooldownType
-consteval void enable_bitmask_operators(CommandCooldownType) {}
+//consteval void enable_bitmask_operators(CommandCooldownType) {}
 
 // Enum class of connection status
 export enum class ConnectionStatus { eDisconnected, eConnecting, eConnected };

@@ -15,7 +15,7 @@ import common;
 import filesystem;
 
 // Enum for cooldown types
-export enum class CommandCooldownType : std::uint8_t {
+export enum CommandCooldownType : std::uint8_t {
 	eNone = 0,
 	eGlobal = 1 << 0,
 	ePerUser = 1 << 1,
