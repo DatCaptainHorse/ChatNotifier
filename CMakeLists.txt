@@ -64,6 +64,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 #find_package(glaze REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(Python 3.12 COMPONENTS Interpreter Development REQUIRED)
+
+# Add Python_LIBRARIES to everything if WIN32, idk
+if (WIN32)
+  link_libraries(${Python_LIBRARIES})
+endif()
+
 find_package(nanobind CONFIG REQUIRED)
 find_package(libhv REQUIRED)
 find_package(libsndfile REQUIRED)
