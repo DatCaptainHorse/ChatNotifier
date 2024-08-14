@@ -30,12 +30,18 @@ jobs:
         Start-Process -Wait -FilePath "python-3.12.4-amd64.exe" -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1"
         Remove-Item -Path "python-3.12.4-amd64.exe"
 
+    - name: Set up Clang
+      uses: egor-tensin/setup-clang@v1
+      with:
+        version: 18
+        platform: x64
+
     - uses: lukka/get-cmake@latest
 
     - name: Configure CMake
       env:
         TWITCH_CLIENT_SECRET: ${{ secrets.TwitchClientSecret }}
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "Ninja" -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl
 
     - name: Build
       env:
