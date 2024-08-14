@@ -72,7 +72,7 @@ message(STATUS "Fetching openal-soft")
 FetchContent_Declare(
   openal-soft
   GIT_REPOSITORY "https://github.com/kcat/openal-soft.git"
-  GIT_TAG "1.23.1"
+  GIT_COMMIT "e39038317623c6282c3fd5685fcceaf3cc3137c7"
   FIND_PACKAGE_ARGS
 )
 # We don't care about the examples
