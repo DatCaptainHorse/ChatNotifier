@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.29)
+
+cmake_policy(SET CMP0067 NEW)
+cmake_policy(SET CMP0155 NEW)
+
 project(ChatNotifier)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF) # We don't want to use any compiler-specific extensions
-set(CMAKE_CXX_SCAN_FOR_MODULES ON) # We use C++20, might as well use modules
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/modules")
 
