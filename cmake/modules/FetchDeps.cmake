@@ -35,10 +35,13 @@ FetchContent_Declare(
 
 # Fetch libflac
 message(STATUS "Fetching flac")
+set(FLAC_PATCH git apply "${PROJECT_SOURCE_DIR}/cmake/0003-Fix-flac-cmake.patch")
 FetchContent_Declare(
   flac
   GIT_REPOSITORY "https://github.com/xiph/flac.git"
   GIT_TAG "1.4.3"
+  PATCH_COMMAND ${FLAC_PATCH}
+  UPDATE_DISCONNECTED 1
   FIND_PACKAGE_ARGS
 )
 # We don't need manpages, testing, etc..
@@ -56,6 +59,7 @@ FetchContent_Declare(
   GIT_REPOSITORY "https://github.com/libsndfile/libsndfile.git"
   GIT_COMMIT "58c05b87162264200b1aa7790be260fd74c9deee"
   PATCH_COMMAND ${LIBSNDFILE_PATCH}
+  UPDATE_DISCONNECTED 1
   FIND_PACKAGE_ARGS
 )
 # We don't care about the examples
