@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.29)
 
 cmake_policy(SET CMP0067 NEW)
-cmake_policy(SET CMP0155 NEW)
+cmake_policy(SET CMP0155 OLD)
 
 project(ChatNotifier)
 
