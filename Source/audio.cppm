@@ -1,6 +1,6 @@
 module;
 
-#include <libnyquist/Decoders.h>
+#include <sndfile.h>
 
 #define AL_ALEXT_PROTOTYPES
 #include <AL/al.h>
@@ -24,7 +24,7 @@ export module audio;
 
 import config;
 import common;
-//import scripting;
+import scripting;
 
 /* Scripting module extension forward declarations */
 void mod_play_oneshot_file(const std::string &filepath);
@@ -102,7 +102,6 @@ export class AudioPlayer {
 	static inline float m_volume;
 	static inline ALCdevice *m_device = nullptr;
 	static inline ALCcontext *m_context = nullptr;
-	static inline nqr::NyquistIO m_nyquist;
 	static inline std::map<std::string, ALuint> m_effects;
 
 	// Vector of sounds
@@ -220,8 +219,8 @@ public:
 		set_global_volume(0.75f);
 
 		/* Scripting module methods */
-		//ScriptingHandler::add_function("play_oneshot_file", mod_play_oneshot_file);
-		//ScriptingHandler::add_function("play_oneshot_memory", mod_play_oneshot_memory);
+		ScriptingHandler::add_function("play_oneshot_file", mod_play_oneshot_file);
+		ScriptingHandler::add_function("play_oneshot_memory", mod_play_oneshot_memory);
 
 		return Result();
 	}
@@ -386,13 +385,19 @@ public:
 	}
 
 	static void play_oneshot(const std::filesystem::path &file, const SoundOptions &opts = {}) {
-		nqr::AudioData audioData;
-		m_nyquist.Load(&audioData, file.string().c_str());
-		if (audioData.samples.empty()) return;
-		const auto sound =
-			load_sound_oal({audioData.samples, static_cast<std::uint32_t>(audioData.sampleRate),
-							static_cast<std::uint32_t>(audioData.channelCount)},
-						   opts);
+		// Load file using sndfile
+		SF_INFO sfInfo;
+		const auto sndFile = sf_open(file.string().c_str(), SFM_READ, &sfInfo);
+		if (!sndFile) return;
+
+		std::vector<float> samples(sfInfo.frames * sfInfo.channels);
+		sf_readf_float(sndFile, samples.data(), sfInfo.frames);
+		sf_close(sndFile);
+
+		// Load sound
+		const auto sound = load_sound_oal({samples, static_cast<std::uint32_t>(sfInfo.samplerate),
+										   static_cast<std::uint32_t>(sfInfo.channels)},
+										  opts);
 		m_sounds.push_back(sound);
 		alSourcePlay(sound->SID);
 	}
@@ -402,12 +407,19 @@ public:
 								const std::vector<SoundOptions> &opts) {
 		std::vector<std::shared_ptr<AudioPlayerSound>> sequence;
 		for (const auto &[file, opt] : std::views::zip(files, opts)) {
-			nqr::AudioData audioData;
-			m_nyquist.Load(&audioData, file.string().c_str());
-			if (audioData.samples.empty()) continue;
+			// Load file using sndfile
+			SF_INFO sfInfo;
+			const auto sndFile = sf_open(file.string().c_str(), SFM_READ, &sfInfo);
+			if (!sndFile) continue;
+
+			std::vector<float> samples(sfInfo.frames * sfInfo.channels);
+			sf_readf_float(sndFile, samples.data(), sfInfo.frames);
+			sf_close(sndFile);
+
+			// Load sound
 			const auto sound =
-				load_sound_oal({audioData.samples, static_cast<std::uint32_t>(audioData.sampleRate),
-								static_cast<std::uint32_t>(audioData.channelCount)},
+				load_sound_oal({samples, static_cast<std::uint32_t>(sfInfo.samplerate),
+								static_cast<std::uint32_t>(sfInfo.channels)},
 							   opt);
 
 			// Assign next sound in sequence

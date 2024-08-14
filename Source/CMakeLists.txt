@@ -37,28 +37,18 @@ target_include_directories(ChatNotifier PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/gl3w
   ${IMGUI_DIR}
   ${IMGUI_DIR}/backends
-  ${ogg_INCLUDE_DIRS}
-  ${opus_INCLUDE_DIRS}
-  ${opusfile_INCLUDE_DIRS}
 )
 
 target_link_libraries(ChatNotifier PUBLIC
   #glaze::glaze
-  libnyquist::libnyquist
+
+  SndFile::sndfile
   OpenAL::OpenAL
   glfw
   hv_static
 
   Python::Python
   nanobind
-
-  $<$<BOOL:${NON_NIX_BUILD}>:ogg>
-  $<$<BOOL:${NON_NIX_BUILD}>:opus>
-  $<$<BOOL:${NON_NIX_BUILD}>:OpusFile::opusfile>
-
-  ${ogg_LIBRARIES}
-  ${opus_LIBRARIES}
-  ${opusfile_LIBRARIES}
 )
 
 if (WIN32)
