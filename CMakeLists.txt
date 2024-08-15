@@ -18,8 +18,6 @@ if (WIN32 AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   # Also allow multiple definitions
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /FORCE:MULTIPLE")
-  # Also add Source directory into all includes
-  include_directories(Source) # Workaround for python being dumb
 endif ()
 
 if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
