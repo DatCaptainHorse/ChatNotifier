@@ -25,14 +25,9 @@ jobs:
         msbuild-architecture: x64
 
     - name: Install Python
-      run: |
-        Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.12.4/python-3.12.4-amd64.exe" -OutFile "python-3.12.4-amd64.exe"
-        Start-Process -Wait -FilePath "python-3.12.4-amd64.exe" -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_dev=1 Include_debug=1 Include_test=0 TargetDir=C:\Python312"
-        Remove-Item -Path "python-3.12.4-amd64.exe"
-        $env:Path = "C:\Python312;C:\Python312\Scripts;$env:Path"
-        $env:PYTHON_EXECUTABLE = "C:\Python312\python.exe"
-        $env:PYTHON_INCLUDE_DIR = "C:\Python312\include"
-        $env:PYTHON_LIBRARY = "C:\Python312\libs\python312.lib"
+      uses: actions/setup-python@v5
+      with:
+          python-version: '3.12'
 
     - uses: lukka/get-cmake@latest
 
