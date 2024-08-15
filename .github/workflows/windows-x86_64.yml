@@ -28,7 +28,9 @@ jobs:
       run: |
         choco install python312 --params "/InstallDir:C:\Python312"
 
-    - uses: lukka/get-cmake@latest
+    - name: Install CMake
+      run: |
+        choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
 
     - name: Configure CMake
       env:

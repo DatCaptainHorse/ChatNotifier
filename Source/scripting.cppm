@@ -7,6 +7,9 @@ module;
 #include <filesystem>
 #include <source_location>
 
+// Include Python manually to fix issues
+#include <Python.h>
+
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
