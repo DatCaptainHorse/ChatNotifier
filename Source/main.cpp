@@ -73,12 +73,6 @@ auto main(int argc, char **argv) -> int {
 		return res.code;
 	}
 
-	// Create module
-	if (const auto res = ScriptingHandler::create_module(); !res) {
-		print_error(res);
-		return res.code;
-	}
-
 	// Add scripts
 	ScriptingHandler::refresh_scripts([] {
 		for (const auto script : ScriptingHandler::get_scripts()) {

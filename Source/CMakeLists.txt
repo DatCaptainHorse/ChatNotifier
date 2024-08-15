@@ -1,6 +1,3 @@
-# Create nanobind, odd requirement but okay
-nanobind_build_library(nanobind "-static")
-
 # Main executable
 add_executable(ChatNotifier
   main.cpp
@@ -29,6 +26,7 @@ target_sources(ChatNotifier PUBLIC FILE_SET CXX_MODULES FILES
   config.cppm
   runner.cppm
   filesystem.cppm
+  scripting_py.cppm
   scripting.cppm
 )
 
@@ -48,7 +46,6 @@ target_link_libraries(ChatNotifier PUBLIC
   hv_static
 
   Python::Python
-  nanobind
 )
 
 if (WIN32)

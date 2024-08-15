@@ -9,15 +9,7 @@ module;
 export module assets;
 
 import common;
-import scripting;
 import filesystem;
-
-// Forward declarations of scripting module methods
-auto mod_get_assets_path() -> std::string;
-auto mod_get_font_assets_path() -> std::string;
-auto mod_get_tts_assets_path() -> std::string;
-auto mod_get_ascii_assets_path() -> std::string;
-auto mod_get_sound_assets_path() -> std::string;
 
 // Class which handles assets
 export class AssetsHandler {
@@ -34,14 +26,6 @@ public:
 		populate_font_files();
 		populate_ascii_art_files();
 		populate_egg_sounds();
-
-		// Register scripting module methods
-		ScriptingHandler::add_function("get_assets_path", mod_get_assets_path);
-		ScriptingHandler::add_function("get_font_assets_path", mod_get_font_assets_path);
-		ScriptingHandler::add_function("get_tts_assets_path", mod_get_tts_assets_path);
-		ScriptingHandler::add_function("get_ascii_assets_path", mod_get_ascii_assets_path);
-		ScriptingHandler::add_function("get_sound_assets_path", mod_get_sound_assets_path);
-
 		return Result();
 	}
 
@@ -181,18 +165,3 @@ private:
 		}
 	}
 };
-
-/* Scripting module implementations */
-auto mod_get_assets_path() -> std::string { return AssetsHandler::get_assets_path().string(); }
-auto mod_get_font_assets_path() -> std::string {
-	return AssetsHandler::get_font_assets_path().string();
-}
-auto mod_get_tts_assets_path() -> std::string {
-	return AssetsHandler::get_tts_assets_path().string();
-}
-auto mod_get_ascii_assets_path() -> std::string {
-	return AssetsHandler::get_trigger_ascii_path().string();
-}
-auto mod_get_sound_assets_path() -> std::string {
-	return AssetsHandler::get_trigger_sounds_path().string();
-}

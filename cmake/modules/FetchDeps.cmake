@@ -135,17 +135,8 @@ endif ()
 #)
 #FetchContent_MakeAvailable(glaze)
 
-# Fetch nanobind
-message(STATUS "Fetching nanobind")
-FetchContent_Declare(
-  nanobind
-  GIT_REPOSITORY "https://github.com/wjakob/nanobind.git"
-  GIT_TAG "v2.1.0"
-  FIND_PACKAGE_ARGS
-)
-
 
 # Make available
-FetchContent_MakeAvailable(ogg opus vorbis flac libsndfile openal-soft imgui glfw3 libhv nanobind)
+FetchContent_MakeAvailable(ogg opus vorbis flac libsndfile openal-soft imgui glfw3 libhv)
 set(IMGUI_DIR ${imgui_SOURCE_DIR})
 add_library(Vorbis::vorbisenc ALIAS vorbisenc)

@@ -1,9 +1,5 @@
 module;
 
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
-
 #include <sndfile.h>
 
 #define AL_ALEXT_PROTOTYPES
@@ -28,12 +24,6 @@ export module audio;
 
 import config;
 import common;
-import scripting;
-
-/* Scripting module extension forward declarations */
-void mod_play_oneshot_file(const std::string &filepath);
-void mod_play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
-							 const std::uint32_t &channels);
 
 // Struct of passable (memory) sound data
 export struct SoundData {
@@ -221,10 +211,6 @@ public:
 
 		// Set global volume to 0.75f by default
 		set_global_volume(0.75f);
-
-		/* Scripting module methods */
-		ScriptingHandler::add_function("play_oneshot_file", mod_play_oneshot_file);
-		ScriptingHandler::add_function("play_oneshot_memory", mod_play_oneshot_memory);
 
 		return Result();
 	}
@@ -464,12 +450,3 @@ public:
 		alSourcePlay(sequence.front()->SID);
 	}
 };
-
-/* Scripting module extensions */
-void mod_play_oneshot_file(const std::string &filepath) {
-	AudioPlayer::play_oneshot(std::filesystem::path(filepath));
-}
-void mod_play_oneshot_memory(const std::vector<float> &data, const std::uint32_t &samplerate,
-							 const std::uint32_t &channels) {
-	AudioPlayer::play_oneshot_memory({data, samplerate, channels}, {});
-}

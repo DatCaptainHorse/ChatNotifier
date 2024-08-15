@@ -32,6 +32,9 @@ def on_message(msg):
     # Convert to float32, piper works in mysterious ways
     collected_audio = np.frombuffer(collected_audio, dtype=np.int16).astype(np.float32) / 32768.0
 
+    # Convert audio to list of floats
+    collected_audio = collected_audio.tolist()
+
     print("Audio synthesized")
     chatnotifier.play_oneshot_memory(collected_audio, voice.config.sample_rate, 1)
     print("Audio played")

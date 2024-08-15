@@ -7,18 +7,14 @@ module;
 #include <filesystem>
 #include <source_location>
 
-// Include Python manually to fix issues
 #include <Python.h>
-
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
 
 export module scripting;
 
 import common;
 import runner;
 import filesystem;
+import pythonmodule;
 
 // Helper for decrementing Python reference count, checking that GIL is held
 void decref_pyobject(PyObject *obj,
@@ -49,50 +45,6 @@ void print_python_error(const std::source_location &loc = std::source_location::
 }
 
 export class ScriptingHandler;
-
-// Class for python module
-export class ChatNotifierPyModule {
-	static inline std::unique_ptr<nanobind::module_> m;
-
-	static inline PyModuleDef nanobind_module_def_chatnotifierscripting;
-
-	friend class ScriptingHandler;
-
-	static auto initialize() -> Result {
-		nanobind::detail::init(nullptr);
-		m = std::make_unique<nanobind::module_>(
-			nanobind::steal<nanobind::module_>(nanobind::detail::module_new(
-				"chatnotifier", &nanobind_module_def_chatnotifierscripting)));
-
-		return Result();
-	}
-
-	static auto finalize() -> PyObject * {
-		try {
-			return m.release()->release().ptr();
-		} catch (const std::exception &e) {
-			PyErr_SetString(PyExc_ImportError, e.what());
-			return nullptr;
-		}
-	}
-
-	template <typename... Args>
-	static void add_command(const std::string &name, std::function<void(Args...)> func) {
-		m->def(name.c_str(), func);
-	}
-
-	// From actual function
-	template <typename... Args>
-	static void add_command(const std::string &name, void (*func)(Args...)) {
-		m->def(name.c_str(), func);
-	}
-
-	// With return
-	template <typename Ret, typename... Args>
-	static void add_command(const std::string &name, Ret (*func)(Args...)) {
-		m->def(name.c_str(), func);
-	}
-};
 
 export class Script {
 	std::filesystem::path path;
@@ -143,17 +95,43 @@ private:
 			return;
 		}
 
-		// Run the script
-		const auto result = PyObject_CallObject(
-			pymethod, sizeof...(Args) > 0 ? nanobind::make_tuple(args...).ptr() : nullptr);
-		if (!result) {
-			print_python_error();
-			decref_pyobject(pymethod);
-			return;
-		}
+		// Create the arguments if any
+		if constexpr (sizeof...(args) > 0) {
+			auto pyargs = PyTuple_New(sizeof...(args));
+			if (!pyargs) {
+				print_python_error();
+				decref_pyobject(pymethod);
+				return;
+			}
 
-		decref_pyobject(result);
-		decref_pyobject(pymethod);
+			// Get args into tuple
+			for (size_t i = 0; const auto &arg : {args...}) {
+				if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, std::string>)
+					PyTuple_SetItem(pyargs, i, PyUnicode_FromString(arg.c_str()));
+				else if constexpr (std::is_same_v<std::decay_t<decltype(arg)>,
+												  std::vector<std::string>>)
+					PyTuple_SetItem(pyargs, i, Py_BuildValue("[s]", arg.c_str()));
+				else if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, std::vector<float>>)
+					PyTuple_SetItem(pyargs, i, Py_BuildValue("[f]", arg));
+				else
+					PyTuple_SetItem(pyargs, i, arg);
+			}
+
+			// Call the method
+			const auto result = PyObject_CallObject(pymethod, pyargs);
+			if (!result) print_python_error();
+
+			decref_pyobject(pyargs);
+			decref_pyobject(result);
+			decref_pyobject(pymethod);
+		} else {
+			// Call the method
+			const auto result = PyObject_CallObject(pymethod, nullptr);
+			if (!result) print_python_error();
+
+			decref_pyobject(result);
+			decref_pyobject(pymethod);
+		}
 	}
 };
 
@@ -165,7 +143,7 @@ class ScriptingHandler {
 public:
 	static auto initialize() -> Result {
 		// Initialize Python in a separate thread
-		python_runner.add_job_sync([] {
+		python_runner.add_job_sync([]() -> void {
 			PyPreConfig preconfig = {};
 			preconfig.utf8_mode = true;
 			PyPreConfig_InitIsolatedConfig(&preconfig);
@@ -198,10 +176,10 @@ public:
 			// Acquire the GIL
 			const auto gstate = PyGILState_Ensure();
 
-			// Initialize the module
-			if (const auto res = ChatNotifierPyModule::initialize(); !res) {
-				PyGILState_Release(gstate);
-				return res;
+			module = ChatNotifierModuleCreate();
+			if (!module) {
+				std::println("Failed to create Python module");
+				return;
 			}
 
 			// Add scripts paths and subdirectories to sys.path
@@ -218,70 +196,8 @@ public:
 
 			// Release the GIL
 			PyGILState_Release(gstate);
-
-			return Result();
 		});
 
-		return Result();
-	}
-
-	template <typename... Args>
-	static void add_function(const std::string &name, std::function<void(Args...)> func) {
-		// Run in the Python thread
-		python_runner.add_job_sync([name, func] {
-			// Acquire the GIL
-			const auto gstate = PyGILState_Ensure();
-
-			ChatNotifierPyModule::add_command(name, func);
-
-			// Release the GIL
-			PyGILState_Release(gstate);
-		});
-	}
-
-	template <typename... Args>
-	static void add_function(const std::string &name, void (*func)(Args...)) {
-		// Run in the Python thread
-		python_runner.add_job_sync([name, func] {
-			// Acquire the GIL
-			const auto gstate = PyGILState_Ensure();
-
-			ChatNotifierPyModule::add_command(name, func);
-
-			// Release the GIL
-			PyGILState_Release(gstate);
-		});
-	}
-
-	template <typename Ret, typename... Args>
-	static void add_function(const std::string &name, Ret (*func)(Args...)) {
-		// Run in the Python thread
-		python_runner.add_job_sync([name, func] {
-			// Acquire the GIL
-			const auto gstate = PyGILState_Ensure();
-
-			ChatNotifierPyModule::add_command(name, func);
-
-			// Release the GIL
-			PyGILState_Release(gstate);
-		});
-	}
-
-	static auto create_module() -> Result {
-		// Run in the Python thread
-		python_runner.add_job_sync([] {
-			// Acquire the GIL
-			const auto gstate = PyGILState_Ensure();
-
-			decref_pyobject(module);
-			module = ChatNotifierPyModule::finalize();
-			if (!module) return Result(1, "Failed to create module");
-
-			// Release the GIL
-			PyGILState_Release(gstate);
-
-			return Result();
-		});
 		return Result();
 	}
 
