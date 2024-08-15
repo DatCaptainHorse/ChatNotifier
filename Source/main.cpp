@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <filesystem>
 
+#include <hv/json.hpp>
+
 import config;
 import common;
 import assets;
