@@ -28,4 +28,5 @@ Assets/*
 !Assets/TriggerSounds/tutturuu.opus
 
 # Ignore Scripts/Deps folder
-Scripts/Deps/*
+Scripts/Deps/
+

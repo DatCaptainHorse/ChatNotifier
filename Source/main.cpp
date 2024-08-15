@@ -1,3 +1,5 @@
+#include <print>
+#include <locale>
 #include <thread>
 #include <chrono>
 #include <format>
@@ -17,7 +19,7 @@ import scripting;
 
 // Method for printing Result errors
 void print_error(const Result &res) {
-	if (!res) std::cerr << "Error: " << res.message << std::endl;
+	if (!res) std::println("Error: {}", res.message);
 }
 
 void twc_callback_handler(const TwitchChatMessage &msg);

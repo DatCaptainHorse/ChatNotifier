@@ -3,7 +3,7 @@ module;
 #define GLFW_INCLUDE_NONE				// Don't include OpenGL headers by default
 #define IMGUI_IMPL_OPENGL_LOADER_CUSTOM // Same goes for ImGui
 
-#include <GL/gl3w.h>
+#include "gl3w/GL/gl3w.h"
 #include <GLFW/glfw3.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
