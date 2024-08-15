@@ -1,6 +1,9 @@
 module;
 
 #include <hv/json.hpp>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 
 #define GLFW_INCLUDE_NONE				// Don't include OpenGL headers by default
 #define IMGUI_IMPL_OPENGL_LOADER_CUSTOM // Same goes for ImGui
