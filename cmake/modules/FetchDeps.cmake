@@ -77,6 +77,8 @@ set(ALSOFT_UTILS OFF CACHE BOOL "" FORCE)
 set(ALSOFT_NO_CONFIG_UTIL ON CACHE BOOL "" FORCE)
 set(ALSOFT_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(ALSOFT_EAX OFF CACHE BOOL "" FORCE)
+# Make sure it's statically built
+set(LIBTYPE STATIC CACHE STRING "" FORCE)
 
 # Fetch imgui
 # Needs special patch to have transparent framebuffers

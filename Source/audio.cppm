@@ -2,6 +2,7 @@ module;
 
 #include <sndfile.h>
 
+#define AL_LIBTYPE_STATIC
 #define AL_ALEXT_PROTOTYPES
 #include <AL/al.h>
 #include <AL/alc.h>
