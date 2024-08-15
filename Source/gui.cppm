@@ -1,5 +1,7 @@
 module;
 
+#include <hv/json.hpp>
+
 #define GLFW_INCLUDE_NONE				// Don't include OpenGL headers by default
 #define IMGUI_IMPL_OPENGL_LOADER_CUSTOM // Same goes for ImGui
 
