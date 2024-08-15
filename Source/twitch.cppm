@@ -7,7 +7,6 @@ module;
 #include <semaphore>
 #include <functional>
 
-#include <hv/json.hpp>
 #include <hv/requests.h>
 #include <hv/HttpServer.h>
 #include <hv/WebSocketClient.h>
@@ -218,9 +217,15 @@ private: // Handlers
 		if (const auto resp = requests::post(tokenUrl.c_str()); !resp)
 			return Result(2, "Failed to get OAuth token");
 		else {
-			auto json = nlohmann::json::parse(resp->Body());
-			m_oauthToken = json["access_token"].get<std::string>();
-			global_config.refreshToken = json["refresh_token"].get<std::string>();
+			// Get the token and refresh token from the response
+			const auto json = resp->GetJson();
+			if (json.contains("access_token"))
+				m_oauthToken = json["access_token"].get<std::string>();
+			else
+				return Result(3, "Failed to get OAuth token from json");
+
+			if (json.contains("refresh_token"))
+				global_config.refreshToken = json["refresh_token"].get<std::string>();
 		}
 		return Result();
 	}
@@ -274,11 +279,17 @@ private: // Handlers
 						twitch_client_id, TWITCH_CLIENT_SECRET, m_oauthCode, twitch_redirect_uri);
 
 		if (const auto resp = requests::post(tokenUrl.c_str()); !resp)
-			return Result(3, "Failed to get OAuth token");
+			return Result(4, "Failed to get OAuth token");
 		else {
-			auto json = nlohmann::json::parse(resp->Body());
-			m_oauthToken = json["access_token"].get<std::string>();
-			global_config.refreshToken = json["refresh_token"].get<std::string>();
+			// Get the token and refresh token from the response
+			const auto json = resp->GetJson();
+			if (json.contains("access_token"))
+				m_oauthToken = json["access_token"].get<std::string>();
+			else
+				return Result(5, "Failed to get OAuth token from json");
+
+			if (json.contains("refresh_token"))
+				global_config.refreshToken = json["refresh_token"].get<std::string>();
 		}
 		return Result();
 	}
