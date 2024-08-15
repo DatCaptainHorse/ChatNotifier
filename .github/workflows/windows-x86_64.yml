@@ -39,7 +39,7 @@ jobs:
     - name: Configure CMake
       env:
         TWITCH_CLIENT_SECRET: ${{ secrets.TwitchClientSecret }}
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "Ninja" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Build
       env:
