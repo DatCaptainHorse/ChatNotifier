@@ -19,7 +19,6 @@ import commands;
 
 #ifndef TWITCH_CLIENT_SECRET
 #define TWITCH_CLIENT_SECRET "undefined"
-#warning "TWITCH_CLIENT_SECRET not defined"
 #endif
 
 constexpr auto twitch_client_id = "ugoh79sz2as94l6dqadpkzilpohdng";
