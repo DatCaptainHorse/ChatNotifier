@@ -1,6 +1,10 @@
 module;
 
 #include <hv/json.hpp>
+#include <hv/requests.h>
+#include <hv/HttpServer.h>
+#include <hv/WebSocketClient.h>
+
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
