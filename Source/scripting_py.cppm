@@ -12,23 +12,23 @@ import audio;
 
 /* Assets */
 static PyObject *Py_Assets_getAssetsPath(PyObject *self, PyObject *args) {
-	return PyUnicode_FromString(AssetsHandler::get_assets_path().c_str());
+	return PyUnicode_FromString(AssetsHandler::get_assets_path().string().c_str());
 }
 
 static PyObject *Py_Assets_getFontAssetsPath(PyObject *self, PyObject *args) {
-	return PyUnicode_FromString(AssetsHandler::get_font_assets_path().c_str());
+	return PyUnicode_FromString(AssetsHandler::get_font_assets_path().string().c_str());
 }
 
 static PyObject *Py_Assets_getTTSAssetsPath(PyObject *self, PyObject *args) {
-	return PyUnicode_FromString(AssetsHandler::get_tts_assets_path().c_str());
+	return PyUnicode_FromString(AssetsHandler::get_tts_assets_path().string().c_str());
 }
 
 static PyObject *Py_Assets_getTriggerASCIIPath(PyObject *self, PyObject *args) {
-	return PyUnicode_FromString(AssetsHandler::get_trigger_ascii_path().c_str());
+	return PyUnicode_FromString(AssetsHandler::get_trigger_ascii_path().string().c_str());
 }
 
 static PyObject *Py_Assets_getTriggerSoundsPath(PyObject *self, PyObject *args) {
-	return PyUnicode_FromString(AssetsHandler::get_trigger_sounds_path().c_str());
+	return PyUnicode_FromString(AssetsHandler::get_trigger_sounds_path().string().c_str());
 }
 
 /* Audio */
