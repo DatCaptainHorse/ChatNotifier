@@ -27,8 +27,6 @@ jobs:
     - name: Install Python
       run: |
         choco install python312 --params "/InstallDir:C:\Python312"
-        echo ::add-path::C:\Python312\Scripts
-        echo ::add-path::C:\Python312
 
     - uses: lukka/get-cmake@latest
 
