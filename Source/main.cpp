@@ -8,6 +8,7 @@
 #include <filesystem>
 
 #include <hv/json.hpp>
+#include <hv/requests.h>
 
 import config;
 import common;
