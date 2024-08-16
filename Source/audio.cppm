@@ -234,9 +234,12 @@ public:
 			alGetSourcei(sound->SID, AL_SOURCE_STATE, &soundState);
 
 			if (sound->next != nullptr &&
-				(soundState != AL_PLAYING || soundTime >= sound->length + sound->lengthOffset)) {
-				// Start playback of next sound
-				alSourcePlay(sound->next->SID);
+				(soundState == AL_STOPPED || soundTime >= sound->length + sound->lengthOffset)) {
+				// Start playback of next sound if next soundstate is AL_INITIAL
+				auto nextSoundState = AL_INITIAL;
+				alGetSourcei(sound->next->SID, AL_SOURCE_STATE, &nextSoundState);
+				if (nextSoundState == AL_INITIAL)
+					alSourcePlay(sound->next->SID);
 			}
 		}
 		check_al_errors();
@@ -249,7 +252,8 @@ public:
 			auto soundTime = 0.0f;
 			alGetSourcef(sound->SID, AL_SEC_OFFSET, &soundTime);
 			check_al_errors();
-			if (soundState != AL_PLAYING && soundTime >= sound->length) {
+			if (soundState != AL_PLAYING && soundState != AL_INITIAL &&
+				soundTime >= sound->length) {
 				if (sound->endedTime.time_since_epoch().count() == 0)
 					sound->endedTime = std::chrono::steady_clock::now();
 				else if (std::chrono::steady_clock::now() - sound->endedTime >=

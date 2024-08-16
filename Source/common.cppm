@@ -406,7 +406,7 @@ export struct TwitchChatMessage {
 		if (!is_command()) return message;
 		if (const auto argGroups = get_strings_between(message, "<", ">"); argGroups.empty()) {
 			if (message.starts_with("!") && !command.empty())
-				return trim_string(get_string_after(message, command));
+				return get_string_after(message, command);
 			else
 				return message;
 		} else {

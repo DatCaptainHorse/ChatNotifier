@@ -30,7 +30,7 @@ constexpr auto twitch_scope = "chat%3Aread";
 // consteval void enable_bitmask_operators(CommandCooldownType) {}
 
 // Enum class of connection status
-export enum class ConnectionStatus { eDisconnected, eConnecting, eConnected };
+export enum class ConnectionStatus { eDisconnected, eConnecting, eConnected, eError };
 
 // Callback type for Twitch chat message
 export using TwitchChatMessageCallback = std::function<void(const TwitchChatMessage &)>;
@@ -72,10 +72,15 @@ public:
 		if (!global_config.refreshToken.empty()) {
 			if (!oauth_refresh()) {
 				// Attempt full
-				if (const auto res = oauth_full(); !res) return res;
+				if (const auto res = oauth_full(); !res) {
+					m_connStatus = ConnectionStatus::eError;
+					return res;
+				}
 			}
-		} else if (const auto res = oauth_full(); !res)
+		} else if (const auto res = oauth_full(); !res) {
+			m_connStatus = ConnectionStatus::eError;
 			return res;
+		}
 
 		// Set handlers
 		m_client.onopen = handle_open;
@@ -88,7 +93,7 @@ public:
 
 		// Connection making
 		if (m_client.open("ws://irc-ws.chat.twitch.tv:80") != 0) {
-			m_connStatus = ConnectionStatus::eDisconnected;
+			m_connStatus = ConnectionStatus::eError;
 			return Result(2, "Failed to open connection");
 		}
 

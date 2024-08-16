@@ -156,8 +156,10 @@ private:
 	static void populate_egg_sounds() {
 		for (const auto &entry : std::filesystem::directory_iterator(get_trigger_sounds_path())) {
 			if (entry.is_regular_file()) {
-				// Only files with ".opus" extension
-				if (const auto &path = entry.path(); path.extension() == ".opus") {
+				// Only files with ".opus", ".ogg" or ".wav" extension
+				if (const auto &path = entry.path(); path.extension() == ".opus" ||
+													 path.extension() == ".ogg" ||
+													 path.extension() == ".wav") {
 					// Key is the filename without extension, value is the path
 					egg_sounds[path.stem().string()] = path;
 				}

@@ -107,7 +107,7 @@ private:
 			// Get args into tuple
 			for (size_t i = 0; const auto &arg : {args...}) {
 				if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, std::string>)
-					PyTuple_SetItem(pyargs, i, PyUnicode_FromString(arg.c_str()));
+					PyTuple_SetItem(pyargs, i, Py_BuildValue("s", arg.c_str()));
 				else if constexpr (std::is_same_v<std::decay_t<decltype(arg)>,
 												  std::vector<std::string>>)
 					PyTuple_SetItem(pyargs, i, Py_BuildValue("[s]", arg.c_str()));
