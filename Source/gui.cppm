@@ -7,8 +7,7 @@ module;
 
 #define GLFW_INCLUDE_NONE				// Don't include OpenGL headers by default
 #define IMGUI_IMPL_OPENGL_LOADER_CUSTOM // Same goes for ImGui
-
-#include "gl3w/GL/gl3w.h"
+#include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -29,6 +28,7 @@ module;
 
 export module gui;
 
+import opengl;
 import config;
 import common;
 import assets;
@@ -41,7 +41,7 @@ import scripting;
 // Class which manages the GUI + notifications
 export class NotifierGUI {
 	static inline bool m_keepRunning = false;
-	static inline GLFWwindow *m_mainWindow;
+	static inline GLFWwindow *m_guiWindow;
 	static inline ImFont *m_mainFont;
 	static inline ImFont *m_notifFont;
 	static inline float m_DPI;
@@ -58,15 +58,8 @@ export class NotifierGUI {
 public:
 	// Initialize the GUI and it's resources
 	static auto initialize() -> Result {
-		// GLFW INITIALIZATION //
-		glfwSetErrorCallback(glfw_error_callback);
-		if (!glfwInit()) return Result(1, "Failed to initialize GLFW!");
-
-		// WINDOW CREATION //
-		const auto monitor = glfwGetPrimaryMonitor();
-		const auto mode = glfwGetVideoMode(monitor);
-
 		// GLFW window hints
+		glfwDefaultWindowHints();
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -76,22 +69,11 @@ public:
 		glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
 
 		// Main window
-		m_mainWindow = glfwCreateWindow(420, 690, "ChatNotifier", nullptr, nullptr);
-		if (!m_mainWindow) return Result(2, "Failed to create GLFW window!");
+		m_guiWindow = glfwCreateWindow(420, 690, "ChatNotifier GUI", nullptr, nullptr);
+		if (!m_guiWindow) return Result(2, "Failed to create GUI window");
 
-		glfwMakeContextCurrent(m_mainWindow);
+		glfwMakeContextCurrent(m_guiWindow);
 		glfwSwapInterval(1); // V-Sync
-
-		// GL3W INITIALIZATION //
-		if (gl3wInit()) {
-			return Result(3, "Failed to initialize GL3W!");
-		}
-		if (!gl3wIsSupported(3, 3)) {
-			return Result(4, "OpenGL 3.3 not supported!");
-		}
-
-		// Print OpenGL version
-		std::cout << std::format("OpenGL Version: {}", get_gl_string(GL_VERSION)) << std::endl;
 
 		// IMGUI INITIALIZATION //
 		IMGUI_CHECKVERSION();
@@ -108,6 +90,7 @@ public:
 		// Calculate pixel density
 		// (DPI = (square root of (horizontal pixels² + vertical pixels²)) / diagonal screen size in
 		// inches)
+		const auto mode = OpenGLHandler::get_mode();
 		m_DPI = std::sqrt(std::pow(mode->width, 2) + std::pow(mode->height, 2)) / mode->width;
 		const auto mainFontSize = 18.0 * m_DPI;
 		const auto notifFontSize = 64.0 * m_DPI;
@@ -141,7 +124,7 @@ public:
 		}
 
 		// MAIN WINDOW IMGUI INITIALIZATION //
-		ImGui_ImplGlfw_InitForOpenGL(m_mainWindow, true);
+		ImGui_ImplGlfw_InitForOpenGL(m_guiWindow, true);
 		ImGui_ImplOpenGL3_Init("#version 330 core");
 
 		// Build fonts
@@ -160,21 +143,18 @@ public:
 		ImGui_ImplOpenGL3_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
-
-		glfwMakeContextCurrent(nullptr);
-		glfwDestroyWindow(m_mainWindow);
-		glfwTerminate();
 	}
 
 	// Returns if the gui should close
 	[[nodiscard]] static auto should_close() -> bool {
-		return !m_keepRunning || glfwWindowShouldClose(m_mainWindow);
+		return !m_keepRunning || glfwWindowShouldClose(m_guiWindow);
 	}
 
 	// GUI drawing and updating
 	static void render() {
-		// GLFW POLL EVENTS //
-		glfwPollEvents();
+		// Backup context
+		//const auto prev_ctx_main = glfwGetCurrentContext();
+		//glfwMakeContextCurrent(m_guiWindow);
 
 		// IMGUI NEW FRAME //
 		ImGui_ImplOpenGL3_NewFrame();
@@ -462,7 +442,7 @@ public:
 		// IMGUI RENDERING //
 		ImGui::Render();
 		int display_w = 0, display_h = 0;
-		glfwGetFramebufferSize(m_mainWindow, &display_w, &display_h);
+		glfwGetFramebufferSize(m_guiWindow, &display_w, &display_h);
 		glViewport(0, 0, display_w, display_h);
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -477,7 +457,10 @@ public:
 		}
 
 		// GLFW SWAP BUFFERS //
-		glfwSwapBuffers(m_mainWindow);
+		glfwSwapBuffers(m_guiWindow);
+
+		// Restore context
+		//glfwMakeContextCurrent(prev_ctx_main);
 	}
 
 	// Method for launching new notification
@@ -516,17 +499,5 @@ private:
 		default:
 			return m_colorError;
 		}
-	}
-
-	// GLFW error callback using format
-	static void glfw_error_callback(int error, const char *description) {
-		// Ignore GLFW_FEATURE_UNAVAILABLE as they're expected with Wayland
-		if (error != GLFW_FEATURE_UNAVAILABLE)
-			std::cerr << std::format("GLFW error {}: {}", error, description);
-	}
-
-	// Method that provides better glGetString, returns const char* instead of GLubyte*
-	static auto get_gl_string(const GLenum name) -> const char * {
-		return reinterpret_cast<const char *>(glGetString(name));
 	}
 };

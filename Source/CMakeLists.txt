@@ -16,6 +16,7 @@ add_executable(ChatNotifier
 # C++20 module files
 target_sources(ChatNotifier PUBLIC FILE_SET CXX_MODULES FILES
   common.cppm
+  opengl.cppm
   assets.cppm
   commands.cppm
   audio.cppm
@@ -38,13 +39,10 @@ target_include_directories(ChatNotifier PRIVATE
 )
 
 target_link_libraries(ChatNotifier PUBLIC
-  #glaze::glaze
-
   SndFile::sndfile
   OpenAL::OpenAL
   glfw
   hv_static
-
   Python::Python
 )
 

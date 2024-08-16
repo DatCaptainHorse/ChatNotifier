@@ -263,6 +263,21 @@ public:
 		});
 	}
 
+	// Calls all scripts which have specified method
+	template <typename... Args>
+	static void execute_all_scripts_method(const std::string &method, Args... args) {
+		// Run in the Python thread
+		python_runner.add_job([method, args...] {
+			// Acquire the GIL
+			const auto gstate = PyGILState_Ensure();
+			for (const auto &[_, script] : scripts)
+				if (script->has_method(method)) script->run_method(method, args...);
+
+			// Release the GIL
+			PyGILState_Release(gstate);
+		});
+	}
+
 	static void refresh_scripts(const RunnerFinish &onRefreshed = {}) {
 		// Run in the Python thread
 		python_runner.add_job(

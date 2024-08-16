@@ -10,10 +10,15 @@
 #include <hv/json.hpp>
 #include <hv/requests.h>
 
+
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
 import config;
 import common;
 import assets;
 import audio;
+import opengl;
 import gui;
 import twitch;
 import commands;
@@ -65,7 +70,11 @@ auto main(int argc, char **argv) -> int {
 		return res.code;
 	}
 
-	// GUI and CommandHandler initialization
+	if (const auto res = OpenGLHandler::initialize(); !res) {
+		print_error(res);
+		return res.code;
+	}
+
 	if (const auto res = NotifierGUI::initialize(); !res) {
 		print_error(res);
 		return res.code;
@@ -95,6 +104,8 @@ auto main(int argc, char **argv) -> int {
 
 	// Run the main loop
 	while (!NotifierGUI::should_close()) {
+		// Poll events
+		glfwPollEvents();
 		// Update the GUI
 		NotifierGUI::render();
 		// Update the audio
@@ -111,6 +122,7 @@ auto main(int argc, char **argv) -> int {
 
 	// CLEANUP //
 	NotifierGUI::cleanup();
+	OpenGLHandler::cleanup();
 	CommandHandler::cleanup();
 	ScriptingHandler::cleanup();
 	TwitchChatConnector::cleanup();

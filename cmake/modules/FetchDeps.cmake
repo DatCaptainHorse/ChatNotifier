@@ -137,7 +137,6 @@ endif ()
 #)
 #FetchContent_MakeAvailable(glaze)
 
-
 # Make available
 FetchContent_MakeAvailable(ogg opus vorbis flac libsndfile openal-soft imgui glfw3 libhv)
 set(IMGUI_DIR ${imgui_SOURCE_DIR})

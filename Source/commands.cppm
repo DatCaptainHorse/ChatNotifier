@@ -48,6 +48,8 @@ public:
 				[launch_notification](const TwitchChatMessage &mainMsg) {
 					for (auto splitMsgs = mainMsg.split_into_submessages(); auto &msg : splitMsgs) {
 						std::string notifMsg = msg.get_message();
+						if (notifMsg.empty()) return;
+
 						// Split to words (space-separated)
 						const auto words = split_string(notifMsg, " ");
 

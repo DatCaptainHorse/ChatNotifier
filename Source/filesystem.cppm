@@ -20,7 +20,5 @@ public:
 		return Result();
 	}
 
-	static auto get_root_path() -> std::filesystem::path {
-		return root_path;
-	}
+	static auto get_root_path() -> std::filesystem::path { return root_path; }
 };
