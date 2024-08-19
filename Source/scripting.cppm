@@ -11,6 +11,7 @@ module;
 
 export module scripting;
 
+import types;
 import common;
 import runner;
 import filesystem;
@@ -113,7 +114,10 @@ private:
 					PyTuple_SetItem(pyargs, i, Py_BuildValue("[s]", arg.c_str()));
 				else if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, std::vector<float>>)
 					PyTuple_SetItem(pyargs, i, Py_BuildValue("[f]", arg));
-				else
+				else if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, TwitchChatMessage>) {
+					const auto pymsg = PyCreateTwitchChatMessage(arg);
+					PyTuple_SetItem(pyargs, i, pymsg);
+				} else
 					PyTuple_SetItem(pyargs, i, arg);
 			}
 
@@ -123,15 +127,14 @@ private:
 
 			decref_pyobject(pyargs);
 			decref_pyobject(result);
-			decref_pyobject(pymethod);
 		} else {
 			// Call the method
 			const auto result = PyObject_CallObject(pymethod, nullptr);
 			if (!result) print_python_error();
 
 			decref_pyobject(result);
-			decref_pyobject(pymethod);
 		}
+		decref_pyobject(pymethod);
 	}
 };
 
@@ -173,9 +176,6 @@ public:
 
 			Py_InitializeFromConfig(&config);
 
-			// Acquire the GIL
-			const auto gstate = PyGILState_Ensure();
-
 			module = ChatNotifierModuleCreate();
 			if (!module) {
 				std::println("Failed to create Python module");
@@ -193,9 +193,6 @@ public:
 			PyRun_SimpleStringFlags(scriptPath.c_str(), nullptr);
 
 			print_python_error();
-
-			// Release the GIL
-			PyGILState_Release(gstate);
 		});
 
 		return Result();
@@ -215,13 +212,8 @@ public:
 		python_runner.add_job([script, msg] {
 			if (!script) return;
 			// Get script from map and run the method, if it exists
-			if (scripts.contains(script->get_name())) {
-				// Acquire the GIL
-				const auto gstate = PyGILState_Ensure();
-				scripts[script->get_name()]->run_method("on_message", msg.get_message());
-				// Release the GIL
-				PyGILState_Release(gstate);
-			}
+			if (scripts.contains(script->get_name()))
+				scripts[script->get_name()]->run_method("on_message", msg);
 		});
 	}
 
@@ -235,11 +227,7 @@ public:
 			}
 			// Get script from map and check if the method exists
 			if (scripts.contains(script->get_name())) {
-				// Acquire the GIL
-				const auto gstate = PyGILState_Ensure();
 				const auto result = scripts[script->get_name()]->has_method(method);
-				// Release the GIL
-				PyGILState_Release(gstate);
 				onResult(result);
 			} else
 				onResult(false);
@@ -253,13 +241,8 @@ public:
 		python_runner.add_job([script, method, args...] {
 			if (!script) return;
 			// Get script from map and run the method, if it exists
-			if (scripts.contains(script->get_name())) {
-				// Acquire the GIL
-				const auto gstate = PyGILState_Ensure();
+			if (scripts.contains(script->get_name()))
 				scripts[script->get_name()]->run_method(method, args...);
-				// Release the GIL
-				PyGILState_Release(gstate);
-			}
 		});
 	}
 
@@ -268,13 +251,8 @@ public:
 	static void execute_all_scripts_method(const std::string &method, Args... args) {
 		// Run in the Python thread
 		python_runner.add_job([method, args...] {
-			// Acquire the GIL
-			const auto gstate = PyGILState_Ensure();
 			for (const auto &[_, script] : scripts)
 				if (script->has_method(method)) script->run_method(method, args...);
-
-			// Release the GIL
-			PyGILState_Release(gstate);
 		});
 	}
 
@@ -282,9 +260,6 @@ public:
 		// Run in the Python thread
 		python_runner.add_job(
 			[] {
-				// Acquire the GIL
-				const auto gstate = PyGILState_Ensure();
-
 				// Clear the scripts
 				scripts.clear();
 
@@ -304,9 +279,6 @@ public:
 							std::make_unique<Script>(entry.path(), module);
 					}
 				}
-
-				// Release the GIL
-				PyGILState_Release(gstate);
 
 				// For each script, check and call "on_load" method
 				for (const auto &[_, script] : scripts) {

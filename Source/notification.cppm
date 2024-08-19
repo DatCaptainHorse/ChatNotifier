@@ -9,6 +9,7 @@ module;
 
 export module notification;
 
+import types;
 import common;
 import effect;
 import config;

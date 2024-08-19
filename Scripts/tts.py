@@ -1,24 +1,58 @@
-from piper import PiperVoice
+from Deps.piper import PiperVoice
 import numpy as np
 import pathlib
+import random
+
+# List of available voices
+voices: list[str] = []
+# Cache dict of users and their "custom" voices
+user_voices: dict[str, str] = {}
+
+
+def on_load():
+    # Get all available voices
+    voices_path = pathlib.Path(chatnotifier.get_tts_assets_path())
+    for voice in voices_path.glob("*.onnx"):
+        voices.append(voice.stem)
+
+
+def load_voice(name: str) -> tuple[str, PiperVoice] | None:
+    # Load given voice by name
+    voices_path = pathlib.Path(chatnotifier.get_tts_assets_path())
+    for voice in voices_path.glob("*.onnx"):
+        voice_name = voice.stem
+        # Check if file name contains name
+        if name.lower() not in voice_name.lower():
+            continue
+
+        # Config always ends with "onnx.json"
+        config = voices_path / f"{voice_name}.onnx.json"
+        if config.exists():
+            return voice_name, PiperVoice.load(model_path=str(voice),
+                                               config_path=str(config),
+                                               use_cuda=False)
+        else:
+            print(f"Voice config not found: {str(config)}")
+    return None
+
+
+def get_user_voice(user: str) -> PiperVoice | None:
+    # Check if user has a custom voice already, if not, assign random one from loaded voices
+    if user not in user_voices:
+        voice_name = random.choice(voices)
+        user_voices[user] = voice_name
+
+    return load_voice(user_voices[user])[1]
 
 
 def on_message(msg):
-    model_path = pathlib.Path(chatnotifier.get_tts_assets_path()) / "fi_FI-harri-medium.onnx"
-    config_path = pathlib.Path(
-        chatnotifier.get_tts_assets_path()) / "fi_fi_FI_harri_medium_fi_FI-harri-medium.onnx.json"
-    if not model_path.exists() or not config_path.exists():
-        print(f"Model not found: {model_path}")
+    # Get user voice
+    voice = get_user_voice(msg.user)
+    if voice is None:
         return
 
-    print(f"Using model: {model_path}")
-    voice = PiperVoice.load(model_path=str(model_path),
-                            config_path=str(config_path),
-                            use_cuda=False)
-
-    print("Synthesizing audio")
     audio_stream = voice.synthesize_stream_raw(
-        text=msg,
+        text=msg.message,
         length_scale=1.0,
         noise_scale=0.667,
         noise_w=0.8,
@@ -35,6 +69,4 @@ def on_message(msg):
     # Convert audio to list of floats
     collected_audio = collected_audio.tolist()
 
-    print("Audio synthesized")
     chatnotifier.play_oneshot_memory(collected_audio, voice.config.sample_rate, 1)
-    print("Audio played")

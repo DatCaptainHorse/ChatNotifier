@@ -12,6 +12,7 @@ module;
 
 export module commands;
 
+import types;
 import config;
 import common;
 import assets;

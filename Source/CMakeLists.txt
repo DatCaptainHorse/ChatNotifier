@@ -16,6 +16,7 @@ add_executable(ChatNotifier
 # C++20 module files
 target_sources(ChatNotifier PUBLIC FILE_SET CXX_MODULES FILES
   common.cppm
+  types.cppm
   opengl.cppm
   assets.cppm
   commands.cppm

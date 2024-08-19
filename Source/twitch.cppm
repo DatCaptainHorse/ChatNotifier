@@ -13,6 +13,7 @@ module;
 
 export module twitch;
 
+import types;
 import config;
 import common;
 import commands;
@@ -28,6 +29,8 @@ constexpr auto twitch_scope = "chat%3Aread";
 
 // Enable usage of bitmask operators for CommandCooldownType
 // consteval void enable_bitmask_operators(CommandCooldownType) {}
+
+std::map<std::string, std::shared_ptr<TwitchUser>> global_users;
 
 // Enum class of connection status
 export enum class ConnectionStatus { eDisconnected, eConnecting, eConnected, eError };

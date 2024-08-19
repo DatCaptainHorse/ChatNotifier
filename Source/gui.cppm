@@ -28,6 +28,7 @@ module;
 
 export module gui;
 
+import types;
 import opengl;
 import config;
 import common;

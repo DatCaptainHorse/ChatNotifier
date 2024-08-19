@@ -14,6 +14,7 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+import types;
 import config;
 import common;
 import assets;
@@ -25,7 +26,6 @@ import commands;
 import filesystem;
 import scripting;
 
-// Method for printing Result errors
 void print_error(const Result &res) {
 	if (!res) std::println("Error: {}", res.message);
 }
