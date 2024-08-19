@@ -265,7 +265,7 @@ private: // Handlers
 
 		// Open browser, based on OS ifdef's
 #if defined(_WIN32)
-		system(std::format("start \"{}\"", url).c_str());
+		system(std::format("explorer \"{}\"", url).c_str());
 #elif defined(__APPLE__)
 		system(std::format("open \"{}\"", url).c_str());
 #elif defined(__linux__)
