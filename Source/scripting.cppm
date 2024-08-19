@@ -17,6 +17,13 @@ import runner;
 import filesystem;
 import pythonmodule;
 
+// Helper to convert backslashes to forward slashes
+std::string to_posix_path(const std::string &path) {
+	std::string posix_path = path;
+	std::replace(posix_path.begin(), posix_path.end(), '\\', '/');
+	return posix_path;
+}
+
 // Helper for decrementing Python reference count, checking that GIL is held
 void decref_pyobject(PyObject *obj,
 					 const std::source_location &loc = std::source_location::current()) {
@@ -182,12 +189,15 @@ public:
 				return;
 			}
 
-			// Add scripts paths and subdirectories to sys.path
+			// Add scripts paths and subdirectories to sys.path, always use POSIX path since '\'s
+			// break Python
 			std::string scriptPath = "import sys\n";
-			scriptPath += std::format("sys.path.append('{}')\n", get_scripts_path().string());
+			scriptPath +=
+				std::format("sys.path.append('{}')\n", to_posix_path(get_scripts_path().string()));
 			for (const auto &entry : std::filesystem::directory_iterator(get_scripts_path())) {
 				if (entry.is_directory())
-					scriptPath += std::format("sys.path.append('{}')\n", entry.path().string());
+					scriptPath += std::format("sys.path.append('{}')\n",
+											  to_posix_path(entry.path().string()));
 			}
 
 			PyRun_SimpleStringFlags(scriptPath.c_str(), nullptr);
