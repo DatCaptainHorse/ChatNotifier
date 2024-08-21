@@ -163,6 +163,8 @@ public:
 			config.user_site_directory = 0;
 			config.module_search_paths_set = 1;
 			config.install_signal_handlers = 0;
+			// We don't want to generate __pycache__ directories
+			config.write_bytecode = 0;
 			PyConfig_InitIsolatedConfig(&config);
 
 			// If "python-embed" directory is found, set that as home

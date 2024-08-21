@@ -1,48 +1,67 @@
-from Deps.piper import PiperVoice
+import Deps.sherpa_onnx as sherpa
 import numpy as np
 import pathlib
 import random
 
-# List of available voices
-voices: list[str] = []
-# Cache dict of users and their "custom" voices
-user_voices: dict[str, str] = {}
+# Dict of available voice models to use
+voices_models: dict[str, sherpa.OfflineTtsConfig] = {}
+# Cache dict of users and their "custom" voice
+user_voices: dict[str, tuple[str, int]] = {}
+# Current loaded models
+loaded_models: dict[str, sherpa.OfflineTts] = {}
 
 
 def on_load():
-    # Get all available voices
-    voices_path = pathlib.Path(chatnotifier.get_tts_assets_path())
-    for voice in voices_path.glob("*.onnx"):
-        voices.append(voice.stem)
+    # Get all available voice models
+    tts_assets_path = pathlib.Path(chatnotifier.get_tts_assets_path())
+    for subfolder in tts_assets_path.iterdir():
+        if (subfolder.is_dir() and (subfolder / "model.onnx").exists() and (subfolder / "tokens.txt").exists()
+            and (subfolder / "espeak-ng-data").exists()) and (subfolder / "config.json").exists():
+            tts_conf = sherpa.OfflineTtsConfig(
+                model=sherpa.OfflineTtsModelConfig(
+                    vits=sherpa.OfflineTtsVitsModelConfig(
+                        model=str(subfolder / "model.onnx"),
+                        lexicon="",  # Not used
+                        tokens=str(subfolder / "tokens.txt"),
+                        data_dir=str(subfolder / "espeak-ng-data"),
+                    ),
+                    provider="cpu",
+                    debug=False,
+                    num_threads=4,
+                ),
+                max_num_sentences=1,
+            )
+            if not tts_conf.validate():
+                print(f"Invalid config for voice model {subfolder.name}, skipping")
+                continue
+
+            voices_models[subfolder.name] = tts_conf
 
 
-def load_voice(name: str) -> tuple[str, PiperVoice] | None:
-    # Load given voice by name
-    voices_path = pathlib.Path(chatnotifier.get_tts_assets_path())
-    for voice in voices_path.glob("*.onnx"):
-        voice_name = voice.stem
-        # Check if file name contains name
-        if name.lower() not in voice_name.lower():
-            continue
+def load_voice_model(voice_name: str) -> sherpa.OfflineTts | None:
+    if voice_name not in voices_models:
+        return None
 
-        # Config always ends with "onnx.json"
-        config = voices_path / f"{voice_name}.onnx.json"
-        if config.exists():
-            return voice_name, PiperVoice.load(model_path=str(voice),
-                                               config_path=str(config),
-                                               use_cuda=False)
-        else:
-            print(f"Voice config not found: {str(config)}")
-    return None
+    if voice_name not in loaded_models:
+        loaded_models[voice_name] = sherpa.OfflineTts(voices_models[voice_name])
+
+    return loaded_models[voice_name]
 
 
-def get_user_voice(user: str) -> PiperVoice | None:
-    # Check if user has a custom voice already, if not, assign random one from loaded voices
+def get_user_voice(user: str) -> tuple[sherpa.OfflineTts, int] | None:
+    # Check if user has a custom voice already, if not, assign random one
     if user not in user_voices:
-        voice_name = random.choice(voices)
-        user_voices[user] = voice_name
+        user_voices[user] = (random.choice(list(voices_models.keys())), -1)
 
-    return load_voice(user_voices[user])[1]
+    vmodel = load_voice_model(user_voices[user][0])
+    if vmodel is None:
+        return None
+
+    # If user speaker id is -1, get one from num_speakers of the model
+    if user_voices[user][1] == -1:
+        user_voices[user] = (user_voices[user][0], random.randint(0, vmodel.num_speakers - 1))
+
+    return vmodel, user_voices[user][1]
 
 
 def on_message(msg):
@@ -51,22 +70,10 @@ def on_message(msg):
     if voice is None:
         return
 
-    audio_stream = voice.synthesize_stream_raw(
-        text=msg.message,
-        length_scale=1.0,
-        noise_scale=0.667,
-        noise_w=0.8,
+    generated = voice[0].generate(
+        msg.message,
+        sid=voice[1],
+        speed=1.0,
     )
 
-    # Collect int16 byte audio
-    collected_audio = b""
-    for audio in audio_stream:
-        collected_audio += audio
-
-    # Convert to float32, piper works in mysterious ways
-    collected_audio = np.frombuffer(collected_audio, dtype=np.int16).astype(np.float32) / 32768.0
-
-    # Convert audio to list of floats
-    collected_audio = collected_audio.tolist()
-
-    chatnotifier.play_oneshot_memory(collected_audio, voice.config.sample_rate, 1)
+    chatnotifier.play_oneshot_memory(generated.samples, generated.sample_rate, 1)
