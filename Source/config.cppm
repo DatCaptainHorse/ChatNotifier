@@ -36,7 +36,9 @@ export struct Config {
 	std::vector<std::string> approvedUsers = {};
 	std::string twitchChannel = "", refreshToken = "";
 	CommandCooldownType enabledCooldowns = CommandCooldownType::eGlobal;
-	ConfigOption<std::uint32_t> cooldownTime{5, 1, 60};
+	ConfigOption<std::uint32_t> cooldownGlobal{5, 1, 600};
+	ConfigOption<std::uint32_t> cooldownPerUser{5, 1, 600};
+	ConfigOption<std::uint32_t> cooldownPerCommand{5, 1, 600};
 	ConfigOption<std::uint32_t> maxAudioTriggers{
 		3, 0, 10}; //< How many audio triggers can a message cause
 	ConfigOption<float> audioSequenceOffset{
@@ -57,16 +59,23 @@ export struct Config {
 		json["notifEffectIntensity"] = notifEffectIntensity.value;
 		json["notifFontScale"] = notifFontScale.value;
 		json["globalAudioVolume"] = globalAudioVolume.value;
-		json["approvedUsers"] = approvedUsers;
 		json["twitchChannel"] = twitchChannel;
 		json["refreshToken"] = refreshToken;
 		json["enabledCooldowns"] = static_cast<std::uint8_t>(enabledCooldowns);
-		json["cooldownTime"] = cooldownTime.value;
+		json["cooldownGlobal"] = cooldownGlobal.value;
+		json["cooldownPerUser"] = cooldownPerUser.value;
+		json["cooldownPerCommand"] = cooldownPerCommand.value;
 		json["maxAudioTriggers"] = maxAudioTriggers.value;
 		json["audioSequenceOffset"] = audioSequenceOffset.value;
 		json["ttsVoiceSpeed"] = ttsVoiceSpeed.value;
 		json["ttsVoiceVolume"] = ttsVoiceVolume.value;
 		json["ttsVoicePitch"] = ttsVoicePitch.value;
+
+		// Approved users has to be made into comma separated string
+		std::string approvedUsersStr;
+		for (const auto &user : approvedUsers) approvedUsersStr += user + ",";
+
+		json["approvedUsers"] = approvedUsersStr;
 
 		std::ofstream file(get_config_path());
 		file << json.dump(4);
@@ -95,17 +104,26 @@ export struct Config {
 		notifEffectIntensity.value = json["notifEffectIntensity"].get<float>();
 		notifFontScale.value = json["notifFontScale"].get<float>();
 		globalAudioVolume.value = json["globalAudioVolume"].get<float>();
-		//approvedUsers = json["approvedUsers"].get<std::vector<std::string>>();
 		twitchChannel = json["twitchChannel"].get<std::string>();
 		refreshToken = json["refreshToken"].get<std::string>();
 		enabledCooldowns =
 			static_cast<CommandCooldownType>(json["enabledCooldowns"].get<std::uint8_t>());
-		cooldownTime.value = json["cooldownTime"].get<std::uint32_t>();
+		cooldownGlobal.value = json["cooldownGlobal"].get<std::uint32_t>();
+		cooldownPerUser.value = json["cooldownPerUser"].get<std::uint32_t>();
+		cooldownPerCommand.value = json["cooldownPerCommand"].get<std::uint32_t>();
 		maxAudioTriggers.value = json["maxAudioTriggers"].get<std::uint32_t>();
 		audioSequenceOffset.value = json["audioSequenceOffset"].get<float>();
 		ttsVoiceSpeed.value = json["ttsVoiceSpeed"].get<float>();
 		ttsVoiceVolume.value = json["ttsVoiceVolume"].get<float>();
 		ttsVoicePitch.value = json["ttsVoicePitch"].get<float>();
+
+		// Approved users has to be made into vector from comma separated string
+		const auto approvedUsersStr = json["approvedUsers"].get<std::string>();
+		const auto splitted = split_string(approvedUsersStr, ",");
+		approvedUsers.clear();
+		for (const auto &user : splitted) {
+			if (!user.empty()) approvedUsers.push_back(user);
+		}
 
 		return Result();
 	}

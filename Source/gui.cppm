@@ -280,20 +280,32 @@ public:
 								 reinterpret_cast<unsigned int *>(&global_config.enabledCooldowns),
 								 static_cast<unsigned int>(CommandCooldownType::eGlobal));
 			ImGui::SameLine();
+			ImGui::BeginDisabled(~global_config.enabledCooldowns & CommandCooldownType::eGlobal);
+			{
+				ImGui::InputScalar("##cooldownGlobal", ImGuiDataType_U32,
+								   &global_config.cooldownGlobal.value);
+			}
+			ImGui::EndDisabled();
+
 			ImGui::CheckboxFlags("Per User",
 								 reinterpret_cast<unsigned int *>(&global_config.enabledCooldowns),
 								 static_cast<unsigned int>(CommandCooldownType::ePerUser));
 			ImGui::SameLine();
+			ImGui::BeginDisabled(~global_config.enabledCooldowns & CommandCooldownType::ePerUser);
+			{
+				ImGui::InputScalar("##cooldownPerUser", ImGuiDataType_U32,
+								   &global_config.cooldownPerUser.value);
+			}
+			ImGui::EndDisabled();
+
 			ImGui::CheckboxFlags("Per Command",
 								 reinterpret_cast<unsigned int *>(&global_config.enabledCooldowns),
 								 static_cast<unsigned int>(CommandCooldownType::ePerCommand));
-
-			// Input box for cooldown time
-			ImGui::BeginDisabled(global_config.enabledCooldowns == CommandCooldownType::eNone);
+			ImGui::SameLine();
+			ImGui::BeginDisabled(~global_config.enabledCooldowns & CommandCooldownType::ePerCommand);
 			{
-				ImGui::Text("Cooldown time:");
-				ImGui::InputScalar("##cooldownTime", ImGuiDataType_U32,
-								   &global_config.cooldownTime.value);
+				ImGui::InputScalar("##cooldownPerCommand", ImGuiDataType_U32,
+								   &global_config.cooldownPerCommand.value);
 			}
 			ImGui::EndDisabled();
 
@@ -302,17 +314,17 @@ public:
 
 			// Modifiable list of approved users
 			ImGui::Text("Approved users:");
-			static std::array<char, 32> user_buf = {""};
+			static std::string user_buf = "";
 			if (ImGui::Button("Add")) {
-				if (user_buf[0] != '\0') {
+				if (!user_buf.empty()) {
 					// Add the user to the list
-					global_config.approvedUsers.emplace_back(user_buf.data());
+					global_config.approvedUsers.emplace_back(user_buf.c_str());
 					// Clear the input buffer
 					std::ranges::fill(user_buf, '\0');
 				}
 			}
 			ImGui::SameLine();
-			ImGui::InputText("##approvedUsers", user_buf.data(), user_buf.size());
+			ImGui::InputText("##approvedUsers", &user_buf);
 
 			// List of approved users, if empty, show warning text
 			if (global_config.approvedUsers.empty())

@@ -166,7 +166,7 @@ private: // Handlers
 			if (global_config.enabledCooldowns & CommandCooldownType::eGlobal) {
 				const auto now = std::chrono::steady_clock::now();
 				if (now - m_lastCommandTime <
-					std::chrono::seconds(global_config.cooldownTime.value))
+					std::chrono::seconds(global_config.cooldownGlobal.value))
 					return Result();
 
 				m_lastCommandTime = now;
@@ -175,7 +175,7 @@ private: // Handlers
 				if (global_users.contains(user)) {
 					if (const auto now = std::chrono::steady_clock::now();
 						now - global_users[user]->lastMessage.time <
-							std::chrono::seconds(global_config.cooldownTime.value) &&
+							std::chrono::seconds(global_config.cooldownPerUser.value) &&
 						!global_users[user]->bypassCooldown)
 						return Result();
 				}
@@ -187,7 +187,8 @@ private: // Handlers
 				const auto cmdLastExec = CommandHandler::get_last_executed_time(
 					CommandHandler::get_command_key(extractedCommand));
 				if (const auto now = std::chrono::steady_clock::now();
-					now - cmdLastExec < std::chrono::seconds(global_config.cooldownTime.value))
+					now - cmdLastExec <
+					std::chrono::seconds(global_config.cooldownPerCommand.value))
 					return Result();
 			}
 

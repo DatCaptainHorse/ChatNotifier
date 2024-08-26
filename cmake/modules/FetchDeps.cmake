@@ -90,6 +90,7 @@ FetchContent_Declare(
   GIT_TAG "v1.90.4-docking"
   PATCH_COMMAND ${IMGUI_PATCH}
   UPDATE_DISCONNECTED 1
+  OVERRIDE_FIND_PACKAGE
 )
 
 # Fetch glfw
