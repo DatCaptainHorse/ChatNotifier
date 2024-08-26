@@ -39,12 +39,12 @@ jobs:
     - name: Configure CMake
       env:
         TWITCH_CLIENT_SECRET: ${{ secrets.TwitchClientSecret }}
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "Ninja"
 
     - name: Build
       env:
         TWITCH_CLIENT_SECRET: ${{ secrets.TwitchClientSecret }}
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --verbose
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
