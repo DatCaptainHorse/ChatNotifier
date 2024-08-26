@@ -1,20 +1,11 @@
 module;
 
-#include <cmath>
-#include <ranges>
-#include <string>
-#include <vector>
-#include <memory>
-#include <numeric>
-#include <numbers>
-#include <optional>
-#include <algorithm>
-
 #include <imgui.h>
 #include <imgui_internal.h>
 
 export module effect;
 
+import standard;
 import common;
 
 // Text Effect system for text notifications //

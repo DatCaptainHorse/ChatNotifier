@@ -1,3 +1,4 @@
+import chatnotifier
 import pathlib
 
 def on_load():

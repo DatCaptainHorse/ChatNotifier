@@ -1,10 +1,6 @@
-module;
-
-#include <string>
-#include <filesystem>
-
 export module filesystem;
 
+import standard;
 import common;
 
 export class Filesystem {

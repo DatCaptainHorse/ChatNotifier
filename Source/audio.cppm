@@ -2,27 +2,15 @@ module;
 
 #include <sndfile.h>
 
-#define AL_LIBTYPE_STATIC
 #define AL_ALEXT_PROTOTYPES
 #include <AL/al.h>
 #include <AL/alc.h>
 #include <AL/alext.h>
 #include <AL/efx-presets.h>
 
-#include <map>
-#include <print>
-#include <array>
-#include <chrono>
-#include <vector>
-#include <memory>
-#include <string>
-#include <ranges>
-#include <optional>
-#include <filesystem>
-#include <source_location>
-
 export module audio;
 
+import standard;
 import config;
 import common;
 

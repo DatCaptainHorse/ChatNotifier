@@ -1,5 +1,5 @@
+import chatnotifier
 import Deps.sherpa_onnx as sherpa
-import numpy as np
 import pathlib
 import random
 

@@ -1,21 +1,6 @@
-module;
-
-// No matter what IDE says, don't remove headers, thanks MSVC
-#include <map>
-#include <array>
-#include <print>
-#include <tuple>
-#include <vector>
-#include <ranges>
-#include <string>
-#include <random>
-#include <chrono>
-#include <utility>
-#include <numeric>
-#include <algorithm>
-#include <type_traits>
-
 export module common;
+
+import standard;
 
 // 2D and 3D position structs
 export struct Position2D {
@@ -42,7 +27,7 @@ export auto random_int(const int min, const int max) -> int {
 
 // Method for converting string to lowercase
 export auto lowercase(std::string str) -> std::string {
-	std::ranges::transform(str, str.begin(), ::tolower);
+	std::ranges::transform(str, str.begin(), [](const auto &ch) { return std::tolower(ch); });
 	return str;
 }
 
@@ -133,7 +118,7 @@ export auto get_letters_mb(const std::string &str) -> std::vector<std::string> {
 
 // Returns whether string has letters only
 export auto is_letters(const std::string &str) -> bool {
-	return std::ranges::all_of(str, ::isalpha);
+	return std::ranges::all_of(str, [](const auto &ch) { return std::isalpha(ch); });
 }
 
 // Remaps a value from one range to another

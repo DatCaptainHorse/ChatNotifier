@@ -1,5 +1,8 @@
 module;
 
+#include <pybind11/embed.h>
+#include <pybind11/stl.h>
+
 #include <hv/json.hpp>
 #include <hv/requests.h>
 #include <hv/HttpServer.h>
@@ -15,19 +18,9 @@ module;
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 
-#include <filesystem>
-#include <algorithm>
-#include <iostream>
-#include <numeric>
-#include <vector>
-#include <format>
-#include <memory>
-#include <ranges>
-#include <array>
-#include <mutex>
-
 export module gui;
 
+import standard;
 import types;
 import opengl;
 import config;
@@ -154,8 +147,8 @@ public:
 	// GUI drawing and updating
 	static void render() {
 		// Backup context
-		//const auto prev_ctx_main = glfwGetCurrentContext();
-		//glfwMakeContextCurrent(m_guiWindow);
+		// const auto prev_ctx_main = glfwGetCurrentContext();
+		// glfwMakeContextCurrent(m_guiWindow);
 
 		// IMGUI NEW FRAME //
 		ImGui_ImplOpenGL3_NewFrame();
@@ -256,18 +249,16 @@ public:
 			ImGui::Dummy(ImVec2(0, 10));
 			if (ImGui::Button("Refresh Scripts", ImVec2(-1, 30))) {
 				ScriptingHandler::refresh_scripts([] {
-					for (const auto script : ScriptingHandler::get_scripts()) {
-						if (!script->is_valid()) continue;
-						ScriptingHandler::has_script_method(
-							script, "on_message", [script](const bool hasMethod) {
-								if (!hasMethod) return;
-								CommandHandler::add_command(
-									script->get_name(),
-									Command(script->get_call_string(), script->get_call_string(),
-											[script](const TwitchChatMessage &msg) {
-												ScriptingHandler::execute_script_msg(script, msg);
-											}));
-							});
+					for (const auto &script : ScriptingHandler::get_scripts()) {
+						if (script->has_method("on_message")) {
+							CommandHandler::add_command(
+								script->get_name(),
+								Command(script->get_call_string(), script->get_call_string(),
+										[script](const TwitchChatMessage &msg) {
+											ScriptingHandler::execute_script_method(
+												script, "on_message", msg);
+										}));
+						}
 					}
 				});
 			}
@@ -366,29 +357,33 @@ public:
 										 })
 							 .c_str());
 
-			// On same line, have test button
+			// On separate line, have message input box with test button
+			static std::string testMsg = "Test message";
+			ImGui::InputText("##testMsg", &testMsg);
 			ImGui::SameLine();
 			ImGui::BeginDisabled(!it->second.enabled);
-			if (ImGui::Button("Test")) CommandHandler::test_command(it->first);
+			if (ImGui::Button("Test"))
+				CommandHandler::execute_command(it->first,
+												TwitchChatMessage("testButton", testMsg));
 
 			ImGui::EndDisabled();
 
+			// Input box for changing the command keyword, hint is selected command current callstr
+			static std::string cmd_change_buf = "";
+			ImGui::InputTextWithHint("##cmdChange", it->second.callstr.c_str(),
+									 cmd_change_buf.data(), cmd_change_buf.size());
+			ImGui::SameLine();
 			// Button for setting the new keyword
-			static std::array<char, 16> cmd_change_buf = {""};
-			ImGui::BeginDisabled(cmd_change_buf[0] == '\0');
-			if (ImGui::Button("Set as new keyword")) {
+			ImGui::BeginDisabled(cmd_change_buf.empty());
+			if (ImGui::Button("Set keyword")) {
 				// If the input is not empty, set the new keyword
-				if (cmd_change_buf[0] != '\0') {
-					CommandHandler::change_command_call(it->first, cmd_change_buf.data());
+				if (!cmd_change_buf.empty()) {
+					CommandHandler::change_command_call(it->first, cmd_change_buf.c_str());
 					// Clear the input buffer
 					std::ranges::fill(cmd_change_buf, '\0');
 				}
 			}
 			ImGui::EndDisabled();
-			ImGui::SameLine();
-			// Input box for changing the command keyword, hint is selected command current callstr
-			ImGui::InputTextWithHint("##cmdChange", it->second.callstr.c_str(),
-									 cmd_change_buf.data(), cmd_change_buf.size());
 
 			// Padding
 			ImGui::Dummy(ImVec2(0, 10));
@@ -461,7 +456,7 @@ public:
 		glfwSwapBuffers(m_guiWindow);
 
 		// Restore context
-		//glfwMakeContextCurrent(prev_ctx_main);
+		// glfwMakeContextCurrent(prev_ctx_main);
 	}
 
 	// Method for launching new notification

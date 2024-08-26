@@ -1,11 +1,6 @@
-module;
-
-#include <mutex>
-#include <thread>
-#include <functional>
-#include <condition_variable>
-
 export module runner;
+
+import standard;
 
 // Callback function for finished job
 export using RunnerFinish = std::function<void()>;
@@ -58,15 +53,8 @@ public:
 
 	// Adds job and blocks until it is done
 	auto add_job_sync(const RunnerFunc &job) -> void {
-		std::condition_variable cv;
-		std::mutex mutex;
-		bool done = false;
-		add_job(job, [&] {
-			std::lock_guard lock(mutex);
-			done = true;
-			cv.notify_one();
-		});
-		std::unique_lock lock(mutex);
-		cv.wait(lock, [&] { return done; });
+		std::binary_semaphore sem(0);
+		add_job(job, [&] { sem.release(); });
+		sem.acquire();
 	}
 };

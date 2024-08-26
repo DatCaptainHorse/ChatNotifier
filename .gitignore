@@ -1,5 +1,6 @@
 # CMake builds
 [Bb]uild*/
+cmake-build-debug/
 
 # clangd
 .cache/

@@ -15,6 +15,7 @@ add_executable(ChatNotifier
 
 # C++20 module files
 target_sources(ChatNotifier PUBLIC FILE_SET CXX_MODULES FILES
+  standard.cppm
   common.cppm
   types.cppm
   opengl.cppm
@@ -44,7 +45,7 @@ target_link_libraries(ChatNotifier PUBLIC
   OpenAL::OpenAL
   glfw
   hv_static
-  Python::Python
+  pybind11::embed
 )
 
 if (WIN32)

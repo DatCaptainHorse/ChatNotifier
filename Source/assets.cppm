@@ -1,13 +1,6 @@
-module;
-
-#include <map>
-#include <ranges>
-#include <vector>
-#include <fstream>
-#include <filesystem>
-
 export module assets;
 
+import standard;
 import common;
 import filesystem;
 

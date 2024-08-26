@@ -1,16 +1,12 @@
 module;
 
-#include <print>
-#include <array>
-#include <vector>
-#include <memory>
-
 #define GLFW_INCLUDE_NONE
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 
 export module opengl;
 
+import standard;
 import common;
 import filesystem;
 

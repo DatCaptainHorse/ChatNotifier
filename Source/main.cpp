@@ -1,19 +1,13 @@
-#include <print>
-#include <locale>
-#include <thread>
-#include <chrono>
-#include <format>
-#include <iostream>
-#include <algorithm>
-#include <filesystem>
+#include <pybind11/embed.h>
+#include <pybind11/stl.h>
 
 #include <hv/json.hpp>
 #include <hv/requests.h>
 
-
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+import standard;
 import types;
 import config;
 import common;
@@ -37,7 +31,7 @@ auto main(int argc, char **argv) -> int {
 	// Make sure UTF-8 is used
 	std::locale::global(std::locale("en_US.UTF-8"));
 
-	// Initialize filesystem to get the root path first //
+	// Initialize filesystem to get the root path first
 	if (const auto res = Filesystem::initialize(argc, argv); !res) {
 		print_error(res);
 		return res.code;
@@ -87,18 +81,15 @@ auto main(int argc, char **argv) -> int {
 
 	// Add scripts
 	ScriptingHandler::refresh_scripts([] {
-		for (const auto script : ScriptingHandler::get_scripts()) {
-			if (!script->is_valid()) continue;
-			ScriptingHandler::has_script_method(
-				script, "on_message", [script](const bool hasMethod) {
-					if (!hasMethod) return;
-					CommandHandler::add_command(
-						script->get_name(),
-						Command(script->get_call_string(), script->get_call_string(),
-								[script](const TwitchChatMessage &msg) {
-									ScriptingHandler::execute_script_msg(script, msg);
-								}));
-				});
+		for (const auto &script : ScriptingHandler::get_scripts()) {
+			if (script->has_method("on_message")) {
+				CommandHandler::add_command(
+					script->get_name(),
+					Command(script->get_call_string(), script->get_call_string(),
+							[script](const TwitchChatMessage &msg) {
+								ScriptingHandler::execute_script_method(script, "on_message", msg);
+							}));
+			}
 		}
 	});
 

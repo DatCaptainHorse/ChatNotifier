@@ -1,16 +1,12 @@
 module;
 
-#include <string>
-#include <vector>
-#include <fstream>
-#include <filesystem>
-
 // #include <glaze/glaze.hpp>
 
 #include <hv/json.hpp>
 
 export module config;
 
+import standard;
 import common;
 import filesystem;
 
@@ -99,7 +95,7 @@ export struct Config {
 		notifEffectIntensity.value = json["notifEffectIntensity"].get<float>();
 		notifFontScale.value = json["notifFontScale"].get<float>();
 		globalAudioVolume.value = json["globalAudioVolume"].get<float>();
-		approvedUsers = json["approvedUsers"].get<std::vector<std::string>>();
+		//approvedUsers = json["approvedUsers"].get<std::vector<std::string>>();
 		twitchChannel = json["twitchChannel"].get<std::string>();
 		refreshToken = json["refreshToken"].get<std::string>();
 		enabledCooldowns =

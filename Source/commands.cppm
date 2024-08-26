@@ -1,17 +1,6 @@
-module;
-
-#include <map>
-#include <array>
-#include <string>
-#include <ranges>
-#include <chrono>
-#include <thread>
-#include <algorithm>
-#include <functional>
-#include <filesystem>
-
 export module commands;
 
+import standard;
 import types;
 import config;
 import common;
@@ -103,29 +92,6 @@ public:
 	// Cleans up resources used by CommandHandler
 	static void cleanup() {
 		m_commandsMap.clear();
-	}
-
-	// Tests a command with random message from testMessages
-	static void test_command(const std::string &command) {
-		// If the command does not exist, skip
-		if (!m_commandsMap.contains(command)) return;
-		// Make sure the command is enabled
-		if (!m_commandsMap[command].enabled) return;
-
-		// Choose from random list of strings
-		constexpr std::array testMessages = {
-			"Hello, this is a test",
-			"Test message 1 2 3",
-			"Testing command",
-			"Test message",
-			"Awoo, this is a test",
-			"Test message, awoo",
-		};
-		// Choose a random message from the list
-		const auto testMsg = testMessages[random_int(0, testMessages.size() - 1)];
-
-		// Execute the command with the test message
-		execute_command(command, TwitchChatMessage("testUser", testMsg));
 	}
 
 	// Returns key for command with given call string

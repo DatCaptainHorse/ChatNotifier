@@ -121,8 +121,8 @@ FetchContent_Declare(
 # BUILD_SHARED, BUILD_EXAMPLES to OFF, we don't need them
 set(BUILD_SHARED OFF CACHE BOOL "" FORCE)
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-# We do want to build for MT and with OpenSSL if not under Windows
-set(BUILD_FOR_MT ON CACHE BOOL "" FORCE)
+# We don't want to build for MT
+set(BUILD_FOR_MT OFF CACHE BOOL "" FORCE)
 if (NOT WIN32)
   set(WITH_OPENSSL ON CACHE BOOL "" FORCE)
 endif ()
@@ -132,12 +132,21 @@ endif ()
 #FetchContent_Declare(
 #  glaze
 #  GIT_REPOSITORY "https://github.com/stephenberry/glaze.git"
-#  GIT_TAG "v3.2.5"
+#  GIT_TAG "v3.3.1"
 #  OVERRIDE_FIND_PACKAGE
 #)
 #FetchContent_MakeAvailable(glaze)
 
+# Fetch pybind11
+message(STATUS "Fetching pybind11")
+FetchContent_Declare(
+  pybind11
+  GIT_REPOSITORY "https://github.com/pybind/pybind11.git"
+  GIT_TAG "v2.13.5"
+  FIND_PACKAGE_ARGS
+)
+
 # Make available
-FetchContent_MakeAvailable(ogg opus vorbis flac libsndfile openal-soft imgui glfw3 libhv)
+FetchContent_MakeAvailable(ogg opus vorbis flac libsndfile openal-soft imgui glfw3 libhv pybind11)
 set(IMGUI_DIR ${imgui_SOURCE_DIR})
 add_library(Vorbis::vorbisenc ALIAS vorbisenc)

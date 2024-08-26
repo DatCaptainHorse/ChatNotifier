@@ -1,17 +1,6 @@
-module;
-
-#include <map>
-#include <string>
-#include <vector>
-#include <chrono>
-#include <numeric>
-#include <optional>
-#include <algorithm>
-#include <functional>
-#include <filesystem>
-
 export module types;
 
+import standard;
 import common;
 
 // Struct for Twitch message data
