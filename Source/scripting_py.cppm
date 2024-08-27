@@ -44,22 +44,25 @@ static auto Py_Audio_playOneshotMemory(const std::vector<float> &data, std::uint
 
 /* Module */
 PYBIND11_EMBEDDED_MODULE(chatnotifier, m) {
+	/* Types */
 	py::class_<TwitchChatMessage>(m, "TwitchChatMessage")
 		.def(py::init<std::string, std::string, std::string,
 					  std::chrono::time_point<std::chrono::steady_clock>,
 					  std::map<std::string, std::vector<std::string>>>())
 		.def_readonly("user", &TwitchChatMessage::user)
-		.def_readonly("message", &TwitchChatMessage::message)
-		.def_readonly("command", &TwitchChatMessage::command)
 		.def_readonly("time", &TwitchChatMessage::time)
-		.def_readonly("args", &TwitchChatMessage::args);
+		.def_readonly("args", &TwitchChatMessage::args)
+		.def("get_message", &TwitchChatMessage::get_message)
+		.def("get_command", &TwitchChatMessage::get_command);
 
+	/* Assets */
 	m.def("get_assets_path", &Py_Assets_getAssetsPath);
 	m.def("get_font_assets_path", &Py_Assets_getFontAssetsPath);
 	m.def("get_tts_assets_path", &Py_Assets_getTTSAssetsPath);
 	m.def("get_ascii_assets_path", &Py_Assets_getTriggerASCIIPath);
 	m.def("get_sound_assets_path", &Py_Assets_getTriggerSoundsPath);
 
+	/* Audio */
 	m.def("play_oneshot_file", &Py_Audio_playOneshot);
 	m.def("play_oneshot_memory", &Py_Audio_playOneshotMemory);
 }

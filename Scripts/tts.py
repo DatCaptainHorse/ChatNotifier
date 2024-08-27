@@ -71,7 +71,7 @@ def on_message(msg):
         return
 
     generated = voice[0].generate(
-        msg.message,
+        msg.get_message(),
         sid=voice[1],
         speed=1.0,
     )

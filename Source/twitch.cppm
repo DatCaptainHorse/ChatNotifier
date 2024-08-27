@@ -35,7 +35,7 @@ export using TwitchChatMessageCallback = std::function<void(const TwitchChatMess
 // Class for handling Twitch chat connection
 export class TwitchChatConnector {
 	static inline ConnectionStatus m_connStatus;
-	static inline hv::WebSocketClient m_client;
+	static inline std::unique_ptr<hv::WebSocketClient> m_client;
 
 	static inline TwitchChatMessageCallback m_onMessage;
 
@@ -79,17 +79,20 @@ public:
 			return res;
 		}
 
+		// Create new m_client
+		m_client = std::make_unique<hv::WebSocketClient>();
+
 		// Set handlers
-		m_client.onopen = handle_open;
-		m_client.onmessage = handle_message;
-		m_client.onclose = handle_close;
+		m_client->onopen = handle_open;
+		m_client->onmessage = handle_message;
+		m_client->onclose = handle_close;
 
 		// Set auto-reconnect settings
 		auto reconn = reconn_setting_s();
-		m_client.setReconnect(&reconn);
+		m_client->setReconnect(&reconn);
 
 		// Connection making
-		if (m_client.open("ws://irc-ws.chat.twitch.tv:80") != 0) {
+		if (m_client->open("ws://irc-ws.chat.twitch.tv:80") != 0) {
 			m_connStatus = ConnectionStatus::eError;
 			return Result(2, "Failed to open connection");
 		}
@@ -102,7 +105,7 @@ public:
 		// If not connected, return
 		if (m_connStatus == ConnectionStatus::eDisconnected) return;
 
-		m_client.close();
+		m_client->stop();
 		m_connStatus = ConnectionStatus::eDisconnected;
 	}
 
@@ -110,9 +113,9 @@ public:
 
 private: // Handlers
 	static void handle_open() {
-		m_client.send(std::format("PASS oauth:{}\r\n", m_oauthToken));
+		m_client->send(std::format("PASS oauth:{}\r\n", m_oauthToken));
 		// as channel is the same as the username of owner usually, we can use it
-		m_client.send(std::format("NICK {}\r\n", global_config.twitchChannel));
+		m_client->send(std::format("NICK {}\r\n", global_config.twitchChannel));
 		m_connStatus = ConnectionStatus::eConnected;
 	}
 
@@ -125,13 +128,13 @@ private: // Handlers
 
 		// If "PING :tmi.twitch.tv", respond with "PONG :tmi.twitch.tv"
 		if (msg.find("PING :tmi.twitch.tv") != std::string::npos) {
-			m_client.send("PONG :tmi.twitch.tv\r\n");
+			m_client->send("PONG :tmi.twitch.tv\r\n");
 			return Result();
 		}
 
 		// If ":tmi.twitch.tv 001" is received, join the channel
 		if (msg.find(":tmi.twitch.tv 001") != std::string::npos) {
-			m_client.send(std::format("JOIN #{}\r\n", global_config.twitchChannel));
+			m_client->send(std::format("JOIN #{}\r\n", global_config.twitchChannel));
 			return Result();
 		}
 

@@ -116,7 +116,7 @@ message(STATUS "Fetching libhv")
 FetchContent_Declare(
   libhv
   GIT_REPOSITORY "https://github.com/ithewei/libhv.git"
-  GIT_TAG "v1.3.2"
+  GIT_TAG "v1.3.3"
   FIND_PACKAGE_ARGS
 )
 # BUILD_SHARED, BUILD_EXAMPLES to OFF, we don't need them
