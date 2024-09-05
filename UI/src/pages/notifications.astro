@@ -1,0 +1,88 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+---
+
+<MainLayout>
+    <div class="w-full h-full flex flex-col justify-center items-center space-y-4">
+        <div class="w-3/4 flex flex-col">
+            <label id="notif-show-time-range-label" for="notif-show-time-range"
+                   class="mb-2 text-sm text-white">Notification Show Time: 5s</label>
+            <input id="notif-show-time-range" type="range" min="1" max="30" value="5" step="0.1"
+                   class="w-full h-2 rounded-sm appearance-none cursor-pointer bg-gray-700">
+        </div>
+
+        <div class="w-3/4 flex flex-col">
+            <label id="notif-effect-speed-range-label" for="notif-effect-speed-range"
+                   class="mb-2 text-sm text-white">Notification Effect Speed: 2x</label>
+            <input id="notif-effect-speed-range" type="range" min="0" max="10" value="2" step="0.1"
+                   class="w-full h-2 rounded-sm appearance-none cursor-pointer bg-gray-700">
+        </div>
+
+        <div class="w-3/4 flex flex-col">
+            <label id="notif-effect-intensity-range-label" for="notif-effect-intensity-range"
+                   class="mb-2 text-sm text-white">Notification Effect Intensity: 2x</label>
+            <input id="notif-effect-intensity-range" type="range" min="0" max="10" value="2" step="0.1"
+                   class="w-full h-2 rounded-sm appearance-none cursor-pointer bg-gray-700">
+        </div>
+
+        <div class="w-3/4 flex flex-col">
+            <label id="notif-font-scale-range-label" for="notif-font-scale-range"
+                   class="mb-2 text-sm text-white">Notification Font Scale: 100%</label>
+            <input id="notif-font-scale-range" type="range" min="0.5" max="2" value="1" step="0.1"
+                   class="w-full h-2 rounded-sm appearance-none cursor-pointer bg-gray-700">
+        </div>
+    </div>
+</MainLayout>
+
+<script>
+  const cn = window.chatnotifier.instance;
+  const globalConfig = JSON.parse(cn.get_config_json());
+
+  const notifShowTimeRange = document.getElementById("notif-show-time-range") as HTMLInputElement;
+  const notifShowTimeRangeLabel = document.getElementById("notif-show-time-range-label") as HTMLLabelElement;
+  if (notifShowTimeRange && notifShowTimeRangeLabel) {
+    notifShowTimeRangeLabel.textContent = `Notification Show Time: ${globalConfig.notifAnimationLength}s`;
+    notifShowTimeRange.value = globalConfig.notifAnimationLength.toString();
+    notifShowTimeRange.addEventListener("input", () => {
+      notifShowTimeRangeLabel.textContent = `Notification Show Time: ${notifShowTimeRange.value}s`;
+      globalConfig.notifAnimationLength = parseFloat(notifShowTimeRange.value);
+      cn.set_config_json(JSON.stringify(globalConfig));
+    });
+  }
+
+  const notifEffectSpeedRange = document.getElementById("notif-effect-speed-range") as HTMLInputElement;
+  const notifEffectSpeedRangeLabel = document.getElementById("notif-effect-speed-range-label") as HTMLLabelElement;
+  if (notifEffectSpeedRange && notifEffectSpeedRangeLabel) {
+    notifEffectSpeedRangeLabel.textContent = `Notification Effect Speed: ${globalConfig.notifEffectSpeed.toFixed(1)}x`;
+    notifEffectSpeedRange.value = globalConfig.notifEffectSpeed.toString();
+    notifEffectSpeedRange.addEventListener("input", () => {
+      notifEffectSpeedRangeLabel.textContent = `Notification Effect Speed: ${notifEffectSpeedRange.value}x`;
+      globalConfig.notifEffectSpeed = parseFloat(notifEffectSpeedRange.value);
+      cn.set_config_json(JSON.stringify(globalConfig));
+    });
+  }
+
+  const notifEffectIntensityRange = document.getElementById("notif-effect-intensity-range") as HTMLInputElement;
+  const notifEffectIntensityRangeLabel = document.getElementById("notif-effect-intensity-range-label") as HTMLLabelElement;
+  if (notifEffectIntensityRange && notifEffectIntensityRangeLabel) {
+    notifEffectIntensityRangeLabel.textContent = `Notification Effect Intensity: ${globalConfig.notifEffectIntensity.toFixed(1)}x`;
+    notifEffectIntensityRange.value = globalConfig.notifEffectIntensity.toString();
+    notifEffectIntensityRange.addEventListener("input", () => {
+      notifEffectIntensityRangeLabel.textContent = `Notification Effect Intensity: ${notifEffectIntensityRange.value}x`;
+      globalConfig.notifEffectIntensity = parseFloat(notifEffectIntensityRange.value);
+      cn.set_config_json(JSON.stringify(globalConfig));
+    });
+  }
+
+  const notifFontScaleRange = document.getElementById("notif-font-scale-range") as HTMLInputElement;
+  const notifFontScaleRangeLabel = document.getElementById("notif-font-scale-range-label") as HTMLLabelElement;
+  if (notifFontScaleRange && notifFontScaleRangeLabel) {
+    notifFontScaleRangeLabel.textContent = `Notification Font Scale: ${Math.round(globalConfig.notifFontScale * 100)}%`;
+    notifFontScaleRange.value = globalConfig.notifFontScale.toString();
+    notifFontScaleRange.addEventListener("input", () => {
+      notifFontScaleRangeLabel.textContent = `Notification Font Scale: ${Math.round(parseFloat(notifFontScaleRange.value) * 100)}%`;
+      globalConfig.notifFontScale = parseFloat(notifFontScaleRange.value);
+      cn.set_config_json(JSON.stringify(globalConfig));
+    });
+  }
+</script>

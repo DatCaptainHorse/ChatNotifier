@@ -1,0 +1,65 @@
+---
+import Sidebar from "../components/Sidebar.astro";
+import SidebarItem from "../components/SidebarItem.astro";
+import path from "path";
+
+function hrefToPage(page: string) {
+  // Electron is annoying with having relative paths and treating root as the root of the file system
+  const root = path.resolve(".");
+  return `file://${root}/dist/${page}` + (page.length > 0 ? '/' : '') + "index.html";
+}
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="generator" content={Astro.generator}/>
+    <title>ChatNotifier</title>
+  </head>
+  <body>
+    <Sidebar>
+        <SidebarItem text="Connection" href={hrefToPage("")}></SidebarItem>
+        <SidebarItem text="Audio" href={hrefToPage("audio")}></SidebarItem>
+        <SidebarItem text="Assets" href={hrefToPage("assets")}></SidebarItem>
+        <SidebarItem text="Cooldowns" href={hrefToPage("cooldowns")}></SidebarItem>
+        <SidebarItem text="Notifications" href={hrefToPage("notifications")}></SidebarItem>
+        <SidebarItem text="Users" href={hrefToPage("users")}></SidebarItem>
+        <SidebarItem slot="divided" text="About" href={hrefToPage("about")}></SidebarItem>
+    </Sidebar>
+
+    <div class="flex flex-col p-2 w-full h-screen">
+        <slot/>
+    </div>
+
+    <script src="../scripts/flowbite.min.js"></script>
+  </body>
+</html>
+
+<style is:global>
+  body {
+    @apply w-full h-full bg-slate-900 text-white flex flex-row;
+  }
+
+  .cn-inputfield {
+      @apply border text-sm rounded-sm block w-2/3 p-1 bg-gray-700 border-gray-600 placeholder-gray-400
+      text-white focus:ring-blue-500 focus:border-blue-500;
+  }
+
+  .cn-button {
+      @apply text-white rounded-sm text-sm p-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800
+      disabled:bg-gray-500 disabled:cursor-not-allowed disabled:hover:bg-gray-500 disabled:active:bg-gray-500;
+  }
+
+  .cn-button-danger {
+      @apply bg-red-600 hover:bg-red-700 active:bg-red-800;
+  }
+</style>
+
+<script>
+  const cn = window.chatnotifier.instance;
+
+  // Save config on page switch
+  window.addEventListener("beforeunload", () => {
+    cn.save_config();
+  });
+</script>

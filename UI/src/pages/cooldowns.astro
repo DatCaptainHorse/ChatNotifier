@@ -1,0 +1,129 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+---
+
+<MainLayout>
+    <div class="w-full h-full flex flex-col justify-center items-center space-y-4">
+        <div class="w-3/4 flex flex-col">
+            <label>Enabled Cooldowns</label>
+            <div class="w-full flex flex-row space-x-4">
+                <div class="flex flex-row p-2 items-center border rounded border-gray-700">
+                    <input id="cooldowns-global-enabled" type="checkbox"
+                           class="w-4 h-4 text-blue-600 rounded bg-gray-700 border-gray-600 focus:ring-0 focus:ring-offset-0">
+                    <label for="cooldowns-global-enabled" class="text-white text-sm ml-2">Global Cooldown</label>
+                </div>
+
+                <div class="flex flex-row p-2 items-center border rounded border-gray-700">
+                    <input id="cooldowns-peruser-enabled" type="checkbox"
+                           class="w-4 h-4 text-blue-600 rounded bg-gray-700 border-gray-600 focus:ring-0 focus:ring-offset-0">
+                    <label for="cooldowns-peruser-enabled" class="text-white text-sm ml-2">Per-User Cooldown</label>
+                </div>
+
+                <div class="flex flex-row p-2 items-center border rounded border-gray-700">
+                    <input id="cooldowns-percommand-enabled" type="checkbox"
+                           class="w-4 h-4 text-blue-600 rounded bg-gray-700 border-gray-600 focus:ring-0 focus:ring-offset-0">
+                    <label for="cooldowns-percommand-enabled" class="text-white text-sm ml-2">Per-Command
+                        Cooldown</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-3/4 flex flex-col">
+            <label id="cooldowns-global-range-label" for="cooldowns-global-range"
+                   class="mb-2 text-sm text-white">Global Cooldown Time: 5s</label>
+            <input id="cooldowns-global-range" type="range" min="1" max="600" value="5"
+                   class="w-full h-2 rounded-sm appearance-none cursor-pointer bg-gray-700">
+        </div>
+
+        <div class="w-3/4 flex flex-col">
+            <label id="cooldowns-peruser-range-label" for="cooldowns-peruser-range"
+                   class="mb-2 text-sm text-white">Per-User Cooldown Time: 5s</label>
+            <input id="cooldowns-peruser-range" type="range" min="1" max="600" value="5"
+                   class="w-full h-2 rounded-sm appearance-none cursor-pointer bg-gray-700">
+        </div>
+
+        <div class="w-3/4 flex flex-col">
+            <label id="cooldowns-percommand-range-label" for="cooldowns-percommand-range"
+                   class="mb-2 text-sm text-white">Per-Command Cooldown Time: 5s</label>
+            <input id="cooldowns-percommand-range" type="range" min="1" max="600" value="5"
+                   class="w-full h-2 rounded-sm appearance-none cursor-pointer bg-gray-700">
+        </div>
+    </div>
+</MainLayout>
+
+<script>
+  const cn = window.chatnotifier.instance;
+  const globalConfig = JSON.parse(cn.get_config_json());
+
+  const cooldownsGlobalEnabled = document.getElementById("cooldowns-global-enabled") as HTMLInputElement;
+  if (cooldownsGlobalEnabled) {
+    cooldownsGlobalEnabled.checked = (globalConfig.enabledCooldowns & 1) === 1;
+    cooldownsGlobalEnabled.addEventListener("input", () => {
+      if (cooldownsGlobalEnabled.checked)
+        globalConfig.enabledCooldowns |= 1;
+      else
+        globalConfig.enabledCooldowns &= ~1;
+
+      cn.set_config_json(JSON.stringify(globalConfig));
+    });
+  }
+  const cooldownsGlobalRange = document.getElementById("cooldowns-global-range") as HTMLInputElement;
+  const cooldownsGlobalRangeLabel = document.getElementById("cooldowns-global-range-label") as HTMLLabelElement;
+  if (cooldownsGlobalRange && cooldownsGlobalRangeLabel) {
+    cooldownsGlobalRangeLabel.textContent = `Global Cooldown Time: ${globalConfig.cooldownGlobal}s`;
+    cooldownsGlobalRange.value = globalConfig.cooldownGlobal.toString();
+    cooldownsGlobalRange.addEventListener("input", () => {
+      cooldownsGlobalRangeLabel.textContent = `Global Cooldown Time: ${cooldownsGlobalRange.value}s`;
+      globalConfig.cooldownGlobal = parseInt(cooldownsGlobalRange.value);
+      cn.set_config_json(JSON.stringify(globalConfig));
+    });
+  }
+
+  const cooldownsPerUserEnabled = document.getElementById("cooldowns-peruser-enabled") as HTMLInputElement;
+  if (cooldownsPerUserEnabled) {
+    cooldownsPerUserEnabled.checked = (globalConfig.enabledCooldowns & 2) === 2;
+    cooldownsPerUserEnabled.addEventListener("input", () => {
+      if (cooldownsPerUserEnabled.checked)
+        globalConfig.enabledCooldowns |= 2;
+      else
+        globalConfig.enabledCooldowns &= ~2;
+
+      cn.set_config_json(JSON.stringify(globalConfig));
+    });
+  }
+  const cooldownsPerUserRange = document.getElementById("cooldowns-peruser-range") as HTMLInputElement;
+  const cooldownsPerUserRangeLabel = document.getElementById("cooldowns-peruser-range-label") as HTMLLabelElement;
+  if (cooldownsPerUserRange && cooldownsPerUserRangeLabel) {
+    cooldownsPerUserRangeLabel.textContent = `Per-User Cooldown Time: ${globalConfig.cooldownPerUser}s`;
+    cooldownsPerUserRange.value = globalConfig.cooldownPerUser.toString();
+    cooldownsPerUserRange.addEventListener("input", () => {
+      cooldownsPerUserRangeLabel.textContent = `Per-User Cooldown Time: ${cooldownsPerUserRange.value}s`;
+      globalConfig.cooldownPerUser = parseInt(cooldownsPerUserRange.value);
+      cn.set_config_json(JSON.stringify(globalConfig));
+    });
+  }
+
+  const cooldownsPerCommandEnabled = document.getElementById("cooldowns-percommand-enabled") as HTMLInputElement;
+  if (cooldownsPerCommandEnabled) {
+    cooldownsPerCommandEnabled.checked = (globalConfig.enabledCooldowns & 4) === 4;
+    cooldownsPerCommandEnabled.addEventListener("input", () => {
+      if (cooldownsPerCommandEnabled.checked)
+        globalConfig.enabledCooldowns |= 4;
+      else
+        globalConfig.enabledCooldowns &= ~4;
+
+      cn.set_config_json(JSON.stringify(globalConfig));
+    });
+  }
+  const cooldownsPerCommandRange = document.getElementById("cooldowns-percommand-range") as HTMLInputElement;
+  const cooldownsPerCommandRangeLabel = document.getElementById("cooldowns-percommand-range-label") as HTMLLabelElement;
+  if (cooldownsPerCommandRange && cooldownsPerCommandRangeLabel) {
+    cooldownsPerCommandRangeLabel.textContent = `Per-Command Cooldown Time: ${globalConfig.cooldownPerCommand}s`;
+    cooldownsPerCommandRange.value = globalConfig.cooldownPerCommand.toString();
+    cooldownsPerCommandRange.addEventListener("input", () => {
+      cooldownsPerCommandRangeLabel.textContent = `Per-Command Cooldown Time: ${cooldownsPerCommandRange.value}s`;
+      globalConfig.cooldownPerCommand = parseInt(cooldownsPerCommandRange.value);
+      cn.set_config_json(JSON.stringify(globalConfig));
+    });
+  }
+</script>

@@ -1,0 +1,71 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+---
+
+<MainLayout>
+    <div class="w-full h-full flex flex-col justify-center items-center space-y-4">
+        <div class="w-3/4 flex flex-col">
+            <!-- Add User Input box w/ button + -->
+            <label for="users-add-user-input" class="mb-2 text-sm">Add User</label>
+            <div class="flex flex-row items-center">
+                <input id="users-add-user-input" class="cn-inputfield" type="text" placeholder="Username">
+                <button id="users-add-user-button" class="cn-button h-full w-8">+</button>
+            </div>
+        </div>
+
+        <div class="w-3/4 flex flex-col">
+            <label for="users-approved-list-select" class="mb-2 text-sm">Approved Users</label>
+            <div class="flex flex-row items-center">
+                <select id="users-approved-list-select"
+                        class="border text-sm rounded-sm focus:ring-0 focus:border-gray-600 w-full
+                    p-1 bg-gray-700 border-gray-600 placeholder-gray-400 text-white">
+                    <!-- Options filled by script -->
+                </select>
+                <button id="users-remove-user-button" class="cn-button cn-button-danger h-full w-8">-</button>
+            </div>
+        </div>
+    </div>
+</MainLayout>
+
+
+<script>
+  const cn = window.chatnotifier.instance;
+  const globalConfig = JSON.parse(cn.get_config_json());
+
+  const usersApprovedListSelect = document.getElementById("users-approved-list-select") as HTMLSelectElement;
+  const usersAddUserInput = document.getElementById("users-add-user-input") as HTMLInputElement;
+  const usersAddUserButton = document.getElementById("users-add-user-button") as HTMLButtonElement;
+  const usersRemoveUserButton = document.getElementById("users-remove-user-button") as HTMLButtonElement;
+  if (usersApprovedListSelect && usersAddUserInput && usersAddUserButton && usersRemoveUserButton) {
+    // approvedUsers is a comma separated string of approved users
+    const approvedUsers = globalConfig.approvedUsers;
+    const approvedUsersArray = approvedUsers.split(",");
+    approvedUsersArray.forEach((user: string) => {
+      if (user.length <= 0) return;
+      const option = document.createElement("option");
+      option.value = user;
+      option.text = user;
+      usersApprovedListSelect.appendChild(option);
+    });
+
+    usersAddUserButton.addEventListener("click", () => {
+      const username = usersAddUserInput.value;
+      if (username.length <= 0) return;
+      const option = document.createElement("option");
+      option.value = username;
+      option.text = username;
+      usersApprovedListSelect.appendChild(option);
+      usersAddUserInput.value = "";
+      globalConfig.approvedUsers = Array.from(usersApprovedListSelect.options).map((option) => option.value).join(",");
+      cn.set_config_json(JSON.stringify(globalConfig));
+    });
+
+    usersRemoveUserButton.addEventListener("click", () => {
+      const selectedOption = usersApprovedListSelect.selectedOptions[0];
+      if (!selectedOption) return;
+      usersApprovedListSelect.removeChild(selectedOption);
+      globalConfig.approvedUsers = Array.from(usersApprovedListSelect.options).map((option) => option.value).join(",");
+      cn.set_config_json(JSON.stringify(globalConfig));
+    });
+  }
+</script>

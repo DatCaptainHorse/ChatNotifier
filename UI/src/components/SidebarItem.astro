@@ -1,0 +1,32 @@
+---
+const {text, href} = Astro.props;
+---
+
+<li>
+    <a class="cn-sidebar-item" href={href} data-text={text} data-href={href}>
+        <span>{text}</span>
+    </a>
+</li>
+
+<style>
+    .cn-sidebar-item {
+        @apply flex items-center p-2 rounded-sm text-white text-sm cursor-pointer hover:bg-gray-700;
+    }
+
+    .cn-sidebar-item-active {
+        @apply bg-gray-700;
+    }
+</style>
+
+<script>
+    const elements = document.querySelectorAll(".cn-sidebar-item");
+    if (elements) {
+        elements.forEach(element => {
+            // Split after /dist
+            const split: string = element.dataset.href.split("/dist/")[1];
+            const splitWindow: string = window.location.pathname.split("/dist/")[1];
+            if (split === splitWindow)
+                element.classList.add("cn-sidebar-item-active");
+        });
+    }
+</script>

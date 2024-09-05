@@ -2,4 +2,7 @@ Checks: '-*,
 bugprone-*,
 modernize-*,
 mpi-*,
-portability-*'
+portability-*,
+-*-use-designated-initializers,
+-*-return-braced-init-list,
+-*-easily-swappable-parameters'

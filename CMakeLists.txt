@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 
-if (WIN32)
+if (WIN32 AND CMAKE_GENERATOR STREQUAL "Ninja")
   set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "0e5b6991-d74f-4b3d-a41c-cf096e0b2508")
   set(CMAKE_CXX_MODULE_STD 1)
 endif ()
@@ -20,13 +20,30 @@ if (DEFINED ENV{TWITCH_CLIENT_SECRET})
   add_compile_definitions(TWITCH_CLIENT_SECRET="$ENV{TWITCH_CLIENT_SECRET}")
 endif ()
 
-if (WIN32)
+if (WIN32 AND CMAKE_GENERATOR STREQUAL "Ninja")
   # Define CN_SUPPORTS_MODULES_STD
   add_compile_definitions(CN_SUPPORTS_MODULES_STD)
 endif ()
 
 if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
   message(FATAL_ERROR "Building within the source tree is unsupported")
+endif ()
+
+# If CMAKE_JS_INC is not set, set it manually
+if ("${CMAKE_JS_INC}" STREQUAL "")
+  set(CMAKE_JS_INC "${CMAKE_SOURCE_DIR}/UI/node_modules/node-api-headers/include;${CMAKE_SOURCE_DIR}/UI/node_modules/node-addon-api")
+endif ()
+
+# Same goes for CMAKE_JS_SRC
+if ("${CMAKE_JS_SRC}" STREQUAL "")
+  set(CMAKE_JS_SRC "${CMAKE_SOURCE_DIR}/UI/node_modules/cmake-js/lib/cpp/win_delay_load_hook.cc")
+endif ()
+
+# Aaand CMAKE_JS_LIB + CMAKE_JS_NODELIB_DEF + CMAKE_JS_NODELIB_TARGET
+if ("${CMAKE_JS_LIB}" STREQUAL "")
+  set(CMAKE_JS_NODELIB_DEF "${CMAKE_SOURCE_DIR}/UI/node_modules/node-api-headers/def/node_api.def")
+  set(CMAKE_JS_NODELIB_TARGET "${CMAKE_BINARY_DIR}/node.lib")
+  set(CMAKE_JS_LIB "${CMAKE_BINARY_DIR}/node.lib")
 endif ()
 
 if ("$ENV{IMGUI_DIR}" STREQUAL "" OR "$ENV{MINIAUDIO_DIR}" STREQUAL "")
@@ -57,7 +74,7 @@ cmake_dependent_option(USE_SANITIZERS "Use sanitizers if supported by target" OF
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 #find_package(glaze REQUIRED)
 find_package(glfw3 REQUIRED)
@@ -67,9 +84,9 @@ set(PYBIND11_PYTHON_VERSION 3.12)
 find_package(pybind11 REQUIRED)
 
 if (NON_NIX_BUILD)
-else()
+else ()
   find_package(PkgConfig REQUIRED)
   find_package(OpenSSL REQUIRED)
-endif()
+endif ()
 
 add_subdirectory(Source)

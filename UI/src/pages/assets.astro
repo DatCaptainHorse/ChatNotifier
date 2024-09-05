@@ -1,0 +1,34 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+---
+
+<MainLayout>
+    <div class="w-full h-full flex flex-col justify-center items-center space-y-4">
+        <button id="assets-find-new-assets-btn" class="cn-button">
+            Find New Assets
+        </button>
+
+        <button id="assets-reload-scripts-btn" class="cn-button">
+            Reload Scripts
+        </button>
+    </div>
+</MainLayout>
+
+<script>
+  const cn = window.chatnotifier.instance;
+  const globalConfig = JSON.parse(cn.get_config_json());
+
+  const assetsFindNewAssetsBtn = document.getElementById("assets-find-new-assets-btn") as HTMLButtonElement;
+  if (assetsFindNewAssetsBtn) {
+    assetsFindNewAssetsBtn.addEventListener("click", () => {
+      cn.find_new_assets();
+    });
+  }
+
+  const assetsReloadScriptsBtn = document.getElementById("assets-reload-scripts-btn") as HTMLButtonElement;
+  if (assetsReloadScriptsBtn) {
+    assetsReloadScriptsBtn.addEventListener("click", () => {
+      cn.reload_scripts();
+    });
+  }
+</script>

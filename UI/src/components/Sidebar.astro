@@ -1,0 +1,25 @@
+---
+---
+
+<aside class="cn-sidebar">
+    <div class="flex flex-col h-full p-1 bg-gray-800 overflow-y-auto">
+        <ul class="space-y-1">
+            <slot/>
+        </ul>
+
+        <ul class="cn-sidebar-divider"></ul>
+        <ul class="space-y-1">
+            <slot name="divided"/>
+        </ul>
+    </div>
+</aside>
+
+<style>
+    .cn-sidebar {
+        @apply w-32 h-screen;
+    }
+
+    .cn-sidebar-divider {
+        @apply border-t border-gray-700 mb-2 mt-auto;
+    }
+</style>

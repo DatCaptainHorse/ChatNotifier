@@ -1,6 +1,7 @@
 # CMake builds
 [Bb]uild*/
 cmake-build*/
+out/
 
 # clangd
 .cache/
@@ -31,3 +32,13 @@ Assets/*
 # Ignore Scripts/Deps folder
 Scripts/Deps/
 
+# Electron
+dist-electron/
+# Node
+node_modules/
+dist/
+# Astro
+.astro/
+
+# config
+config.json

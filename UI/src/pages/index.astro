@@ -1,0 +1,64 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+---
+
+<MainLayout>
+    <div class="w-full h-full flex flex-col justify-center items-center space-y-4">
+        <div class="w-3/4 flex flex-col items-center">
+            <label for="input-connect-twitch" class="mb-2 text-sm text-white">Twitch Channel</label>
+            <input type="text" id="input-connect-twitch" class="cn-inputfield"/>
+        </div>
+        <button id="btn-connect-twitch" type="button" class="cn-button">Connect</button>
+    </div>
+</MainLayout>
+
+<script>
+  import {intervalLimited} from "../scripts/helpers";
+
+  const cn = window.chatnotifier.instance;
+  const globalConfig = JSON.parse(cn.get_config_json());
+
+
+  const btnConnectTwitch = document.getElementById("btn-connect-twitch") as HTMLButtonElement;
+  const input = document.getElementById("input-connect-twitch") as HTMLInputElement;
+
+  if (btnConnectTwitch && input) {
+    const btnTextHandler = () => {
+      const status = cn.get_twitch_connection_status();
+      btnConnectTwitch.textContent = status === "Connected"
+        ? "Disconnect" : status === "Disconnected"
+          ? "Connect" : status;
+
+      if (status === "Connected" && !btnConnectTwitch.classList.contains("cn-button-danger"))
+        btnConnectTwitch.classList.add("cn-button-danger");
+      else if (status !== "Connected" && btnConnectTwitch.classList.contains("cn-button-danger"))
+        btnConnectTwitch.classList.remove("cn-button-danger");
+    };
+    btnTextHandler();
+
+    input.value = globalConfig.twitchChannel;
+    input.addEventListener("input", () => {
+      globalConfig.twitchChannel = input.value;
+      cn.set_config_json(JSON.stringify(globalConfig));
+    });
+
+    btnConnectTwitch.addEventListener("click", () => {
+      if (cn.get_twitch_connection_status() !== "Connected") {
+        cn.printer("Connecting to Twitch");
+        btnConnectTwitch.disabled = true;
+        btnConnectTwitch.textContent = "Connecting..";
+        cn.connect_twitch(globalConfig.twitchChannel);
+      } else {
+        cn.printer("Disconnecting from Twitch");
+        cn.disconnect_twitch();
+        btnConnectTwitch.disabled = true;
+        btnConnectTwitch.textContent = "Disconnecting..";
+      }
+
+      intervalLimited(() => {
+        btnConnectTwitch.disabled = false;
+        btnTextHandler();
+      }, 1000, 5);
+    });
+  }
+</script>

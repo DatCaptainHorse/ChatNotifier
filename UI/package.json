@@ -1,0 +1,78 @@
+{
+  "name": "chatnotifier",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "backend": "cmake-js configure --directory ../ && cmake-js build --directory ../",
+    "frontend": "astro build && electron-builder",
+    "debug": "astro build && electron-builder start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@astrojs/check": "^0.9.3",
+    "@astrojs/tailwind": "^5.1.0",
+    "astro": "^4.15.2",
+    "bindings": "^1.5.0",
+    "flowbite": "^2.5.1",
+    "nanostores": "^0.11.3",
+    "tailwindcss": "^3.4.10",
+    "typescript": "^5.5.4"
+  },
+  "devDependencies": {
+    "electron": "^32.0.1",
+    "electron-builder": "^25.0.5",
+    "cmake-js": "^7.3.0",
+    "astro-electron": "^0.3.1",
+    "node-addon-api": "^8.1.0"
+  },
+  "cmake-js": {
+    "runtime": "electron"
+  },
+  "binary": {
+    "napi_versions": [
+      4
+    ]
+  },
+  "build": {
+    "appId": "chatnotifier.app",
+    "productName": "ChatNotifier",
+    "compression": "store",
+    "asar": "false",
+    "files": [
+      "build/*",
+      "dist-electron/*",
+      "dist/**/*",
+      "public/*"
+    ],
+    "directories": {
+      "output": "out",
+      "buildResources": "dist"
+    }
+  },
+  "config": {
+    "forge": {
+      "packagerConfig": {
+        "name": "ChatNotifier",
+        "asar": false,
+        "ignore": [
+          ".astro",
+          ".vscode",
+          ".idea",
+          ".gitignore",
+          "tsconfig.json",
+          "astro.config.mjs",
+          "tailwind.config.mjs",
+          "config.json"
+        ]
+      },
+      "makers": [
+        {
+          "name": "@electron-forge/maker-zip"
+        }
+      ]
+    }
+  }
+}

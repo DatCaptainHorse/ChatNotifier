@@ -1,3 +1,7 @@
+#ifndef CN_SUPPORTS_MODULES_STD
+#include "libchatnotifier/standard.hpp"
+#endif
+
 #include <pybind11/embed.h>
 #include <pybind11/stl.h>
 
