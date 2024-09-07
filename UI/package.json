@@ -39,7 +39,7 @@
     "appId": "chatnotifier.app",
     "productName": "ChatNotifier",
     "compression": "store",
-    "asar": "false",
+    "asar": "true",
     "files": [
       "build/*",
       "dist-electron/*",
