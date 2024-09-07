@@ -32,18 +32,18 @@ import MainLayout from "../layouts/MainLayout.astro";
 </MainLayout>
 
 <script>
-  const cn = window.chatnotifier.instance;
-  const globalConfig = JSON.parse(cn.get_config_json());
+  const cn = window.chatnotifier;
+  const globalConfig = JSON.parse(await cn.call("get_config_json"));
 
   const audioGlobalVolumeRange = document.getElementById("audio-global-volume-range") as HTMLInputElement;
   const audioGlobalVolumeRangeLabel = document.getElementById("audio-global-volume-range-label") as HTMLLabelElement;
   if (audioGlobalVolumeRange && audioGlobalVolumeRangeLabel) {
     audioGlobalVolumeRangeLabel.textContent = `Global Volume: ${Math.round(globalConfig.globalAudioVolume * 100)}%`;
     audioGlobalVolumeRange.value = (globalConfig.globalAudioVolume * 100).toString();
-    audioGlobalVolumeRange.addEventListener("input", () => {
+    audioGlobalVolumeRange.addEventListener("input", async () => {
       audioGlobalVolumeRangeLabel.textContent = `Global Volume: ${audioGlobalVolumeRange.value}%`;
       globalConfig.globalAudioVolume = parseFloat(audioGlobalVolumeRange.value) / 100;
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
   }
 
@@ -52,10 +52,10 @@ import MainLayout from "../layouts/MainLayout.astro";
   if (audioSequenceOffsetRange && audioSequenceOffsetRangeLabel) {
     audioSequenceOffsetRangeLabel.textContent = `Audio Sequence Offset: ${globalConfig.audioSequenceOffset.toFixed(1)}`;
     audioSequenceOffsetRange.value = globalConfig.audioSequenceOffset.toString();
-    audioSequenceOffsetRange.addEventListener("input", () => {
+    audioSequenceOffsetRange.addEventListener("input", async () => {
       audioSequenceOffsetRangeLabel.textContent = `Audio Sequence Offset: ${audioSequenceOffsetRange.value}`;
       globalConfig.audioSequenceOffset = parseFloat(audioSequenceOffsetRange.value);
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
   }
 
@@ -64,17 +64,17 @@ import MainLayout from "../layouts/MainLayout.astro";
   if (audioMaxTriggersRange && audioMaxTriggersRangeLabel) {
     audioMaxTriggersRangeLabel.textContent = `Max Audio Triggers: ${globalConfig.maxAudioTriggers}`;
     audioMaxTriggersRange.value = globalConfig.maxAudioTriggers.toString();
-    audioMaxTriggersRange.addEventListener("input", () => {
+    audioMaxTriggersRange.addEventListener("input", async () => {
       audioMaxTriggersRangeLabel.textContent = `Max Audio Triggers: ${audioMaxTriggersRange.value}`;
       globalConfig.maxAudioTriggers = parseInt(audioMaxTriggersRange.value);
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
   }
 
   const audioStopAllSoundsBtn = document.getElementById("audio-stop-all-sounds-btn") as HTMLButtonElement;
   if (audioStopAllSoundsBtn) {
     audioStopAllSoundsBtn.addEventListener("click", () => {
-      cn.stop_all_sounds();
+      cn.call("stop_all_sounds")
     });
   }
 </script>

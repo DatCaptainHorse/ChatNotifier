@@ -15,20 +15,19 @@ import MainLayout from "../layouts/MainLayout.astro";
 </MainLayout>
 
 <script>
-  const cn = window.chatnotifier.instance;
-  const globalConfig = JSON.parse(cn.get_config_json());
+  const cn = window.chatnotifier;
 
   const assetsFindNewAssetsBtn = document.getElementById("assets-find-new-assets-btn") as HTMLButtonElement;
   if (assetsFindNewAssetsBtn) {
     assetsFindNewAssetsBtn.addEventListener("click", () => {
-      cn.find_new_assets();
+      cn.call("find_new_assets");
     });
   }
 
   const assetsReloadScriptsBtn = document.getElementById("assets-reload-scripts-btn") as HTMLButtonElement;
   if (assetsReloadScriptsBtn) {
     assetsReloadScriptsBtn.addEventListener("click", () => {
-      cn.reload_scripts();
+      cn.call("reload_scripts");
     });
   }
 </script>

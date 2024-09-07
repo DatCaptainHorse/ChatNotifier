@@ -1,13 +1,7 @@
-import {contextBridge} from 'electron';
-
-const cn = require("bindings")("chatnotifier");
-
-if (!cn.initialized()) {
-  cn.printer("ChatNotifier initializing with cwd.. " + process.cwd());
-  cn.initialize(process.cwd());
-  cn.printer("ChatNotifier initialized");
-}
+import {contextBridge, ipcRenderer} from "electron";
 
 contextBridge.exposeInMainWorld("chatnotifier", {
-  instance: cn,
+  call: async (method: string, params: any) => {
+    return ipcRenderer.invoke('chatnotifier-call', {method, params});
+  },
 });

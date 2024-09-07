@@ -29,8 +29,8 @@ import MainLayout from "../layouts/MainLayout.astro";
 
 
 <script>
-  const cn = window.chatnotifier.instance;
-  const globalConfig = JSON.parse(cn.get_config_json());
+  const cn = window.chatnotifier;
+  const globalConfig = JSON.parse(await cn.call("get_config_json"));
 
   const usersApprovedListSelect = document.getElementById("users-approved-list-select") as HTMLSelectElement;
   const usersAddUserInput = document.getElementById("users-add-user-input") as HTMLInputElement;
@@ -48,7 +48,7 @@ import MainLayout from "../layouts/MainLayout.astro";
       usersApprovedListSelect.appendChild(option);
     });
 
-    usersAddUserButton.addEventListener("click", () => {
+    usersAddUserButton.addEventListener("click", async () => {
       const username = usersAddUserInput.value;
       if (username.length <= 0) return;
       const option = document.createElement("option");
@@ -57,15 +57,15 @@ import MainLayout from "../layouts/MainLayout.astro";
       usersApprovedListSelect.appendChild(option);
       usersAddUserInput.value = "";
       globalConfig.approvedUsers = Array.from(usersApprovedListSelect.options).map((option) => option.value).join(",");
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
 
-    usersRemoveUserButton.addEventListener("click", () => {
+    usersRemoveUserButton.addEventListener("click", async () => {
       const selectedOption = usersApprovedListSelect.selectedOptions[0];
       if (!selectedOption) return;
       usersApprovedListSelect.removeChild(selectedOption);
       globalConfig.approvedUsers = Array.from(usersApprovedListSelect.options).map((option) => option.value).join(",");
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
   }
 </script>

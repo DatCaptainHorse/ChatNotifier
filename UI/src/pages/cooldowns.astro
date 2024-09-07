@@ -52,19 +52,19 @@ import MainLayout from "../layouts/MainLayout.astro";
 </MainLayout>
 
 <script>
-  const cn = window.chatnotifier.instance;
-  const globalConfig = JSON.parse(cn.get_config_json());
+  const cn = window.chatnotifier;
+  const globalConfig = JSON.parse(await cn.call("get_config_json"));
 
   const cooldownsGlobalEnabled = document.getElementById("cooldowns-global-enabled") as HTMLInputElement;
   if (cooldownsGlobalEnabled) {
     cooldownsGlobalEnabled.checked = (globalConfig.enabledCooldowns & 1) === 1;
-    cooldownsGlobalEnabled.addEventListener("input", () => {
+    cooldownsGlobalEnabled.addEventListener("input", async () => {
       if (cooldownsGlobalEnabled.checked)
         globalConfig.enabledCooldowns |= 1;
       else
         globalConfig.enabledCooldowns &= ~1;
 
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
   }
   const cooldownsGlobalRange = document.getElementById("cooldowns-global-range") as HTMLInputElement;
@@ -72,23 +72,23 @@ import MainLayout from "../layouts/MainLayout.astro";
   if (cooldownsGlobalRange && cooldownsGlobalRangeLabel) {
     cooldownsGlobalRangeLabel.textContent = `Global Cooldown Time: ${globalConfig.cooldownGlobal}s`;
     cooldownsGlobalRange.value = globalConfig.cooldownGlobal.toString();
-    cooldownsGlobalRange.addEventListener("input", () => {
+    cooldownsGlobalRange.addEventListener("input", async () => {
       cooldownsGlobalRangeLabel.textContent = `Global Cooldown Time: ${cooldownsGlobalRange.value}s`;
       globalConfig.cooldownGlobal = parseInt(cooldownsGlobalRange.value);
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
   }
 
   const cooldownsPerUserEnabled = document.getElementById("cooldowns-peruser-enabled") as HTMLInputElement;
   if (cooldownsPerUserEnabled) {
     cooldownsPerUserEnabled.checked = (globalConfig.enabledCooldowns & 2) === 2;
-    cooldownsPerUserEnabled.addEventListener("input", () => {
+    cooldownsPerUserEnabled.addEventListener("input", async () => {
       if (cooldownsPerUserEnabled.checked)
         globalConfig.enabledCooldowns |= 2;
       else
         globalConfig.enabledCooldowns &= ~2;
 
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
   }
   const cooldownsPerUserRange = document.getElementById("cooldowns-peruser-range") as HTMLInputElement;
@@ -96,23 +96,23 @@ import MainLayout from "../layouts/MainLayout.astro";
   if (cooldownsPerUserRange && cooldownsPerUserRangeLabel) {
     cooldownsPerUserRangeLabel.textContent = `Per-User Cooldown Time: ${globalConfig.cooldownPerUser}s`;
     cooldownsPerUserRange.value = globalConfig.cooldownPerUser.toString();
-    cooldownsPerUserRange.addEventListener("input", () => {
+    cooldownsPerUserRange.addEventListener("input", async () => {
       cooldownsPerUserRangeLabel.textContent = `Per-User Cooldown Time: ${cooldownsPerUserRange.value}s`;
       globalConfig.cooldownPerUser = parseInt(cooldownsPerUserRange.value);
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
   }
 
   const cooldownsPerCommandEnabled = document.getElementById("cooldowns-percommand-enabled") as HTMLInputElement;
   if (cooldownsPerCommandEnabled) {
     cooldownsPerCommandEnabled.checked = (globalConfig.enabledCooldowns & 4) === 4;
-    cooldownsPerCommandEnabled.addEventListener("input", () => {
+    cooldownsPerCommandEnabled.addEventListener("input", async () => {
       if (cooldownsPerCommandEnabled.checked)
         globalConfig.enabledCooldowns |= 4;
       else
         globalConfig.enabledCooldowns &= ~4;
 
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
   }
   const cooldownsPerCommandRange = document.getElementById("cooldowns-percommand-range") as HTMLInputElement;
@@ -120,10 +120,10 @@ import MainLayout from "../layouts/MainLayout.astro";
   if (cooldownsPerCommandRange && cooldownsPerCommandRangeLabel) {
     cooldownsPerCommandRangeLabel.textContent = `Per-Command Cooldown Time: ${globalConfig.cooldownPerCommand}s`;
     cooldownsPerCommandRange.value = globalConfig.cooldownPerCommand.toString();
-    cooldownsPerCommandRange.addEventListener("input", () => {
+    cooldownsPerCommandRange.addEventListener("input", async () => {
       cooldownsPerCommandRangeLabel.textContent = `Per-Command Cooldown Time: ${cooldownsPerCommandRange.value}s`;
       globalConfig.cooldownPerCommand = parseInt(cooldownsPerCommandRange.value);
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
   }
 </script>

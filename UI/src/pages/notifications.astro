@@ -35,18 +35,18 @@ import MainLayout from "../layouts/MainLayout.astro";
 </MainLayout>
 
 <script>
-  const cn = window.chatnotifier.instance;
-  const globalConfig = JSON.parse(cn.get_config_json());
+  const cn = window.chatnotifier;
+  const globalConfig = JSON.parse(await cn.call("get_config_json"));
 
   const notifShowTimeRange = document.getElementById("notif-show-time-range") as HTMLInputElement;
   const notifShowTimeRangeLabel = document.getElementById("notif-show-time-range-label") as HTMLLabelElement;
   if (notifShowTimeRange && notifShowTimeRangeLabel) {
     notifShowTimeRangeLabel.textContent = `Notification Show Time: ${globalConfig.notifAnimationLength}s`;
     notifShowTimeRange.value = globalConfig.notifAnimationLength.toString();
-    notifShowTimeRange.addEventListener("input", () => {
+    notifShowTimeRange.addEventListener("input", async () => {
       notifShowTimeRangeLabel.textContent = `Notification Show Time: ${notifShowTimeRange.value}s`;
       globalConfig.notifAnimationLength = parseFloat(notifShowTimeRange.value);
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
   }
 
@@ -55,10 +55,10 @@ import MainLayout from "../layouts/MainLayout.astro";
   if (notifEffectSpeedRange && notifEffectSpeedRangeLabel) {
     notifEffectSpeedRangeLabel.textContent = `Notification Effect Speed: ${globalConfig.notifEffectSpeed.toFixed(1)}x`;
     notifEffectSpeedRange.value = globalConfig.notifEffectSpeed.toString();
-    notifEffectSpeedRange.addEventListener("input", () => {
+    notifEffectSpeedRange.addEventListener("input", async () => {
       notifEffectSpeedRangeLabel.textContent = `Notification Effect Speed: ${notifEffectSpeedRange.value}x`;
       globalConfig.notifEffectSpeed = parseFloat(notifEffectSpeedRange.value);
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
   }
 
@@ -67,10 +67,10 @@ import MainLayout from "../layouts/MainLayout.astro";
   if (notifEffectIntensityRange && notifEffectIntensityRangeLabel) {
     notifEffectIntensityRangeLabel.textContent = `Notification Effect Intensity: ${globalConfig.notifEffectIntensity.toFixed(1)}x`;
     notifEffectIntensityRange.value = globalConfig.notifEffectIntensity.toString();
-    notifEffectIntensityRange.addEventListener("input", () => {
+    notifEffectIntensityRange.addEventListener("input", async () => {
       notifEffectIntensityRangeLabel.textContent = `Notification Effect Intensity: ${notifEffectIntensityRange.value}x`;
       globalConfig.notifEffectIntensity = parseFloat(notifEffectIntensityRange.value);
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
   }
 
@@ -79,10 +79,10 @@ import MainLayout from "../layouts/MainLayout.astro";
   if (notifFontScaleRange && notifFontScaleRangeLabel) {
     notifFontScaleRangeLabel.textContent = `Notification Font Scale: ${Math.round(globalConfig.notifFontScale * 100)}%`;
     notifFontScaleRange.value = globalConfig.notifFontScale.toString();
-    notifFontScaleRange.addEventListener("input", () => {
+    notifFontScaleRange.addEventListener("input", async () => {
       notifFontScaleRangeLabel.textContent = `Notification Font Scale: ${Math.round(parseFloat(notifFontScaleRange.value) * 100)}%`;
       globalConfig.notifFontScale = parseFloat(notifFontScaleRange.value);
-      cn.set_config_json(JSON.stringify(globalConfig));
+      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
   }
 </script>
