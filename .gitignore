@@ -42,3 +42,6 @@ dist/
 
 # config
 config.json
+
+# xmake
+.xmake/

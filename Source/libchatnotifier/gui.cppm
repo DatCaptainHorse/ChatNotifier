@@ -12,15 +12,15 @@ module;
 #include <hv/HttpServer.h>
 #include <hv/WebSocketClient.h>
 
-#define GLFW_INCLUDE_NONE				// Don't include OpenGL headers by default
-#define IMGUI_IMPL_OPENGL_LOADER_CUSTOM // Same goes for ImGui
-#include <GL/gl3w.h>
+#define GLFW_INCLUDE_NONE
+#include <glad/gl.h>
 #include <GLFW/glfw3.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
+
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
+#include <imgui/imgui_impl_glfw.hpp>
+#include <imgui/imgui_impl_glad.hpp>
 
 export module gui;
 
@@ -61,11 +61,11 @@ public:
 		ImGui::StyleColorsDark();
 		auto &io = ImGui::GetIO();
 
-		// Enable docking and viewports
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-		io.ConfigViewportsNoTaskBarIcon = true;
-		io.ConfigViewportsNoDecoration = true;
+		// MAIN WINDOW IMGUI INITIALIZATION //
+		if (!ImGui_ImplGlfw_InitForOpenGL(OpenGLHandler::get_main_window(), false))
+			return Result(6, "Failed to initialize ImGui GLFW backend!");
+		if (!ImGui_ImplGlad_Init("#version 330 core"))
+			return Result(7, "Failed to initialize ImGui glad backend!");
 
 		// Calculate pixel density
 		// (DPI = (square root of (horizontal pixels² + vertical pixels²)) / diagonal screen size in
@@ -103,10 +103,6 @@ public:
 			m_notifFont = m_mainFont;
 		}
 
-		// MAIN WINDOW IMGUI INITIALIZATION //
-		ImGui_ImplGlfw_InitForOpenGL(OpenGLHandler::get_main_window(), true);
-		ImGui_ImplOpenGL3_Init("#version 330 core");
-
 		// Build fonts
 		io.Fonts->Build();
 
@@ -120,24 +116,18 @@ public:
 	static void cleanup() {
 		m_keepRunning = false;
 
-		ImGui_ImplOpenGL3_Shutdown();
+		ImGui_ImplGlad_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
 
 	// Returns if the gui should close
-	[[nodiscard]] static auto should_close() -> bool {
-		return !m_keepRunning;
-	}
+	[[nodiscard]] static auto should_close() -> bool { return !m_keepRunning; }
 
 	// GUI drawing and updating
 	static void render() {
-		// Backup context
-		// const auto prev_ctx_main = glfwGetCurrentContext();
-		// glfwMakeContextCurrent(m_guiWindow);
-
 		// IMGUI NEW FRAME //
-		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlad_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
@@ -209,21 +199,7 @@ public:
 
 		// IMGUI RENDERING //
 		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-			// Backup context
-			const auto prev_ctx = glfwGetCurrentContext();
-			ImGui::UpdatePlatformWindows();
-			ImGui::RenderPlatformWindowsDefault();
-			glfwMakeContextCurrent(prev_ctx);
-		}
-
-		// GLFW SWAP BUFFERS //
-		glfwSwapBuffers(OpenGLHandler::get_main_window());
-
-		// Restore context
-		// glfwMakeContextCurrent(prev_ctx_main);
+		ImGui_ImplGlad_RenderDrawData(ImGui::GetDrawData());
 	}
 
 	// Method for launching new notification

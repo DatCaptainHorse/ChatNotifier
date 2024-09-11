@@ -30,4 +30,11 @@
 #include <mutex>
 #include <cmath>
 #include <numbers>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#define VC_EXTRALEAN
+#include <Windows.h>
+#endif
 #endif

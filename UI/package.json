@@ -4,7 +4,6 @@
   "description": "",
   "main": "dist-electron/main.js",
   "scripts": {
-    "backend": "cmake-js configure --directory ../ && cmake-js build --directory ../",
     "frontend": "astro build && electron-builder",
     "debug": "astro build && electron-builder start"
   },
@@ -22,7 +21,6 @@
   },
   "devDependencies": {
     "astro-electron": "^0.3.1",
-    "cmake-js": "^7.3.0",
     "electron": "^32.0.1",
     "electron-builder": "^25.0.5",
     "node-addon-api": "^8.1.0"
@@ -39,7 +37,7 @@
     "appId": "chatnotifier.app",
     "productName": "ChatNotifier",
     "compression": "store",
-    "asar": "true",
+    "asar": "false",
     "files": [
       "build/*",
       "dist-electron/*",
@@ -49,6 +47,9 @@
     "directories": {
       "output": "out",
       "buildResources": "dist"
+    },
+    "win": {
+      "target": "dir"
     }
   },
   "config": {

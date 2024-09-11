@@ -40,7 +40,6 @@ import MainLayout from "../layouts/MainLayout.astro";
     input.value = globalConfig.twitchChannel;
     input.addEventListener("input", async () => {
       globalConfig.twitchChannel = input.value;
-      return cn.call("set_config_json", JSON.stringify(globalConfig));
     });
 
     btnConnectTwitch.addEventListener("click", async () => {
@@ -48,6 +47,7 @@ import MainLayout from "../layouts/MainLayout.astro";
         cn.call("printer", "Connecting to Twitch");
         btnConnectTwitch.disabled = true;
         btnConnectTwitch.textContent = "Connecting..";
+        await cn.call("set_config_json", JSON.stringify(globalConfig));
         await cn.call("connect_twitch", globalConfig.twitchChannel);
       } else {
         cn.call("printer", "Disconnecting from Twitch");

@@ -5,8 +5,13 @@ module;
 #endif
 
 #define GLFW_INCLUDE_NONE
-#include <GL/gl3w.h>
+#include <glad/gl.h>
 #include <GLFW/glfw3.h>
+
+#ifdef _WIN32
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+#endif
 
 export module opengl;
 
@@ -14,191 +19,185 @@ import standard;
 import common;
 import filesystem;
 
-// Basic vector2 struct with helper methods
-struct Vector2 {
-	float x = 0.0f, y = 0.0f;
+// Shader class (just minimal for fullscreen quads)
+export class OpenGLShader {
+	GLuint m_id = 0;
 
-	Vector2() = default;
-	Vector2(const float x, const float y) : x(x), y(y) {}
+public:
+	OpenGLShader() = default;
+	OpenGLShader(const OpenGLShader &) = delete;
+	OpenGLShader(OpenGLShader &&other) noexcept : m_id(other.m_id) { other.m_id = 0; }
+	OpenGLShader(const std::string &vertexSrc, const std::string &fragmentSrc) {
+		create(vertexSrc, fragmentSrc);
+	}
+	~OpenGLShader() { glDeleteProgram(m_id); }
 
-	auto operator+(const Vector2 &other) const -> Vector2 {
-		return Vector2(x + other.x, y + other.y);
-	}
-	auto operator-(const Vector2 &other) const -> Vector2 {
-		return Vector2(x - other.x, y - other.y);
-	}
-	auto operator*(const float scalar) const -> Vector2 { return Vector2(x * scalar, y * scalar); }
-	auto operator/(const float scalar) const -> Vector2 { return Vector2(x / scalar, y / scalar); }
-
-	auto operator+=(const Vector2 &other) -> Vector2 & {
-		x += other.x;
-		y += other.y;
-		return *this;
-	}
-	auto operator-=(const Vector2 &other) -> Vector2 & {
-		x -= other.x;
-		y -= other.y;
-		return *this;
-	}
-	auto operator*=(const float scalar) -> Vector2 & {
-		x *= scalar;
-		y *= scalar;
-		return *this;
-	}
-	auto operator/=(const float scalar) -> Vector2 & {
-		x /= scalar;
-		y /= scalar;
+	auto operator=(const OpenGLShader &) -> OpenGLShader & = delete;
+	auto operator=(OpenGLShader &&other) noexcept -> OpenGLShader & {
+		glDeleteProgram(m_id);
+		m_id = other.m_id;
+		other.m_id = 0;
 		return *this;
 	}
 
-	[[nodiscard]] auto length() const -> float { return std::sqrt(x * x + y * y); }
-	[[nodiscard]] auto normalized() const -> Vector2 {
-		const auto len = length();
-		return len > 0.0f ? *this / len : *this;
-	}
-};
+	auto create(const std::string &vertexSrc, const std::string &fragmentSrc) -> bool {
+		const auto vertexShader = glCreateShader(GL_VERTEX_SHADER);
+		const auto fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 
-// Shader helper struct
-struct Shader {
-	GLuint id = 0;
+		const char *vertexSrcC = vertexSrc.c_str();
+		const char *fragmentSrcC = fragmentSrc.c_str();
 
-	Shader(const std::string &vertex_source, const std::string &fragment_source) {
-		const auto vertex_shader = compile_shader(GL_VERTEX_SHADER, vertex_source.c_str());
-		const auto fragment_shader = compile_shader(GL_FRAGMENT_SHADER, fragment_source.c_str());
+		glShaderSource(vertexShader, 1, &vertexSrcC, nullptr);
+		glCompileShader(vertexShader);
 
-		id = glCreateProgram();
-		glAttachShader(id, vertex_shader);
-		glAttachShader(id, fragment_shader);
-		glLinkProgram(id);
-
-		// Check for linking errors
 		int success;
-		glGetProgramiv(id, GL_LINK_STATUS, &success);
+		char infoLog[512];
+		glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
 		if (!success) {
-			std::string info_log;
-			info_log.resize(512);
-			glGetProgramInfoLog(id, info_log.size(), nullptr, info_log.data());
-			std::println("Shader linking failed: {}", info_log);
+			glGetShaderInfoLog(vertexShader, sizeof(infoLog), nullptr, infoLog);
+			std::println("Vertex shader compilation failed: {}", infoLog);
+			return false;
 		}
 
-		// Delete shaders as they're linked into the program
-		glDeleteShader(vertex_shader);
-		glDeleteShader(fragment_shader);
-	}
+		glShaderSource(fragmentShader, 1, &fragmentSrcC, nullptr);
+		glCompileShader(fragmentShader);
 
-	~Shader() { glDeleteProgram(id); }
-
-	void use() const { glUseProgram(id); }
-	void unuse() const { glUseProgram(0); }
-
-	auto compile_shader(const GLenum type, const char *source) const -> GLuint {
-		const auto shader = glCreateShader(type);
-		glShaderSource(shader, 1, &source, nullptr);
-		glCompileShader(shader);
-
-		// Check for compilation errors
-		int success;
-		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+		glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
 		if (!success) {
-			std::string info_log;
-			info_log.resize(512);
-			glGetShaderInfoLog(shader, info_log.size(), nullptr, info_log.data());
-			std::println("Shader compilation failed: {}", info_log);
+			glGetShaderInfoLog(fragmentShader, sizeof(infoLog), nullptr, infoLog);
+			std::println("Fragment shader compilation failed: {}", infoLog);
+			return false;
 		}
 
-		return shader;
+		m_id = glCreateProgram();
+		glAttachShader(m_id, vertexShader);
+		glAttachShader(m_id, fragmentShader);
+		glLinkProgram(m_id);
+
+		glGetProgramiv(m_id, GL_LINK_STATUS, &success);
+		if (!success) {
+			glGetProgramInfoLog(m_id, sizeof(infoLog), nullptr, infoLog);
+			std::println("Shader program linking failed: {}", infoLog);
+			return false;
+		}
+
+		glDeleteShader(vertexShader);
+		glDeleteShader(fragmentShader);
+		return true;
 	}
 
-	[[nodiscard]] auto get_uniform_location(const std::string &name) const -> GLint {
-		return glGetUniformLocation(id, name.c_str());
-	}
+	auto bind() const -> void { glUseProgram(m_id); }
+	auto unbind() const -> void { glUseProgram(0); }
 
-	void set_bool(const std::string &name, const bool value) const {
-		glUniform1i(get_uniform_location(name), static_cast<int>(value));
-	}
-	void set_int(const std::string &name, const int value) const {
-		glUniform1i(get_uniform_location(name), value);
-	}
-	void set_float(const std::string &name, const float value) const {
-		glUniform1f(get_uniform_location(name), value);
-	}
-	void set_vec2(const std::string &name, const Vector2 &value) const {
-		glUniform2f(get_uniform_location(name), value.x, value.y);
+	auto get_id() const -> GLuint { return m_id; }
+
+	auto set_uniform(const std::string &name, int value) const -> void {
+		glUniform1i(glGetUniformLocation(m_id, name.c_str()), value);
 	}
 };
 
-// Struct holding some basic variables usable in shaders (time, resolution, etc.)
-struct ShaderVariables {
-	float time = 0.0f;
-	Vector2 resolution = Vector2(0.0f, 0.0f);
-	float intensity = 1.0f;
-	float speed = 1.0f;
-	float frequency = 1.0f;
-	float phase = 0.0f;
+// Fullscreen quad
+constexpr float quadVertices[] = {
+	// positions        // texture Coords
+	-1.0f, 1.0f, 0.0f, 1.0f, // top left
+	-1.0f, -1.0f, 0.0f, 0.0f, // bottom left
+	1.0f, 1.0f, 1.0f, 1.0f, // top right
+	1.0f, -1.0f, 1.0f, 0.0f // bottom right
 };
 
-// Struct for holding vertex data
-struct Vertex {
-	Vector2 position;
-	Vector2 tex_coords;
-};
+// Fullscreen quad VAO and VBO
+export class OpenGLQuad {
+	GLuint m_vao = 0;
+	GLuint m_vbo = 0;
 
-// Fullscreen quad helper struct
-struct FullscreenQuad {
-	GLuint vao = 0;
-	GLuint vbo = 0;
-	Shader *shader = nullptr;
+public:
+	OpenGLQuad() = default;
+	explicit OpenGLQuad(const std::vector<float> &vertices) {
+		glGenVertexArrays(1, &m_vao);
+		glGenBuffers(1, &m_vbo);
 
-	FullscreenQuad() {
-		const std::array vertices = {
-			Vertex{{-1.0f, -1.0f}, {0.0f, 0.0f}},
-			Vertex{{1.0f, -1.0f}, {1.0f, 0.0f}},
-			Vertex{{1.0f, 1.0f}, {1.0f, 1.0f}},
-			Vertex{{-1.0f, 1.0f}, {0.0f, 1.0f}},
-		};
+		glBindVertexArray(m_vao);
+		glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(),
+					 GL_STATIC_DRAW);
 
-		glGenVertexArrays(1, &vao);
-		glGenBuffers(1, &vbo);
-		glBindVertexArray(vao);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices.data(), GL_STATIC_DRAW);
-
-		// Position attribute
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), nullptr);
 		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), nullptr);
-
-		// Texture coordinate attribute
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+							  reinterpret_cast<void *>(2 * sizeof(float)));
 		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-							  reinterpret_cast<void *>(sizeof(Vector2)));
 
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 	}
 
-	~FullscreenQuad() {
-		glDeleteBuffers(1, &vbo);
-		glDeleteVertexArrays(1, &vao);
+	~OpenGLQuad() {
+		glDeleteVertexArrays(1, &m_vao);
+		glDeleteBuffers(1, &m_vbo);
 	}
 
-	void set_shader(Shader *new_shader) { shader = new_shader; }
-
-	void render(const ShaderVariables &variables = {}) const {
-		if (shader) {
-			shader->use();
-			shader->set_float("time", variables.time);
-			shader->set_vec2("resolution", variables.resolution);
-			shader->set_float("intensity", variables.intensity);
-			shader->set_float("speed", variables.speed);
-			shader->set_float("frequency", variables.frequency);
-			shader->set_float("phase", variables.phase);
-		}
-
-		glBindVertexArray(vao);
-		glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-		glBindVertexArray(0);
-		if (shader) shader->unuse();
-	}
+	auto bind() const -> void { glBindVertexArray(m_vao); }
+	auto unbind() const -> void { glBindVertexArray(0); }
 };
+
+// Offscreen framebuffer helper class
+export class OpenGLOffscreenFramebuffer {
+	GLuint m_fbo = 0;
+	GLuint m_texture = 0;
+	GLuint m_rbo = 0;
+	uint32_t m_width = 0;
+	uint32_t m_height = 0;
+
+public:
+	OpenGLOffscreenFramebuffer() = default;
+	explicit OpenGLOffscreenFramebuffer(const uint32_t width, const uint32_t height)
+		: m_width(width), m_height(height) {
+		glGenFramebuffers(1, &m_fbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+
+		// Color attachment
+		glGenTextures(1, &m_texture);
+		glBindTexture(GL_TEXTURE_2D, m_texture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_RGB, GL_UNSIGNED_BYTE,
+					 nullptr);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture, 0);
+
+		// Renderbuffer object
+		glGenRenderbuffers(1, &m_rbo);
+		glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_width, m_height);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
+								  m_rbo);
+
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+			std::println("Framebuffer not complete!");
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
+	~OpenGLOffscreenFramebuffer() {
+		glDeleteFramebuffers(1, &m_fbo);
+		glDeleteTextures(1, &m_texture);
+		glDeleteRenderbuffers(1, &m_rbo);
+	}
+
+	auto bind() const -> void {
+		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+		glViewport(0, 0, m_width, m_height);
+	}
+
+	auto unbind() const -> void {
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, m_width / 4, m_height / 4);
+	}
+
+	auto get_texture() const -> GLuint { return m_texture; }
+};
+
+// Function type for render callback
+export using RenderCallback = std::function<void()>;
 
 // Class for OpenGL and GLFW handling
 export class OpenGLHandler {
@@ -206,11 +205,20 @@ export class OpenGLHandler {
 	static inline GLFWmonitor *m_monitor = nullptr;
 	static inline const GLFWvidmode *m_mode;
 
-	static inline std::vector<std::unique_ptr<Shader>> m_shaders;
-	static inline std::vector<FullscreenQuad> m_quads;
+	// Main offscreen framebuffer
+	static inline OpenGLOffscreenFramebuffer m_offscreenFramebuffer;
+	// Quad for offscreen framebuffer rendering
+	static inline OpenGLQuad m_quad;
+	// Shader for offscreen framebuffer rendering
+	static inline OpenGLShader m_shader;
+
+	// Render callback
+	static inline RenderCallback m_renderCallback = nullptr;
 
 public:
-	static auto initialize() -> Result {
+	static auto initialize(const RenderCallback &renderCB) -> Result {
+		m_renderCallback = renderCB;
+
 		// GLFW INITIALIZATION //
 		glfwSetErrorCallback(glfw_error_callback);
 		if (!glfwInit()) return Result(1, "Failed to initialize GLFW!");
@@ -226,70 +234,120 @@ public:
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 		glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
-		glfwWindowHint(GLFW_FOCUSED, GLFW_FALSE);
-		glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_FALSE);
-		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-		// glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
-		// glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
-		// glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
-		// glfwWindowHint(GLFW_MOUSE_PASSTHROUGH, GLFW_TRUE);
+		glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+		glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE);
+		glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
+		glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
+		glfwWindowHint(GLFW_MOUSE_PASSTHROUGH, GLFW_TRUE);
 
 		int xpos = 0, ypos = 0;
-		glfwGetMonitorPos(m_monitor, &xpos, &ypos);
-		glfwWindowHint(GLFW_POSITION_X, xpos);
+		// Find left-top most monitor
+		int monitor_count = 0;
+		const auto monitors = glfwGetMonitors(&monitor_count);
+		for (int i = 0; i < monitor_count; i++) {
+			int x, y;
+			glfwGetMonitorPos(monitors[i], &x, &y);
+			if (x < xpos || y < ypos) {
+				xpos = x;
+				ypos = y;
+			}
+		}
+
+		// Position upcoming window outside the left-top most monitor
+		glfwWindowHint(GLFW_POSITION_X, xpos + 2);
 		glfwWindowHint(GLFW_POSITION_Y, ypos);
 
 		// Main window
-		m_mainWindow = glfwCreateWindow(10, 10, "ChatNotifier", nullptr, nullptr);
-		if (!m_mainWindow) return Result(2, "Failed to create ChatNotifier window");
+		m_mainWindow = glfwCreateWindow(m_mode->width - 4, m_mode->height, "ChatNotifier Notifications",
+										nullptr, nullptr);
+		if (!m_mainWindow) return Result(2, "Failed to create ChatNotifier notifications window");
 
 		glfwMakeContextCurrent(m_mainWindow);
 		glfwSwapInterval(1); // V-Sync
 
-		// GL3W INITIALIZATION //
-		//if (gl3wInit()) return Result(3, "Failed to initialize GL3W");
-		//if (!gl3wIsSupported(3, 3)) return Result(4, "OpenGL 3.3 not supported");
+#ifdef _WIN32
+		// Hide from toolbar
+		/*const auto hwnd = glfwGetWin32Window(m_mainWindow);
+		auto ex_style = GetWindowLong(hwnd, GWL_EXSTYLE);
+		ex_style &= ~WS_EX_APPWINDOW;
+		ex_style |= WS_EX_TOOLWINDOW;
+		SetWindowLong(hwnd, GWL_EXSTYLE, ex_style);*/
+#endif
+
+		// GLAD INITIALIZATION //
+		const auto version = gladLoadGL(glfwGetProcAddress);
+		if (version == 0) return Result(3, "Failed to initialize GLAD");
 
 		// Print OpenGL version
-		//std::println("OpenGL Version: {}", get_gl_string(GL_VERSION));
+		std::println("OpenGL Version: {}.{}", GLAD_VERSION_MAJOR(version),
+					 GLAD_VERSION_MINOR(version));
+
+		// Create offscreen framebuffer
+		std::println("Creating offscreen framebuffer of size {}x{}", m_mode->width / 4, m_mode->height / 4);
+		m_offscreenFramebuffer = OpenGLOffscreenFramebuffer(m_mode->width / 4, m_mode->height / 4);
+
+		// Create quad
+		std::println("Creating fullscreen quad");
+		m_quad = OpenGLQuad(std::vector(quadVertices, quadVertices + sizeof(quadVertices) / sizeof(float)));
+
+		// Create shader
+		std::println("Creating fullscreen shader");
+		m_shader = OpenGLShader(R"(
+			#version 330 core
+			layout (location = 0) in vec2 aPos;
+			layout (location = 1) in vec2 aTexCoords;
+
+			out vec2 TexCoords;
+
+			void main() {
+				gl_Position = vec4(aPos, 0.0, 1.0);
+				TexCoords = aTexCoords;
+			}
+		)",
+								R"(
+			#version 330 core
+			out vec4 FragColor;
+
+			in vec2 TexCoords;
+
+			uniform sampler2D screenTexture;
+
+			void main() {
+				FragColor = texture(screenTexture, TexCoords);
+			}
+		)");
 
 		return Result();
 	}
 
 	static void cleanup() {
-		m_quads.clear();
-		m_shaders.clear();
-
+		// Clear OpenGL and destroy window
 		glfwMakeContextCurrent(nullptr);
 		glfwDestroyWindow(m_mainWindow);
 		glfwTerminate();
 	}
 
 	static void render() {
-		// Backup context and set
-		const auto ctx_backup = glfwGetCurrentContext();
-		glfwMakeContextCurrent(m_mainWindow);
-
-		// Enable blend
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		// Clear screen
+		// Render to offscreen framebuffer
+		m_offscreenFramebuffer.bind();
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
+		m_renderCallback();
+		m_offscreenFramebuffer.unbind();
 
-		for (auto &quad : m_quads)
-			quad.render(ShaderVariables{static_cast<float>(glfwGetTime()),
-										Vector2(m_mode->width, m_mode->height), 1.0f, 1.0f, 1.0f,
-										0.0f});
 
+		// Render the framebuffer as quad on to screen
+		m_shader.bind();
+		m_shader.set_uniform("screenTexture", 0);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, m_offscreenFramebuffer.get_texture());
+		m_quad.bind();
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		m_quad.unbind();
+		m_shader.unbind();
+
+		// Swap buffers
 		glfwSwapBuffers(m_mainWindow);
-
-		// Restore blend
-		glDisable(GL_BLEND);
-
-		// Restore context
-		glfwMakeContextCurrent(ctx_backup);
 	}
 
 	static auto get_main_window() -> GLFWwindow * { return m_mainWindow; }
@@ -297,11 +355,6 @@ public:
 	static auto get_mode() -> const GLFWvidmode * { return m_mode; }
 
 private:
-	// Method that provides better glGetString, returns const char* instead of GLubyte*
-	static auto get_gl_string(const GLenum name) -> const char * {
-		return reinterpret_cast<const char *>(glGetString(name));
-	}
-
 	// GLFW error callback using format
 	static void glfw_error_callback(int error, const char *description) {
 		// Ignore GLFW_FEATURE_UNAVAILABLE as they're expected with Wayland

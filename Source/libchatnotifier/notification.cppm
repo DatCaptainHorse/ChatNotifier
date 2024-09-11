@@ -4,6 +4,9 @@ module;
 #include <standard.hpp>
 #endif
 
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -14,6 +17,7 @@ import types;
 import common;
 import effect;
 import config;
+import opengl;
 
 // Class for notifications
 export class Notification {
@@ -68,24 +72,14 @@ public:
 		// Skip if lifetime is over
 		if (is_dead()) return;
 
-		const auto mainMonitor = ImGui::GetViewportPlatformMonitor(ImGui::GetMainViewport());
-		ImGui::SetNextWindowPos(mainMonitor->MainPos, ImGuiCond_Once);
-		ImGui::SetNextWindowSize(mainMonitor->MainSize, ImGuiCond_Once);
+		const auto mode = OpenGLHandler::get_mode();
+		const auto mode_size = ImVec2(mode->width - 8, mode->height);
+		ImGui::SetNextWindowSize(mode_size, ImGuiCond_Once);
+		ImGui::SetNextWindowPos(ImVec2(4, 0), ImGuiCond_Once);
 
 		ImGui::Begin("##notifWindow", nullptr,
 					 ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoBackground |
-						 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoFocusOnAppearing |
-						 ImGuiWindowFlags_NoDocking);
-
-		// Set transparency for window viewport
-		const auto viewport = ImGui::GetWindowViewport();
-		viewport->Flags |= ImGuiViewportFlags_TransparentClearColor;
-		viewport->Flags |= ImGuiViewportFlags_TopMost;
-		viewport->Flags |= ImGuiViewportFlags_NoInputs;
-		viewport->Flags |= ImGuiViewportFlags_NoFocusOnAppearing;
-		viewport->Flags |= ImGuiViewportFlags_NoFocusOnClick;
-		viewport->Flags |= ImGuiViewportFlags_NoTaskBarIcon;
-		viewport->Flags |= ImGuiViewportFlags_NoDecoration;
+						 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoFocusOnAppearing);
 
 		{
 			// General time variable

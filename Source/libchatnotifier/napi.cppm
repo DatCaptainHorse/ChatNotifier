@@ -11,7 +11,11 @@ module;
 #include <hv/requests.h>
 
 #define GLFW_INCLUDE_NONE
+#include <glad/gl.h>
 #include <GLFW/glfw3.h>
+
+#include <imgui/imgui_impl_glfw.hpp>
+#include <imgui/imgui_impl_glad.hpp>
 
 #include <napi.h>
 
@@ -125,7 +129,7 @@ namespace libchatnotifier {
 
 		main_runner.add_job_sync([&]() -> void {
 			std::println("OpenGLHandler initialize");
-			if (const auto res = OpenGLHandler::initialize(); !res) {
+			if (const auto res = OpenGLHandler::initialize(NotifierGUI::render); !res) {
 				print_error(res);
 				return;
 			}
@@ -169,8 +173,8 @@ namespace libchatnotifier {
 		while (!NotifierGUI::should_close()) {
 			// Poll events
 			glfwPollEvents();
-			// Update the GUI
-			NotifierGUI::render();
+			// Render
+			OpenGLHandler::render();
 			// Update the audio
 			AudioPlayer::update();
 			// Sleep for 5ms to lighten the load on the CPU
